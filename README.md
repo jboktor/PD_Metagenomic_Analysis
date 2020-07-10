@@ -8,8 +8,7 @@
 ## Table of Contents
 1. [Background](#Background)
 2. [Requirements]("#Requirements")
-3. [Set-up/Installation](#Set-up/Installation)
-4. [Workflow](#Workflow)
+3. [Workflow](#Workflow)
 
 ## Background
 Some text here on Parkinsons disease: Add Abstract
@@ -43,20 +42,41 @@ export PATH`
     . $HOME/.bashrc
 fi`
 
-
-## Set-up/Installation
-1. Download this repository and first run
-2. 
-
 ## Workflow:
 list of R-scripts to run in particular order
 
-1. First ordered list item
-2. Another item
+1. Set-up/Installation: Run configure.enviornment.R and ensure all packages load sucessfully, if any errors present themselves ensure proper version of R is loaded.
+2. PERMANOVA_Analysis.R -> PERMANOVA_Viz.R
+3. Beta_Diversity.R
+4. Alpha_Diversity.R
+5. MaAsLin2_Analysis.R -> MaAsLin2_QC.R
+6. Differential_Abundance_Viz_Taxa_Figure_2.R
+7. Differential_Abundance_Viz_Functional.R
+8. FlashWeave_input_prep.R
 
 ## License
 A short snippet describing the license (MIT, Apache etc)
+MIT License
 
-MIT © Yourname
+Copyright (c) 2020 jboktor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 
 Any questions contact: jboktor@caltech.edu
