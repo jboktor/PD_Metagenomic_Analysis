@@ -17,8 +17,7 @@ Some text here on Parkinsons disease: Add Abstract
 ## Requirements
 All software used for this analysis is open source and freely available to the public. 
 The majority of this analysis takes place in R-studio. Certain packages require an R version >= 3.6. 
-We recommend updated any R version below this prior to running this analysis to 4.0.1.
-If necessary returning to an older version of R studio following this analysis is simple. 
+We recommend updated any R version below this prior to running this analysis to 4.0.1. - "See Things Now"
 
 You may use the links below to download R and R-Studio:
 
@@ -54,6 +53,9 @@ list of R-scripts to run in particular order
 6. Differential_Abundance_Viz_Taxa_Figure_2.R
 7. Differential_Abundance_Viz_Functional.R
 8. FlashWeave_input_prep.R
+
+## Acknowledgements
+
 
 ## License
 A short snippet describing the license (MIT, Apache etc)
