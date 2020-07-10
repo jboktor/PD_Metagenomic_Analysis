@@ -39,7 +39,7 @@ We recommend downloading the binary from https://julialang.org/downloads/. Julia
 `PATH="/Applications/Julia-1.4.app/Contents/Resources/julia/bin/:${PATH}"
 export PATH`
 
-> This line updates edits in your .bashrc file
+> This line sources your .bashrc file (also add to .bash_profile)
 
 `if [ -f $HOME/.bashrc ]; then
     . $HOME/.bashrc
