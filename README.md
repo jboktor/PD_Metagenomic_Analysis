@@ -1,4 +1,4 @@
-# Metagenomic Analysis of the Parkinson's Disease Microbiome (In Construction)
+# Metagenomic Analysis of the Parkinson's Disease Microbiome (Under Construction)
 ### This repository recreates the shotgun metagenomic analysis presented in : paper link
 
 ***
@@ -29,14 +29,18 @@ html, CSS, and javascript, follow the intructions below to download the necessar
 
 1. Download [python](https://www.python.org/downloads/)
 2. Download [JupyterNotebook](https://jupyter.org/install)
-3. Download [Julia](https://julialang.org/)
+3. Download [Julia](https://julialang.org/) (see below)
 
-⋅⋅1. We recommend downloading the binary from https://julialang.org/downloads/. 
-⋅⋅2. Julia 1.0 or above are currently supported by FlashWeave.
-2. Update .bash_profile with the following (__BUT__ Replace quoted section with your own download location/version):
+We recommend downloading the binary from https://julialang.org/downloads/. Julia 1.0 or above are currently supported by FlashWeave.
+
+To call julia from the command line, add your downloaded path to your .bash_profile:
+Update .bash_profile with the following (__BUT__ Replace quoted section with your own download location/version):
+
+
 `PATH="/Applications/Julia-1.4.app/Contents/Resources/julia/bin/:${PATH}"
 export PATH`
-3. Update edits in your .bashrc file by adding the following command
+
+Update edits in your .bashrc file by adding the following command (also add to .bash_profile)
 `if [ -f $HOME/.bashrc ]; then
     . $HOME/.bashrc
 fi`
