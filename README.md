@@ -33,14 +33,14 @@ html, CSS, and javascript, follow the intructions below to download the necessar
 
 We recommend downloading the binary from https://julialang.org/downloads/. Julia 1.0 or above are currently supported by FlashWeave.
 
-To call julia from the command line, add your downloaded path to your .bash_profile:
-Update .bash_profile with the following (__BUT__ Replace quoted section with your own download location/version):
-
+> To call julia from the command line, add your downloaded path to your .bash_profile:
+> Update .bash_profile with the following (__BUT__ Replace quoted section with your own download location/version):
 
 `PATH="/Applications/Julia-1.4.app/Contents/Resources/julia/bin/:${PATH}"
 export PATH`
 
-Update edits in your .bashrc file by adding the following command (also add to .bash_profile)
+> This line updates edits in your .bashrc file
+
 `if [ -f $HOME/.bashrc ]; then
     . $HOME/.bashrc
 fi`
