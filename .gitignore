@@ -33,3 +33,4 @@ vignettes/*.pdf
 .RData
 .Ruserdata
 >>>>>>> First commit - uploading src and gitignore
+.DS_Store
