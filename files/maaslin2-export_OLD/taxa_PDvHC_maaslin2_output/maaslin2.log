@@ -1,0 +1,149 @@
+2020-06-03 17:43:28 INFO::Writing function arguments to log file
+2020-06-03 17:43:28 DEBUG::Function arguments
+2020-06-03 17:43:28 DEBUG::Output folder: ~/taxa_PDvHC_maaslin2_output
+2020-06-03 17:43:28 DEBUG::Min Abundance: 0.000000
+2020-06-03 17:43:28 DEBUG::Min Prevalence: 0.100000
+2020-06-03 17:43:28 DEBUG::Normalization: NONE
+2020-06-03 17:43:28 DEBUG::Transform: AST
+2020-06-03 17:43:28 DEBUG::Analysis method: LM
+2020-06-03 17:43:28 DEBUG::Max significance: 0.250000
+2020-06-03 17:43:28 DEBUG::Random effects: Paired
+2020-06-03 17:43:28 DEBUG::Fixed effects: description
+2020-06-03 17:43:28 DEBUG::Correction method: BH
+2020-06-03 17:43:28 DEBUG::Standardize: TRUE
+2020-06-03 17:43:28 DEBUG::Cores: 1
+2020-06-03 17:43:28 INFO::Verifying options selected are valid
+2020-06-03 17:43:28 INFO::Determining format of input files
+2020-06-03 17:43:28 INFO::Input format is data samples as columns and metadata samples as rows
+2020-06-03 17:43:28 DEBUG::Transformed data so samples are rows
+2020-06-03 17:43:28 DEBUG::A total of 58 samples were found in both the data and metadata
+2020-06-03 17:43:28 DEBUG::Reordering data/metadata to use same sample ordering
+2020-06-03 17:43:28 INFO::Formula for random effects: expr ~ (1 | Paired)
+2020-06-03 17:43:28 INFO::Formula for fixed effects: expr ~  description
+2020-06-03 17:43:28 INFO::Running selected normalization method: NONE
+2020-06-03 17:43:28 INFO::Filter data based on min abundance and min prevalence
+2020-06-03 17:43:28 INFO::Total samples in data: 58
+2020-06-03 17:43:28 INFO::Min samples required with min abundance for a feature not to be filtered: 5.800000
+2020-06-03 17:43:28 INFO::Total filtered features: 0
+2020-06-03 17:43:28 INFO::Filtered feature names:
+2020-06-03 17:43:28 INFO::Applying z-score to standardize continuous metadata
+2020-06-03 17:43:28 INFO::Running selected transform method: AST
+2020-06-03 17:43:28 INFO::Running selected analysis method: LM
+2020-06-03 17:43:28 INFO::Fitting model to feature number 1, s__Methanobrevibacter_smithii
+2020-06-03 17:43:28 INFO::Fitting model to feature number 2, s__Bifidobacterium_adolescentis
+2020-06-03 17:43:28 INFO::Fitting model to feature number 3, s__Bifidobacterium_longum
+2020-06-03 17:43:28 INFO::Fitting model to feature number 4, s__Adlercreutzia_equolifaciens
+2020-06-03 17:43:28 INFO::Fitting model to feature number 5, s__Collinsella_aerofaciens
+2020-06-03 17:43:28 INFO::Fitting model to feature number 6, s__Eggerthella_unclassified
+2020-06-03 17:43:28 INFO::Fitting model to feature number 7, s__Bacteroides_caccae
+2020-06-03 17:43:29 INFO::Fitting model to feature number 8, s__Bacteroides_cellulosilyticus
+2020-06-03 17:43:29 INFO::Fitting model to feature number 9, s__Bacteroides_dorei
+2020-06-03 17:43:29 INFO::Fitting model to feature number 10, s__Bacteroides_eggerthii
+2020-06-03 17:43:29 INFO::Fitting model to feature number 11, s__Bacteroides_faecis
+2020-06-03 17:43:29 INFO::Fitting model to feature number 12, s__Bacteroides_fragilis
+2020-06-03 17:43:29 INFO::Fitting model to feature number 13, s__Bacteroides_massiliensis
+2020-06-03 17:43:29 INFO::Fitting model to feature number 14, s__Bacteroides_nordii
+2020-06-03 17:43:29 INFO::Fitting model to feature number 15, s__Bacteroides_ovatus
+2020-06-03 17:43:29 INFO::Fitting model to feature number 16, s__Bacteroides_stercoris
+2020-06-03 17:43:29 INFO::Fitting model to feature number 17, s__Bacteroides_thetaiotaomicron
+2020-06-03 17:43:29 INFO::Fitting model to feature number 18, s__Bacteroides_uniformis
+2020-06-03 17:43:29 INFO::Fitting model to feature number 19, s__Bacteroides_vulgatus
+2020-06-03 17:43:29 INFO::Fitting model to feature number 20, s__Bacteroides_xylanisolvens
+2020-06-03 17:43:29 INFO::Fitting model to feature number 21, s__Bacteroidales_bacterium_ph8
+2020-06-03 17:43:29 INFO::Fitting model to feature number 22, s__Barnesiella_intestinihominis
+2020-06-03 17:43:29 INFO::Fitting model to feature number 23, s__Coprobacter_fastidiosus
+2020-06-03 17:43:29 INFO::Fitting model to feature number 24, s__Odoribacter_splanchnicus
+2020-06-03 17:43:30 INFO::Fitting model to feature number 25, s__Odoribacter_unclassified
+2020-06-03 17:43:30 INFO::Fitting model to feature number 26, s__Parabacteroides_distasonis
+2020-06-03 17:43:30 INFO::Fitting model to feature number 27, s__Parabacteroides_goldsteinii
+2020-06-03 17:43:30 INFO::Fitting model to feature number 28, s__Parabacteroides_merdae
+2020-06-03 17:43:30 INFO::Fitting model to feature number 29, s__Parabacteroides_unclassified
+2020-06-03 17:43:30 INFO::Fitting model to feature number 30, s__Paraprevotella_unclassified
+2020-06-03 17:43:30 INFO::Fitting model to feature number 31, s__Alistipes_finegoldii
+2020-06-03 17:43:30 INFO::Fitting model to feature number 32, s__Alistipes_indistinctus
+2020-06-03 17:43:30 INFO::Fitting model to feature number 33, s__Alistipes_onderdonkii
+2020-06-03 17:43:30 INFO::Fitting model to feature number 34, s__Alistipes_putredinis
+2020-06-03 17:43:30 INFO::Fitting model to feature number 35, s__Alistipes_senegalensis
+2020-06-03 17:43:30 INFO::Fitting model to feature number 36, s__Alistipes_shahii
+2020-06-03 17:43:30 INFO::Fitting model to feature number 37, s__Streptococcus_parasanguinis
+2020-06-03 17:43:30 INFO::Fitting model to feature number 38, s__Streptococcus_salivarius
+2020-06-03 17:43:30 INFO::Fitting model to feature number 39, s__Streptococcus_thermophilus
+2020-06-03 17:43:30 INFO::Fitting model to feature number 40, s__Clostridium_asparagiforme
+2020-06-03 17:43:31 INFO::Fitting model to feature number 41, s__Clostridium_bolteae
+2020-06-03 17:43:31 INFO::Fitting model to feature number 42, s__Clostridium_hathewayi
+2020-06-03 17:43:31 INFO::Fitting model to feature number 43, s__Clostridium_leptum
+2020-06-03 17:43:31 INFO::Fitting model to feature number 44, s__Clostridium_symbiosum
+2020-06-03 17:43:31 INFO::Fitting model to feature number 45, s__Flavonifractor_plautii
+2020-06-03 17:43:31 INFO::Fitting model to feature number 46, s__Eubacterium_eligens
+2020-06-03 17:43:31 INFO::Fitting model to feature number 47, s__Eubacterium_hallii
+2020-06-03 17:43:31 INFO::Fitting model to feature number 48, s__Eubacterium_ramulus
+2020-06-03 17:43:31 INFO::Fitting model to feature number 49, s__Eubacterium_rectale
+2020-06-03 17:43:31 INFO::Fitting model to feature number 50, s__Eubacterium_siraeum
+2020-06-03 17:43:31 INFO::Fitting model to feature number 51, s__Eubacterium_ventriosum
+2020-06-03 17:43:31 INFO::Fitting model to feature number 52, s__Anaerostipes_hadrus
+2020-06-03 17:43:31 INFO::Fitting model to feature number 53, s__Ruminococcus_gnavus
+2020-06-03 17:43:31 INFO::Fitting model to feature number 54, s__Ruminococcus_obeum
+2020-06-03 17:43:31 INFO::Fitting model to feature number 55, s__Ruminococcus_torques
+2020-06-03 17:43:31 INFO::Fitting model to feature number 56, s__Coprococcus_catus
+2020-06-03 17:43:31 INFO::Fitting model to feature number 57, s__Coprococcus_comes
+2020-06-03 17:43:32 INFO::Fitting model to feature number 58, s__Dorea_formicigenerans
+2020-06-03 17:43:32 INFO::Fitting model to feature number 59, s__Dorea_longicatena
+2020-06-03 17:43:32 INFO::Fitting model to feature number 60, s__Dorea_unclassified
+2020-06-03 17:43:32 INFO::Fitting model to feature number 61, s__Lachnospiraceae_bacterium_1_1_57FAA
+2020-06-03 17:43:32 INFO::Fitting model to feature number 62, s__Lachnospiraceae_bacterium_3_1_46FAA
+2020-06-03 17:43:32 INFO::Fitting model to feature number 63, s__Lachnospiraceae_bacterium_3_1_57FAA_CT1
+2020-06-03 17:43:32 INFO::Fitting model to feature number 64, s__Lachnospiraceae_bacterium_5_1_63FAA
+2020-06-03 17:43:32 INFO::Fitting model to feature number 65, s__Lachnospiraceae_bacterium_7_1_58FAA
+2020-06-03 17:43:32 INFO::Fitting model to feature number 66, s__Lachnospiraceae_bacterium_8_1_57FAA
+2020-06-03 17:43:32 INFO::Fitting model to feature number 67, s__Roseburia_hominis
+2020-06-03 17:43:32 INFO::Fitting model to feature number 68, s__Roseburia_intestinalis
+2020-06-03 17:43:32 INFO::Fitting model to feature number 69, s__Roseburia_inulinivorans
+2020-06-03 17:43:32 INFO::Fitting model to feature number 70, s__Roseburia_unclassified
+2020-06-03 17:43:32 INFO::Fitting model to feature number 71, s__Oscillibacter_unclassified
+2020-06-03 17:43:32 INFO::Fitting model to feature number 72, s__Clostridium_bartlettii
+2020-06-03 17:43:32 INFO::Fitting model to feature number 73, s__Peptostreptococcaceae_noname_unclassified
+2020-06-03 17:43:32 INFO::Fitting model to feature number 74, s__Anaerotruncus_colihominis
+2020-06-03 17:43:33 INFO::Fitting model to feature number 75, s__Anaerotruncus_unclassified
+2020-06-03 17:43:33 INFO::Fitting model to feature number 76, s__Faecalibacterium_prausnitzii
+2020-06-03 17:43:33 INFO::Fitting model to feature number 77, s__Ruminococcaceae_bacterium_D16
+2020-06-03 17:43:33 INFO::Fitting model to feature number 78, s__Ruminococcus_bromii
+2020-06-03 17:43:33 INFO::Fitting model to feature number 79, s__Ruminococcus_callidus
+2020-06-03 17:43:33 INFO::Fitting model to feature number 80, s__Ruminococcus_lactaris
+2020-06-03 17:43:33 INFO::Fitting model to feature number 81, s__Subdoligranulum_unclassified
+2020-06-03 17:43:33 INFO::Fitting model to feature number 82, s__Coprobacillus_unclassified
+2020-06-03 17:43:33 INFO::Fitting model to feature number 83, s__Dialister_invisus
+2020-06-03 17:43:33 INFO::Fitting model to feature number 84, s__Veillonella_parvula
+2020-06-03 17:43:33 INFO::Fitting model to feature number 85, s__Veillonella_unclassified
+2020-06-03 17:43:33 INFO::Fitting model to feature number 86, s__Burkholderiales_bacterium_1_1_47
+2020-06-03 17:43:33 INFO::Fitting model to feature number 87, s__Oxalobacter_formigenes
+2020-06-03 17:43:33 INFO::Fitting model to feature number 88, s__Parasutterella_excrementihominis
+2020-06-03 17:43:33 INFO::Fitting model to feature number 89, s__Sutterella_wadsworthensis
+2020-06-03 17:43:33 INFO::Fitting model to feature number 90, s__Bilophila_unclassified
+2020-06-03 17:43:33 INFO::Fitting model to feature number 91, s__Bilophila_wadsworthia
+2020-06-03 17:43:34 INFO::Fitting model to feature number 92, s__Desulfovibrio_desulfuricans
+2020-06-03 17:43:34 INFO::Fitting model to feature number 93, s__Escherichia_coli
+2020-06-03 17:43:34 INFO::Fitting model to feature number 94, s__Escherichia_unclassified
+2020-06-03 17:43:34 INFO::Fitting model to feature number 95, s__Haemophilus_parainfluenzae
+2020-06-03 17:43:34 INFO::Fitting model to feature number 96, s__Akkermansia_muciniphila
+2020-06-03 17:43:34 INFO::Fitting model to feature number 97, s__C2likevirus_unclassified
+2020-06-03 17:43:34 INFO::Counting total values for each feature
+2020-06-03 17:43:34 INFO::Writing residuals to file ~/taxa_PDvHC_maaslin2_output/residuals.rds
+2020-06-03 17:43:34 INFO::Writing all results to file (ordered by increasing q-values): ~/taxa_PDvHC_maaslin2_output/all_results.tsv
+2020-06-03 17:43:34 INFO::Writing the significant results (those which are less than or equal to the threshold of 0.250000 ) to file (ordered by increasing q-values): ~/taxa_PDvHC_maaslin2_output/significant_results.tsv
+2020-06-03 17:43:34 INFO::Writing heatmap of significant results to file: ~/taxa_PDvHC_maaslin2_output/heatmap.pdf
+2020-06-03 17:43:34 INFO::Writing association plots (one for each significant association) to output folder: ~/taxa_PDvHC_maaslin2_output
+2020-06-03 17:43:34 INFO::Plotting associations from most to least significant, grouped by metadata
+2020-06-03 17:43:34 INFO::Plotting data for metadata number 1, description
+2020-06-03 17:43:34 INFO::Creating boxplot for catgorical data, description vs s__Eubacterium_rectale
+2020-06-03 17:43:34 INFO::Creating boxplot for catgorical data, description vs s__Bacteroides_stercoris
+2020-06-03 17:43:34 INFO::Creating boxplot for catgorical data, description vs s__Roseburia_inulinivorans
+2020-06-03 17:43:34 INFO::Creating boxplot for catgorical data, description vs s__Bifidobacterium_adolescentis
+2020-06-03 17:43:34 INFO::Creating boxplot for catgorical data, description vs s__Eubacterium_siraeum
+2020-06-03 17:43:35 INFO::Creating boxplot for catgorical data, description vs s__Bifidobacterium_longum
+2020-06-03 17:43:35 INFO::Creating boxplot for catgorical data, description vs s__Bacteroides_massiliensis
+2020-06-03 17:43:35 INFO::Creating boxplot for catgorical data, description vs s__Bacteroides_xylanisolvens
+2020-06-03 17:43:35 INFO::Creating boxplot for catgorical data, description vs s__Clostridium_asparagiforme
+2020-06-03 17:43:35 INFO::Creating boxplot for catgorical data, description vs s__Lachnospiraceae_bacterium_3_1_57FAA_CT1
+2020-06-03 17:43:35 INFO::Creating boxplot for catgorical data, description vs s__Anaerotruncus_colihominis
+2020-06-03 17:43:36 INFO::Creating boxplot for catgorical data, description vs s__Escherichia_unclassified
+2020-06-03 17:43:36 INFO::Creating boxplot for catgorical data, description vs s__Akkermansia_muciniphila
