@@ -46,6 +46,7 @@ fi`
 list of R-scripts to run in particular order
 
 1. Set-up/Installation: Run configure.enviornment.R and ensure all packages load sucessfully, if any errors present themselves ensure proper version of R is loaded.
+2. create_phyloseq_obj.R
 2. PERMANOVA_Analysis.R -> PERMANOVA_Viz.R
 3. Beta_Diversity.R
 4. Alpha_Diversity.R
