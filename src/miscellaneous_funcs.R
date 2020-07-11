@@ -79,7 +79,7 @@ distribution_sanity <- function(df) {
     labs(y = "ECDF") +
     theme(legend.position = c(0.9, 0.5))
   
-  plot_grid(histo_plot,ecdf_plot, ncol = 1)
+  plot_grid(histo_plot, ecdf_plot, ncol = 1, align="v")
 }
 
 
