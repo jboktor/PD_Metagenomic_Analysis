@@ -13,7 +13,7 @@
 5. [PERMANOVA](#PERMANOVA)
 6. [Community_Composition](#Community_Composition)
 7. [Univariate_Statistical_Analysis](#Univariate_Statistical_Analysis)
-8. [Probablistic_Graphical_Models](#Probablistic_Graphical_Models)
+8. [Probabilistic_Graphical_Models](#Probabilistic_Graphical_Models)
 9.  [Gut_Metabolic_and_Gut_Brain_Modules_GMMs_GBMs](#Gut_Metabolic_and_Gut_Brain_Modules_GMMs_GBMs)
 10. [Virulence_Analysis](#Virulence_Analysis)
 11. [Biomarker_Selection_and_Validation](#Biomarker_Selection_and_Validation)
@@ -64,9 +64,9 @@ R-scripts may be run by opening each individually in R-studio, selecting all, an
 `Rscript name_of_rscript_to_run.R`
 
 ### Set-up/Installation: 
-Run __configure.enviornment.R__ and ensure all packages load sucessfully, if any errors present themselves ensure you are using the proper version of R (4.0.1. - "See Things Now").
+Run: __configure.enviornment.R__ and ensure all packages load sucessfully, if any errors present themselves ensure you are using the proper version of R (4.0.1. - "See Things Now").
 
-create_phyloseq_obj.R
+Run:__create_phyloseq_obj.R__
 
 ### PERMANOVA
 This analysis sources PERMANOVA_Analysis.R which may take a few minutes to complete with permutation = 9,999. To complete in a timely manner you may reduce the number of permuations within the PERMANOVA_Analysis.R script; however, this will slightly alter some numbers downstream.
@@ -93,8 +93,9 @@ __Differential_Abundance_Viz_Taxa_Figure_2.R__
 Requires some manual input: To vizualize a particular dataset of interest - replace name of Robj in section of script titled (asdf) (see table above) (NOTE TO SELF: May be best to run this analysis with command line input & instruct users to input a tag that fills in Robj.
 __Differential_Abundance_Viz_Functional.R__ 
 
-### Probablistic_Graphical_Models
-This analysis requires multiple platforms, run the following script in R to prep the necessary input tables for FlashWeave as well as for merging data downstream with metadata. 
+### Probabilistic_Graphical_Models
+This analysis requires multiple platforms, run the following script in R to prep the necessary input tables for 
+[FlashWeave](#https://github.com/meringlab/FlashWeave.jl.git) as well as for merging data downstream with metadata. 
 
 __FlashWeave_input_prep.R__
 
