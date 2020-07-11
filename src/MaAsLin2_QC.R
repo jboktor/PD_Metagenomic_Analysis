@@ -2,7 +2,7 @@
 
 library(ggplot2); library(tidyverse); library(readxl);library(dplyr); library(ggrepel);library(grid);
 library(gridExtra);library(reshape2);library(ggdendro);library(plyr);library(fastcluster);library(dendextend);
-library(grid);library(devtools);library(RColorBrewer);library(ggfortify);library(vegan);library(vegan3d);library(MASS);
+library(grid);library(devtools);library(RColorBrewer);library(ggfortify);library(vegan);library(MASS);
 library(compositions);library(zCompositions);library(phyloseq);library(gplots);library(ape);library(lme4);library(phangorn);
 library(plotly);library(VennDiagram);library(ggvegan);library(Biobase);library(BiocInstaller);library(viridis);
 library("foreach"); packageVersion("foreach");library("doParallel"); packageVersion("doParallel");library(jakR);
@@ -13,6 +13,13 @@ library(scales)
 # Get Data
 load("Metaphlan2_PhyloseqObj.RData")
 taxa_names(dat) <- gsub("s__", "", taxa_names(dat))
+
+# Implement new FUNC:
+# A <- dat %>% transform("compositional") %>%
+#   abundances() 
+# asin(sqrt(A)) %>% data.frame() %>% 
+#   distribution_sanity()
+
 
 ############# data prep ############# 
 # PD v PC
