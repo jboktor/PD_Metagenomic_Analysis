@@ -70,7 +70,7 @@ distribution_sanity <- function(df) {
   
   histo_plot <- ggplot(abund.melt, aes(x=value, fill = group), alpha = 0.4) + 
     theme_minimal() +
-    geom_histogram(color = "black", position="dodge") +
+    geom_histogram(color = "black", position="dodge", boundary = 0) +
     theme(axis.title.x = element_blank(),
           legend.position = c(0.9, 0.5))
   
