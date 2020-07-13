@@ -60,8 +60,8 @@ stop_quietly <- function() {
 distribution_sanity <- function(df) {
   
   ###' input an abundance table and displays
-  ###' a histogram and ECDF distribution of data
-  ###' - can specify if both or only one plot is desired
+  ###' a histogram and ECDF distribution of data 
+  ###' colored by donor group
   
   abund.melt <- melt(df)
   abund.melt <- 
@@ -81,6 +81,44 @@ distribution_sanity <- function(df) {
   
   plot_grid(histo_plot, ecdf_plot, ncol = 1, align="v")
 }
+
+
+############################################################################################################
+################################  Functions to adjust feature names  ########################################
+############################################################################################################
+
+
+prep_species_names <- function(phylo_obj){
+  taxa_names(phylo_obj) <- gsub("s__", "", taxa_names(phylo_obj))
+  return(features)
+}
+
+prep_pathway_names <- function(phylo_obj){
+  features <- paste0("PATHWAY_", taxa_names(phylo_obj))
+  features <- gsub(":", ".", features)
+  features <- gsub("\\|", ".", features)
+  features <- gsub(" ", "_", features)
+  features <- gsub("-", "_", features)
+  return(features)
+}
+prep_enzyme_names <- function(phylo_obj){
+  features <- paste0("ENZYME_", taxa_names(phylo_obj))
+  features <- gsub(":", ".", features)
+  features <- gsub("\\|", ".", features)
+  features <- gsub(" ", "_", features)
+  features <- gsub("-", "_", features)
+  return(features)
+}
+prep_ko_names <- function(phylo_obj){
+  features <- taxa_names(phylo_obj)
+  features <- gsub(":", ".", features)
+  features <- gsub("\\|", ".", features)
+  features <- gsub(" ", "_", features)
+  features <- gsub("-", "_", features)
+  return(features)
+}
+
+
 
 
 
