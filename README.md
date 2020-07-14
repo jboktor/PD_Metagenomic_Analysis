@@ -10,7 +10,7 @@
 2. [Requirements]("#Requirements")
 3. [Workflow](#Workflow)
 4. [Setup/Installation](#Set-up/Installation)
-5. [PERMANOVA](#PERMANOVA)
+5. [Metadata_Explained_Microbial_Variance](#Metadata_Explained_Microbial_Variance)
 6. [Community_Composition](#Community_Composition)
 7. [Multivariate_Statistical_Linear_Models](#Multivariate_Statistical_Linear_Models)
 8. [Probabilistic_Graphical_Models](#Probabilistic_Graphical_Models)
@@ -65,8 +65,8 @@ Run: __configure.enviornment.R__ and ensure all packages load sucessfully, if an
 
 Run:__create_phyloseq_obj.R__
 
-### PERMANOVA
-This analysis sources PERMANOVA_Analysis.R which may take a few minutes to complete with permutation = 9,999. To complete in a timely manner you may reduce the number of permuations within the PERMANOVA_Analysis.R script; however, this will slightly alter some numbers downstream.
+### Metadata_Explained_Microbial_Variance
+This analysis sources PERMANOVA_Analysis.R which may take a few minutes to complete with permutations = 9,999. To complete in a timely manner you may reduce the number of permuations within the PERMANOVA_Analysis.R script; however, this will slightly alter some numbers downstream.
 
 Run: __PERMANOVA_Viz.R__
 
