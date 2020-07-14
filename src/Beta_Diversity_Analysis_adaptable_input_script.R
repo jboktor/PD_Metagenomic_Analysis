@@ -9,23 +9,23 @@ library(FSA);library(ggpubr);library(ggsci);library(microbiome);library(ggridges
 rm(list = ls())
 ####### Load PhyloSeq objects  ####### 
 source("src/load_phyloseq_obj.R")
+source("src/miscellaneous_funcs.R")
 
 x <- c(dat, dat.path, dat.ec, dat.KOs.all)
 z <- c("species", "pathways", "enzymes", "genes")
 
-# ### Distribution Sanity Check - CLR
-# for (i in x){
-#   print(i)
-#   # print(x[[1]])
-#   obj <- microbiome::transform(i, "compositional") # transforms species abundance table as (x/sum(x))
-#   obj_clr <- microbiome::transform(i, "clr") # transforms species abundance table as (x/geometric-Mean(x)) # Allows for variable independence from Sample total
-#   ab <- abundances(obj) %>% t() %>% as.data.frame.matrix()
-#   abm <- melt(ab)
-#   plot(histogram(abm$value))
-#   ab <- abundances(obj_clr) %>% t() %>% as.data.frame.matrix()
-#   abm <- melt(ab)
-#   plot(histogram(abm$value))
-# }
+
+### Distribution Sanity Check - CLR
+for (i in x){
+  print(i)
+  
+  A <- i %>% transform("compositional") %>%
+    transform("clr") %>%
+    abundances() %>% data.frame()
+  
+  plot(distribution_sanity(A))
+}
+
 
 
 #################################   Aitchisons PCoA/Ridgeline/Violin Plots Loop (Species, Pathways, Enzymes, Genes-KOs)   ################################# 
