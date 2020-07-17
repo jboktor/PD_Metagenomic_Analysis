@@ -100,8 +100,8 @@ Note that this script requires some manual input: To vizualize a particular data
 
 ### Probabilistic_Graphical_Models
 This analysis requires multiple platforms, run the following script in Rstudio to prep the necessary input tables and metadata for 
-[FlashWeave](#https://github.com/meringlab/FlashWeave.jl.git) analysis and vizualization. Flashweave analysis takes place at the commandline,
-while vizualization uses D3.js javascript and html within a Jupyter notebook.
+[FlashWeave](#https://github.com/meringlab/FlashWeave.jl.git) analysis and vizualization. Flashweave analysis takes place at the command-line,
+while vizualization uses D3.js within a Jupyter notebook.
 
 __FlashWeave_input_prep.R__
 
