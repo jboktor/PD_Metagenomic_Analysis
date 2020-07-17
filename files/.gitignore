@@ -9,3 +9,8 @@ Rxns.slim_PhyloseqObj.RData
 Rxns_PhyloseqObj.RData
 InfoGOs.slim_PhyloseqObj.RData
 InfoGOs_PhyloseqObj.RData
+genefamilies_relab_rescaled_Eggnog.tsv
+genefamilies_relab_rescaled_GO.tsv
+genefamilies_relab_rescaled_Infogo.tsv
+genefamilies_relab_rescaled_Pfam.tsv
+genefamilies_relab_rescaled_Rxn.tsv
