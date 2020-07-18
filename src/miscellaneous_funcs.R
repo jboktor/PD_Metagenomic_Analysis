@@ -118,9 +118,16 @@ prep_ko_names <- function(phylo_obj){
   return(features)
 }
 
+############################################################################################################
+
+group_col_from_ids <- function(df, ids){
+  df <- mutate(df, group = if_else(grepl("HC", ids), "HC",
+                                   if_else(grepl("PC", ids), "PC","PD")))
+  return(df)
+}
 
 
-
+############################################################################################################
 
 
 
