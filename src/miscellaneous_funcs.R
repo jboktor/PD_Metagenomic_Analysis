@@ -129,5 +129,27 @@ group_col_from_ids <- function(df, ids){
 
 ############################################################################################################
 
+boxplot_all <- function(df, x, y, cols, title, ylabel){
+  
+  ###' Basic all group boxplot function
+  
+  df$x <- factor(df$x, levels = c("HC", "PD","PC") )
+  
+  set.seed(123)
+  ggplot(data=df, aes(x=x, y=y)) +
+    geom_boxplot(aes(color = x), outlier.alpha = 0, width = 0.9) +
+    geom_point(aes(fill = x), position = position_jitterdodge(jitter.width = 1), 
+               shape=21, size=1.5, alpha = 0.8) +
+    theme_minimal() +
+    ggtitle(title) +
+    labs(y = ylabel) +
+    scale_color_manual(values = cols, name ="Group") +
+    scale_fill_manual(values = cols, name ="Group") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.title.x = element_blank(),
+          panel.grid.major.y = element_blank())
+  
+}
 
 
+############################################################################################################
