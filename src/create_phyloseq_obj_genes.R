@@ -32,9 +32,9 @@ build.pfams <- function(strat = F){
   print(dat.Pfams.slim)
   save(dat.Pfams.slim, file = "files/Pfams.slim_PhyloseqObj.RData")
   
-  if (strat == F){
-    assign("dat.Pfams.slim", dat.Pfams.slim, envir = .GlobalEnv)
-  } else if (strat == T){
+  assign("dat.Pfams.slim", dat.Pfams.slim, envir = .GlobalEnv)
+  
+  if (strat == T){
     assign("dat.Pfams", dat.Pfams, envir = .GlobalEnv)
   }
   
@@ -63,10 +63,10 @@ build.eggnogs <- function(strat = F) {
   dat.Eggnogs.slim <- phyloseq(my_Pfam.slim.ab_table, my_sample_data)
   print(dat.Eggnogs.slim)
   save(dat.Eggnogs.slim, file = "files/Eggnogs.slim_PhyloseqObj.RData")
+  
+  assign("dat.Eggnogs.slim", dat.Eggnogs.slim, envir = .GlobalEnv)
 
-  if (strat == F){
-    assign("dat.Eggnogs.slim", dat.Eggnogs.slim, envir = .GlobalEnv)
-  } else if (strat == T){
+  if (strat == T){
     assign("dat.Eggnogs", dat.Eggnogs, envir = .GlobalEnv)
   }
 }
@@ -95,9 +95,9 @@ build.GOs <- function(strat = F) {
   print(dat.GOs.slim)
   save(dat.GOs.slim, file = "files/GOs.slim_PhyloseqObj.RData")
 
-  if (strat == F){
-    assign("dat.GOs.slim", dat.GOs.slim, envir = .GlobalEnv)
-  } else if (strat == T){
+  assign("dat.GOs.slim", dat.GOs.slim, envir = .GlobalEnv)
+  
+  if (strat == T){
     assign("dat.GOs", dat.GOs, envir = .GlobalEnv)
   }
 }
@@ -126,9 +126,9 @@ build.Rxns <- function(strat = F) {
   print(dat.Rxns.slim)
   save(dat.Rxns.slim, file = "files/Rxns.slim_PhyloseqObj.RData")
 
-  if (strat == F){
-    assign("dat.Rxns.slim", dat.Rxns.slim, envir = .GlobalEnv)
-  } else if (strat == T){
+  assign("dat.Rxns.slim", dat.Rxns.slim, envir = .GlobalEnv)
+  
+  if (strat == T){
     assign("dat.Rxns", dat.Rxns, envir = .GlobalEnv)
   }
   
@@ -158,9 +158,9 @@ build.InfoGOs <- function(strat = F) {
   print(dat.InfoGOs.slim)
   save(dat.InfoGOs.slim, file = "files/InfoGOs.slim_PhyloseqObj.RData")
 
-  if (strat == F){
-    assign("dat.InfoGOs.slim", dat.InfoGOs.slim, envir = .GlobalEnv)
-  } else if (strat == T){
+  assign("dat.InfoGOs.slim", dat.InfoGOs.slim, envir = .GlobalEnv)
+  
+  if (strat == T){
     assign("dat.InfoGOs", dat.InfoGOs, envir = .GlobalEnv)
   }
 }
