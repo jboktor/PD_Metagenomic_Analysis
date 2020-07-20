@@ -23,10 +23,12 @@ lev <- "KOs.slim"
 ################################################################################# 
 
 ## Color Schemes
-# cols.pdpc <- c("PD"= "#ffbb78", "PC" = "#ff7f0e")
-# cols.pdhc <- c("PD"= "#aec7e8", "HC" = "#1f77b4")
 cols.pdpc <- c("PD"= "#bfbfbf", "PC" = "#ed7d31")
 cols.pdhc <- c("PD"= "#bfbfbf", "HC" = "#5b9bd5")
+# Rims
+cols.pdpc.rim <- c("PD"= "#999999", "PC" = "#ed4e31")
+cols.pdhc.rim <- c("PD"= "#999999", "HC" = "#5b7dd5")
+
 
 # To protect against row/colname errors 
 if (lev == "Pathways"| lev == "Pathways.slim") {

@@ -168,7 +168,7 @@ boxplot_phylobars <- function(inpt.phylo, sigvals, tile.cols){
     geom_tile() +
     scale_fill_manual(values = cut_colors, name = "Phylum")
   
-  Legends <- plot_grid(get_legend(Phylum_legend))
+  Legends <- cowplot::plot_grid(get_legend(Phylum_legend))
   
   products <- list("Bars" = full_plot, "Legends" = Legends, "Axis.order" = unique(phylo.plot$Species))
   
@@ -208,13 +208,15 @@ generalized_fold_change <- function(pd_abundance, ctrl_abundances){
 
 gfc_plot <- function(df, manual_colors, alfa = 0.5){
   ######' Generalized Fold Change (gFC) BarPlot ######
-  p <- ggplot() +
-    geom_col(data=df, aes(x=gFC, y= feature,  fill = direction), 
-             position = "dodge", width = 0.6, alpha = alfa) +
+  p <- ggplot(data=df, aes(x=gFC, y= feature, fill = direction)) +
+    geom_point(aes(fill=direction), shape=21, size=3, alpha = alfa) +
+    geom_segment(aes(x=0, xend=gFC, y=feature, yend=feature, color=direction)) +
     theme_minimal() +
-    labs(x="Generalized Fold Change") +
-    ggtitle("Fold Change") +
+    xlim(-max(abs(df$gFC)), max(abs(df$gFC))) +
+    labs(x="Average Difference") +
+    ggtitle("Generalized Fold Change") +
     scale_fill_manual(values = manual_colors, name ="Group") +
+    scale_color_manual(values = manual_colors, name ="Group") +
     theme(plot.title = element_text(hjust = 0.5),
           axis.title.y = element_blank(),
           panel.grid.major.y = element_blank())
@@ -247,7 +249,7 @@ daf_boxplot_sigvalues <- function(sigplot.df, abund.input){
   
   sig.labs <- c()
   for (i in sigplot.df.QVAL$value){
-    sig.labs <- c(sig.labs, sig_mapper(i, shh = F, porq = "q"))
+    sig.labs <- c(sig.labs, sig_mapper(i, porq = "q", symbols = F))
   }
   sigplot.df.QVAL$sig.labels <- sig.labs
   sigplot.df.QVAL <- sigplot.df.QVAL %>% dplyr::select(feature, sig.labels) %>% 
@@ -260,18 +262,20 @@ daf_boxplot_sigvalues <- function(sigplot.df, abund.input){
 
 ############################################################################################################
 
-daf_boxplots <- function(df, manual_colors, alfa = 0.5){
+daf_boxplots <- function(df, fill_cols, alfa = 0.5){
   
   set.seed(123)
   p <- ggplot(data=df, aes(x=value, y= Var2)) +
-    geom_boxplot(aes(fill = group), alpha = alfa, outlier.alpha = 0, width = 0.8) +
-    geom_point(aes(fill=group), position = position_jitterdodge(jitter.width = .2), shape=21, size=1, alpha = 0.6) +
+    # geom_boxplot(aes(fill = group), alpha = alfa, outlier.alpha = 0, width = 0.8) +
+    geom_boxplot(aes(color = group), alpha = alfa, outlier.alpha = 0, width = 0.8) +
+    geom_point(aes(fill=group, color=group), position = position_jitterdodge(jitter.width = .2), shape=21, size=1, alpha = 0.9) +
     theme_minimal() +
     ggtitle(paste0("Differential Abundance: ", lev)) +
     geom_text(aes(x= max(value) + max(value)*0.15, 
                   y=Var2, label = sig.labels), size = 4, check_overlap = TRUE) +
     labs(x = "Abundance") +
-    scale_fill_manual(values = manual_colors, name ="Group") +
+    scale_fill_manual(values = fill_cols, name ="Group") +
+    scale_color_manual(values = fill_cols, name ="Group") +
     theme(plot.title = element_text(hjust = 0.5),
           axis.title.y = element_blank(),
           panel.grid.major.y = element_blank())

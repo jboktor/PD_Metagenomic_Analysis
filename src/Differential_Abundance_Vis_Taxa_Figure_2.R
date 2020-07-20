@@ -1,13 +1,6 @@
 ### Figure 2) Differentially Abundant Taxa
 # Differential Abundance of Features Script
 
-library(ggplot2); library(tidyverse); library(readxl);library(dplyr); library(ggrepel);library(grid);
-library(gridExtra);library(reshape2);library(plyr);library(grid);library(devtools);library(RColorBrewer);
-library(ggfortify);library(vegan);library(MASS);library(compositions);library(zCompositions);library(phyloseq);
-library(Biobase);library(viridis);library("foreach");library("doParallel");library(ggbeeswarm);
-library(FSA);library(ggpubr);library(ggsci);library(microbiome);library(ggridges);library(future);library(cowplot);
-library(ggthemes)
-
 rm(list = ls())
 
 ######## Load Data & functions
@@ -26,10 +19,11 @@ dat_obj <- microbiome::transform(LEV, "compositional")
 ## ArcSinSqrt() Transformation
 otu_table(dat_obj) <- asin(sqrt(otu_table(dat_obj)))
 ## Color Schemes
-# cols.pdpc <- c("PD"= "#ffbb78", "PC" = "#ff7f0e")
-# cols.pdhc <- c("PD"= "#aec7e8", "HC" = "#1f77b4")
 cols.pdpc <- c("PD"= "#bfbfbf", "PC" = "#ed7d31")
 cols.pdhc <- c("PD"= "#bfbfbf", "HC" = "#5b9bd5")
+# Rims
+cols.pdpc.rim <- c("PD"= "#999999", "PC" = "#ed4e31")
+cols.pdhc.rim <- c("PD"= "#999999", "HC" = "#5b7dd5")
 
 ############# data prep ############# 
 # PD v PC
@@ -78,9 +72,8 @@ abun.pdhc.inpt.phylo <- taxa_genus_phlyum_annotation(dat, abun.pdhc.filtered$spe
 ## Create BarTile Color Palette - Manual process 
 all.phylo <- rbind(abun.pdpc.inpt.phylo, abun.pdhc.inpt.phylo)
 unique(all.phylo$Phylum)
-phylum.cols <- c("Actinobacteria" = "#d62728", "Firmicutes" = "#a6cee3",  "Bacteroidetes" = "#2CA02C")
+phylum.cols <- c("Actinobacteria" = "#d62728", "Firmicutes" = "#a6cee3",  "Bacteroidetes" = "#2CA02C", "Proteobacteria" = "#6a3d9a")
 tile.cols <- phylum.cols
-
 
 ######################################################################## 
 ##########################    PD v PC Plots   ##########################
@@ -160,7 +153,7 @@ PDovrHC.BP <- PDovrHC
 PDovrHC.BP <- mutate(PDovrHC.BP, direction = if_else(PDovrHC.BP$gFC > 0, "PD",
                      if_else(PDovrHC.BP$gFC < 0, "HC",  "error")))
 PDovrHC.BP$feature <- factor(PDovrHC.BP$feature, levels = rev(phylo.hc$Axis.order)) 
-h0 <- gfc_plot(PDovrHC.BP, cols.pdhc, alfa = 0.8)
+h0 <- gfc_plot(PDovrHC.BP, cols.pdhc, alfa = 1)
 
 ###### Significance Plot ###### 
 sigplot.df.pdhc <- dplyr::select(Maas.pd.hc.sig, c("feature", "pval", "qval")) %>%  melt()
@@ -207,7 +200,7 @@ h3a <- h3 + theme(axis.text.y = element_blank(), legend.position = "none")
 top_len <- length(unique(PDovrPC.BP$feature)) + 1
 bottom_len <- length(unique(PDovrHC.BP$feature)) + 2
 
-DAF_part1 <- plot_grid(g.bars, h.bars, ncol = 1, align = "hv", 
+DAF_part1 <- cowplot::plot_grid(g.bars, h.bars, ncol = 1, align = "hv", 
                        labels = "AUTO",
                        rel_heights = c(top_len, bottom_len))
 
@@ -219,9 +212,9 @@ DAF_part2 <- cowplot::plot_grid(g1a, g3a, g0a,
 
 
 DAF_final <- cowplot::plot_grid(DAF_part1, DAF_part2, ncol = 2, align = "hv", 
-                                rel_widths = c(1, 3.6))
-
+                                rel_widths = c(1, 4.5))
 # DAF_final
+
 ggsave(DAF_final, filename = paste0("figures/Figure_2/DAF_Figure_2.svg"),
        width = 14, height = 7)
 
@@ -231,5 +224,5 @@ ggsave(phylo.pc$Legends, filename = paste0("figures/Figure_2/DAF_Figure_2_PC.leg
 ggsave(phylo.hc$Legends, filename = paste0("figures/Figure_2/DAF_Figure_2_HC.legend.svg"),
        width = 7, height = 7)
 
-
+seq(0.1, 0.9, 0.05)
 
