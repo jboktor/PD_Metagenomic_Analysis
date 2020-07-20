@@ -1,11 +1,8 @@
 # Differential Abundance of Features - MaAsLiN2 Script
 
-############  Prep Metadata  ############
-library(microbiome); library(phyloseq); library(Maaslin2); library(dplyr); library(tidyr); 
-library(reshape2); library(lattice);library(EnvStats)
-
 
 ######## Load Data & functions
+source("src/load_packages.R")
 source("src/load_phyloseq_obj.R")
 source("src/miscellaneous_funcs.R")
 source("src/Metadata_prep_funcs.R")
@@ -17,16 +14,20 @@ wkd <- getwd()
 
 ## Add prevalence shift on all samples prior to partioning 
 dat <- core(dat, detection = 0, prevalence = 0.1)
+PlotVariance(dat)
+
 # Prep Abundance input
-df_input_data <- dat %>% abundances() %>% transform("compositional")
+df_input_data <- LowVarianceFilter(dat, filter.percent = 0.3) %>% transform("compositional")
 
 # PD v PC abundance data
 dat_pdpc = subset_samples(dat, donor_group !="HC")
-df_input_data_pdpc <- dat_pdpc %>% abundances() %>%  transform("compositional")
+PlotVariance(dat_pdpc)
+df_input_data_pdpc <- LowVarianceFilter(dat_pdpc, filter.percent = 0.3) %>%  transform("compositional")
 
 # PD v HC PAIRED abundance data
 dat_pdhc = subset_samples(dat, Paired !="No")
-df_input_data_pdhc<- dat_pdhc %>% abundances() %>%  transform("compositional")
+PlotVariance(dat_pdhc)
+df_input_data_pdhc <- LowVarianceFilter(dat_pdhc, filter.percent = 0.3) %>%  transform("compositional")
 
 
 ######## Format Metadata 
@@ -102,16 +103,19 @@ fit_data = Maaslin2(
 ###################   TAXA ANALYSIS  - GENUS  ################### 
 ## Add prevalence shift on all samples prior to partioning 
 dat.genus <- core(dat.genus, detection = 0, prevalence = 0.1)
+PlotVariance(dat.genus)
 # Prep Abundance input
-df_input_data <- dat.genus %>% abundances() %>% transform("compositional")
+df_input_data <- LowVarianceFilter(dat.genus, filter.percent = 0.3) %>% transform("compositional")
 
 # PD v PC abundance data
 dat_pdpc = subset_samples(dat.genus, donor_group !="HC")
-df_input_data_pdpc <- dat_pdpc %>% abundances() %>%  transform("compositional")
+PlotVariance(dat_pdpc)
+df_input_data_pdpc <- LowVarianceFilter(dat_pdpc, filter.percent = 0.3) %>%  transform("compositional")
 
 # PD v HC PAIRED abundance data
 dat_pdhc = subset_samples(dat.genus, Paired !="No")
-df_input_data_pdhc<- dat_pdhc %>% abundances() %>%  transform("compositional")
+PlotVariance(dat_pdhc)
+df_input_data_pdhc<- LowVarianceFilter(dat_pdhc, filter.percent = 0.3) %>%  transform("compositional")
 
 
 #############  PD v PC - GENUS ############
@@ -150,15 +154,18 @@ fit_data = Maaslin2(
 
 ## Add prevalence shift on all samples prior to partioning 
 dat.phylum <- core(dat.phylum, detection = 0, prevalence = 0.1)
+PlotVariance(dat.phylum)
 # Prep Abundance input
 df_input_data <- dat.phylum %>% abundances() %>% transform("compositional")
 
 # PD v PC abundance data
 dat_pdpc = subset_samples(dat.phylum, donor_group !="HC")
+PlotVariance(dat_pdpc)
 df_input_data_pdpc <- dat_pdpc %>% abundances() %>%  transform("compositional")
 
 # PD v HC PAIRED abundance data
 dat_pdhc = subset_samples(dat.phylum, Paired !="No")
+PlotVariance(dat_pdhc)
 df_input_data_pdhc<- dat_pdhc %>% abundances() %>%  transform("compositional")
 
 
