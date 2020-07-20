@@ -3,22 +3,28 @@
 ############################################################################################################
 ######## p-value significance (integer to symbol function)
 
-sig_mapper <- function(pval, shh = F, porq = "p") {
+sig_mapper <- function(pval, shh = F, porq = "p", symbols = T) {
   ###' Traditional mapping of p-value to symbol 
   ###' prints p-values if below significance
-  if (pval <= .001) {
-    sigvalue = "***"
-  } else if (pval <= .01) {
-    sigvalue = "**"
-  } else if (pval <= .05) {
-    sigvalue = "*"
-  } else if (pval > .05 & shh == F) {
+  
+  if (symbols == T){
+    if (pval <= .001) {
+      sigvalue = "***"
+    } else if (pval <= .01) {
+      sigvalue = "**"
+    } else if (pval <= .05) {
+      sigvalue = "*"
+    } else if (pval > .05 & shh == F) {
+      sigvalue = paste0(porq, "=", format.pval(pval, digits=2)) 
+    } else if (pval > .05 & shh == T) {
+      sigvalue = ""
+    }
+  } else if (symbols == F){
     sigvalue = paste0(porq, "=", format.pval(pval, digits=2)) 
-  } else if (pval > .05 & shh == T) {
-    sigvalue = ""
   }
   return(sigvalue)
 }
+
 ############################################################################################################
 ######## p-value significance (integer to symbol function)
 
@@ -133,8 +139,6 @@ boxplot_all <- function(df, x, y, cols, title, ylabel){
   
   ###' Basic all group boxplot function
   
-  df$x <- factor(df$x, levels = c("HC", "PD","PC") )
-  
   set.seed(123)
   ggplot(data=df, aes(x=x, y=y)) +
     geom_boxplot(aes(color = x), outlier.alpha = 0, width = 0.9) +
@@ -153,3 +157,57 @@ boxplot_all <- function(df, x, y, cols, title, ylabel){
 
 
 ############################################################################################################
+# Inspired by MicrobiomeAnalystR: https://github.com/xia-lab/MicrobiomeAnalystR
+
+
+# Plot IQR features by rank : to help decide on percentage cutoff 
+
+PlotVariance <- function(dat) {
+  
+  int.mat <- abundances(dat) %>% as.data.frame()
+  filter.val <- apply(int.mat, 1, function (x) {
+    diff(quantile(as.numeric(x), c(0.1, 0.9), na.rm = FALSE, names = FALSE, 
+                  type = 7)) })
+
+  var.df <- as.data.frame(filter.val) %>% 
+    rownames_to_column(var = "features")
+  
+  rk <- rank(-filter.val, ties.method='random')
+  rws <-  nrow(var.df)
+
+  p <- ggplot(var.df, aes(x= reorder(features, -filter.val), y= filter.val)) +
+    geom_point(color="#1170aa") + 
+    ggthemes::theme_clean() +
+    labs(x = "Ranked Features", y = "[0.1 - 0.9] Quantile Range") +
+    geom_vline(xintercept = c(rk[rk == round(rws*.9)], rk[rk == round(rws*.8)], rk[rk == round(rws*.7)], 
+                              rk[rk == round(rws*.6)], rk[rk == round(rws*.5)]), linetype = "dashed", alpha = 0.7 ) +
+    theme(axis.text.x = element_blank())
+  return(p)
+}
+
+
+############################################################################################################
+LowVarianceFilter <- function(dat, filter.percent = 0.1) {
+  
+  #' This function filters features by their
+  #' Inter-quartile range - larger values indicate larger spread
+  #' features are ranked by IQR and a specified percentage is trimmed
+  
+  int.mat <- abundances(dat) %>% as.data.frame()
+  filter.val <- apply(int.mat, 1, function (x) {
+    diff(quantile(as.numeric(x), c(0.1, 0.9), na.rm = FALSE, names = FALSE, 
+                  type = 7)) })
+  
+  rk <- rank(-filter.val, ties.method='random')
+  var.num <- nrow(int.mat);
+  remain <- rk < var.num*(1-filter.percent);
+  int.mat <- int.mat[remain,];
+  
+  cat("A total of", sum(!remain), "low variance features were removed based on the Quantile Range between [0.1 - 0.9]. \n")
+  cat("The number of features remaining after filtering is:", nrow(int.mat), "\n")
+  
+  return(int.mat)
+
+}
+
+
