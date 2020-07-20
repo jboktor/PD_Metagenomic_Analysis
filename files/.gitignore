@@ -14,3 +14,7 @@ genefamilies_relab_rescaled_GO.tsv
 genefamilies_relab_rescaled_Infogo.tsv
 genefamilies_relab_rescaled_Pfam.tsv
 genefamilies_relab_rescaled_Rxn.tsv
+KOs.all.slim_PhyloseqObj.RData
+KOs.all_PhyloseqObj.RData
+KOs.slim_PhyloseqObj.RData
+KOs_PhyloseqObj.RData
