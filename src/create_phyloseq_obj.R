@@ -118,8 +118,10 @@ save(dat.ec.slim, file = "files/Enzymes.slim_PhyloseqObj.RData")
 ############# Phyloseq Obj for KOs - Humann2 regroupped #############
 ### NOTE: gene abundance (relab) was multiplied by 1,000,000 to avoid rounding bug in humann2_regroup function
 # Setting up groups - All genes (KO and ungrouped), all genes with no stratification, just KOs, and just KOs with no stratification
+milli <- 1000000 # descale by a million
 
 KOs.abund.all <- read_tsv("files/genefamilies_relab_rescaled_KO.tsv", col_names = T)            #All genes (KO and ungrouped)
+KOs.abund.all[2:119] <- KOs.abund.all[2:119]/milli
 KOs.abund.all.slim <- filter(KOs.abund.all, !grepl("g__", `# Gene Family`))
 KOs.abund.all.slim <- filter(KOs.abund.all.slim, !grepl("unclassified", `# Gene Family`))  #All genes (KO and ungrouped) with no stratification
 KOs.abund <- filter(KOs.abund.all, !grepl("UNGROUPED", `# Gene Family`))                   #Only KOs 

@@ -7,11 +7,13 @@ source("src/load_phyloseq_obj.R")
 ### Metadata 
 my_sample_data <- meta(dat) %>% sample_data()
 
+milli <- 1000000
 
 build.pfams <- function(strat = F){
   #################### PFAMS #################### 
   # Regrouped Gene Data
   Pfams.abund.all <- read_tsv("files/genefamilies_relab_rescaled_Pfam.tsv", col_names = T)       #All genes (Pfams and ungrouped)
+  Pfams.abund.all[2:119] <- Pfams.abund.all[2:119]/milli
   Pfams.abund <- filter(Pfams.abund.all, !grepl("UNGROUPED", `# Gene Family`))                   #Only Pfams 
   Pfams.abund.slim <- filter(Pfams.abund, !grepl("g__", `# Gene Family`))      
   Pfams.abund.slim <- filter(Pfams.abund.slim, !grepl("unclassified", `# Gene Family`))          #Only Pfams with no stratification
@@ -38,6 +40,7 @@ build.eggnogs <- function(strat = F) {
   #################### EggNogs #################### 
   # Regrouped Gene Data
   Eggnogs.abund.all <- read_tsv("files/genefamilies_relab_rescaled_Eggnog.tsv", col_names = T)       #All genes (Eggnogs and ungrouped)
+  Eggnogs.abund.all[2:119] <- Eggnogs.abund.all[2:119]/milli
   Eggnogs.abund <- filter(Eggnogs.abund.all, !grepl("UNGROUPED", `# Gene Family`))                   #Only Eggnogs 
   Eggnogs.abund.slim <- filter(Eggnogs.abund, !grepl("g__", `# Gene Family`))      
   Eggnogs.abund.slim <- filter(Eggnogs.abund.slim, !grepl("unclassified", `# Gene Family`))          #Only Eggnogs with no stratification
@@ -64,6 +67,7 @@ build.GOs <- function(strat = F) {
   #################### GOs #################### 
   # Regrouped Gene Data
   GOs.abund.all <- read_tsv("files/genefamilies_relab_rescaled_GO.tsv", col_names = T)       #All genes (GOs and ungrouped)
+  GOs.abund.all[2:119] <- GOs.abund.all[2:119]/milli
   GOs.abund <- filter(GOs.abund.all, !grepl("UNGROUPED", `# Gene Family`))                   #Only GOs 
   GOs.abund.slim <- filter(GOs.abund, !grepl("g__", `# Gene Family`))      
   GOs.abund.slim <- filter(GOs.abund.slim, !grepl("unclassified", `# Gene Family`))          #Only GOs with no stratification
@@ -90,6 +94,7 @@ build.Rxns <- function(strat = F) {
   #################### Rxns #################### 
   # Regrouped Gene Data
   Rxns.abund.all <- read_tsv("files/genefamilies_relab_rescaled_Rxn.tsv", col_names = T)       #All genes (Rxns and ungrouped)
+  Rxns.abund.all[2:119] <- Rxns.abund.all[2:119]/milli
   Rxns.abund <- filter(Rxns.abund.all, !grepl("UNGROUPED", `# Gene Family`))                   #Only Rxns 
   Rxns.abund.slim <- filter(Rxns.abund, !grepl("g__", `# Gene Family`))      
   Rxns.abund.slim <- filter(Rxns.abund.slim, !grepl("unclassified", `# Gene Family`))          #Only Rxns with no stratification
@@ -116,6 +121,7 @@ build.InfoGOs <- function(strat = F) {
   #################### InfoGOs #################### 
   # Regrouped Gene Data
   InfoGOs.abund.all <- read_tsv("files/genefamilies_relab_rescaled_Infogo.tsv", col_names = T)       #All genes (InfoGOs and ungrouped)
+  InfoGOs.abund.all[2:119] <- InfoGOs.abund.all[2:119]/milli
   InfoGOs.abund <- filter(InfoGOs.abund.all, !grepl("UNGROUPED", `# Gene Family`))                   #Only InfoGOs 
   InfoGOs.abund.slim <- filter(InfoGOs.abund, !grepl("g__", `# Gene Family`))      
   InfoGOs.abund.slim <- filter(InfoGOs.abund.slim, !grepl("unclassified", `# Gene Family`))          #Only InfoGOs with no stratification
