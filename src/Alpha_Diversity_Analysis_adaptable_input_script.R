@@ -15,15 +15,17 @@ rm(list = ls())
 source("src/load_phyloseq_obj.R")
 source("src/miscellaneous_funcs.R")
 source("src/Metadata_prep_funcs.R")
-
+load("files/Eggnogs_PhyloseqObj.RData")
+load("files/Pfams_PhyloseqObj.RData")
 
 ################################################################################# 
 ###########################  INPUT LEVELS HERE: ########################### 
 ################################################################################# 
 
-x <- c(dat, dat.path, dat.ec, dat.KOs.all)
-z <- c("Species", "Pathways", "Enzymes", "KOs.all")
+x <- c(dat, dat.path, dat.ec, dat.KOs.all, dat.Eggnogs, dat.Pfams)
+z <- c("Species", "Pathways", "Enzymes", "KOs.all", "Eggnogs", "Pfams")
 
+color_palette <- c("HC" = "#440154", "PD" = "#FDE725", "PC" = "#21908C")
 
 ################################ Begining of Loop################################ 
 
@@ -37,9 +39,7 @@ for (i in x){
   
   dat_alpha <- i
 
-  ## Calculate Alpha Diversity Metrics
-  # tab <- microbiome::alpha(abundances(dat_alpha), index= c("observed" ,'shannon', "rarity_log_modulo_skewness"))
-  
+
   # Run Metadata pre-processing function
   process_meta(dat_alpha)
   env$description <- factor(env$description, levels=c("PD Patient", "Population Control", "Household Control"))
@@ -100,9 +100,7 @@ for (i in x){
   
   
   
-  
   ########### Observed Species Plot ########### 
-  
   
   ### STATS 
   observed.PdPC <- lm.PdPc(metadf=env, metric="Observed")
@@ -111,84 +109,48 @@ for (i in x){
   observed.PdPC.pval <- summary(observed.PdPC)$coefficients["descriptionPopulation Control","Pr(>|t|)"]
   observed.PdHC.pval <- summary(observed.PdHC)$tTable["descriptionHousehold Control","p-value"]
   
-  ### PLOT 
-  set.seed(123)
-  p1 <- ggplot(env, aes(x = donor_group, y = Observed)) + theme_minimal() + 
-    geom_violin(draw_quantiles = c(0.5), trim = T, width = 0.75) +
-    geom_boxplot(aes(fill = donor_group), width=0.15, alpha = 0.6, outlier.alpha = 0) +
-    geom_point(aes(fill = donor_group), position = position_jitterdodge(dodge.width=1),shape=21, size=1, alpha = 0.6) +
-    geom_line(data = env.pairs, aes(group = Paired.plot), linetype = 'solid', color = "grey", alpha = 0.7) +
-    theme(axis.title.x=element_blank(),
-          legend.position = "none") +
-    ylab(paste0("Observed Counts: ", z[cnt])) +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    # theme(axis.text.x = element_blank())+
-    labs(fill="Group") +
-    # scale_linetype_manual(values= line_format) +
-    scale_fill_manual(values = c("HC" = "#440154", 
-                                 "PD" = "#FDE725", "PC" = "#21908C")) +
-    geom_signif(comparisons = list(c("PD", "HC")), annotations = sig_mapper(observed.PdHC.pval)) +
-    geom_signif(comparisons = list(c("PC", "PD")), annotations = sig_mapper(observed.PdPC.pval))
-
+  p1 <- alpha_div_boxplots(df=env, x=env$donor_group, y=env$Observed, 
+                           df.pairs=env.pairs, df.pairs.x = env.pairs$donor_group, df.pairs.y=env.pairs$Observed,
+                           pairs.column=env.pairs$Paired.plot,
+                           cols=color_palette, ylabel = paste0("Observed Counts: ", z[cnt]), 
+                           PDvPC.stat = observed.PdPC.pval, PDvHC.stat = observed.PdHC.pval)
   
-  
-  ########### Shannon Diversity Plot ########### 
+  ########### Shannon Diversity ########### 
   
   ### STATS 
-  observed.PdPC <- lm.PdPc(metadf=env, metric="Shannon")
-  observed.PdHC <- lmm.PdHc(metadf=env, metric="Shannon")
+  shannon.PdPC <- lm.PdPc(metadf=env, metric="Shannon")
+  shannon.PdHC <- lmm.PdHc(metadf=env, metric="Shannon")
   ## Pull p-values
-  observed.PdPC.pval <- summary(observed.PdPC)$coefficients["descriptionPopulation Control","Pr(>|t|)"]
-  observed.PdHC.pval <- summary(observed.PdHC)$tTable["descriptionHousehold Control","p-value"]
+  shannon.PdPC.pval <- summary(shannon.PdPC)$coefficients["descriptionPopulation Control","Pr(>|t|)"]
+  shannon.PdHC.pval <- summary(shannon.PdHC)$tTable["descriptionHousehold Control","p-value"]
   
   
-  ### PLOT 
-  set.seed(123)
-  p2 <- ggplot(env, aes(x = donor_group, y = Shannon)) + theme_minimal() + 
-    geom_violin(draw_quantiles = c(0.5), trim = T, width = 0.75) +
-    geom_boxplot(aes(fill = donor_group), width=0.15, alpha = 0.6, outlier.alpha = 0) +
-    geom_point(aes(fill = donor_group), position = position_jitterdodge(dodge.width=1),shape=21, size=1, alpha = 0.6) +
-    geom_line(data = env.pairs, aes(group = Paired.plot), linetype = 'solid', color = "grey", alpha = 0.7) +
-    theme(axis.title.x=element_blank(),
-          legend.position = "none") +
-    ylab(paste0("Shannon's Diversity: ", z[cnt])) +
-    labs(fill="Group") +
-    scale_fill_manual(values = c("HC" = "#440154", 
-                                 "PD" = "#FDE725", "PC" = "#21908C")) +
-    geom_signif(comparisons = list(c("PD", "HC")), annotations = sig_mapper(observed.PdHC.pval)) +
-    geom_signif(comparisons = list(c("PC", "PD")), annotations = sig_mapper(observed.PdPC.pval))
-
+  p2 <- alpha_div_boxplots(df=env, x=env$donor_group, y=env$Shannon, 
+                           df.pairs=env.pairs, df.pairs.x = env.pairs$donor_group, df.pairs.y=env.pairs$Shannon,
+                           pairs.column=env.pairs$Paired.plot,
+                           cols=color_palette, ylabel = paste0("Shannon's Diversity: ", z[cnt]), 
+                           PDvPC.stat = shannon.PdPC.pval, PDvHC.stat = shannon.PdHC.pval)
   
   
   ########### EVENESS ########### 
   
   ### STATS 
-  observed.PdPC <- lm.PdPc(metadf=env, metric="Evenness")
-  observed.PdHC <- lmm.PdHc(metadf=env, metric="Evenness")
+  evenness.PdPC <- lm.PdPc(metadf=env, metric="Evenness")
+  evenness.PdHC <- lmm.PdHc(metadf=env, metric="Evenness")
   ## Pull p-values
-  observed.PdPC.pval <- summary(observed.PdPC)$coefficients["descriptionPopulation Control","Pr(>|t|)"]
-  observed.PdHC.pval <- summary(observed.PdHC)$tTable["descriptionHousehold Control","p-value"]
+  evenness.PdPC.pval <- summary(evenness.PdPC)$coefficients["descriptionPopulation Control","Pr(>|t|)"]
+  evenness.PdHC.pval <- summary(evenness.PdHC)$tTable["descriptionHousehold Control","p-value"]
   
   
   ### PLOT 
-  set.seed(123)
-  p3 <- ggplot(env, aes(x = donor_group, y = Evenness)) + theme_minimal() + 
-    geom_violin(draw_quantiles = c(0.5), trim = T, width = 0.75) +
-    geom_boxplot(aes(fill = donor_group), width=0.15, alpha = 0.6, outlier.alpha = 0) +
-    geom_point(aes(fill = donor_group), position = position_jitterdodge(dodge.width=1),shape=21, size=1, alpha = 0.6) +
-    geom_line(data = env.pairs, aes(group = Paired.plot), linetype = 'solid', color = "grey", alpha = 0.7) +
-    theme(axis.title.x=element_blank(),
-          legend.position = "none") +
-    ylab(paste0("Simpson's Evenness: ", z[cnt])) +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    labs(fill="Group") +
-    scale_fill_manual(values = c("HC" = "#440154", 
-                                 "PD" = "#FDE725", "PC" = "#21908C")) +
-    geom_signif(comparisons = list(c("PD", "HC")), annotations = sig_mapper(observed.PdHC.pval)) +
-    geom_signif(comparisons = list(c("PC", "PD")), annotations = sig_mapper(observed.PdPC.pval))
+  p3 <- alpha_div_boxplots(df=env, x=env$donor_group, y=env$Evenness, 
+                     df.pairs=env.pairs, df.pairs.x = env.pairs$donor_group, df.pairs.y=env.pairs$Evenness,
+                     pairs.column=env.pairs$Paired.plot,
+                     cols=color_palette, ylabel = paste0("Simpson's Evenness: ", z[cnt]), 
+                     PDvPC.stat = evenness.PdPC.pval, PDvHC.stat = evenness.PdHC.pval)
 
   
-
+  ### MERGE PLOTS ### 
   alpha_cow <- cowplot::plot_grid(p1, p2, p3, nrow = 1, align = "v")
   alpha_cow
   ggsave(alpha_cow, filename = paste0("data/Alpha_Diversity_Analysis/AlphaDiversity_BoxViolinPlot_",  z[cnt], "_Summary.svg"),
@@ -198,35 +160,3 @@ for (i in x){
   
 }
 
-
-# ####################################    JUNKYARD   ####################################################
-
-# #############################    Plotting Functions
-# 
-# paired_violin_plot <- function(df, metric, PC.pvalue, HC.pvalue){
-#   ###' Plotting Alpha Diversity
-#   
-#   df.pairs <- dplyr::filter(df, Paired.plot < 30)
-#   print(df.pairs$Paired.plot)
-#   print(df.pairs$donor_group)
-#   
-#   p1 <- ggplot(df, aes(x = donor_group, y = metric)) + theme_minimal() + 
-#     geom_violin(draw_quantiles = c(0.5), trim = T, width = 0.75) +
-#     geom_boxplot(aes(fill = donor_group), width=0.15, alpha = 0.6, outlier.alpha = 0) +
-#     geom_point(aes(fill = donor_group), position = position_jitterdodge(dodge.width=1),shape=21, size=1, alpha = 0.6) +
-#     geom_line(aes(group = Paired.plot), linetype = 'solid', color = "grey", alpha = 0.7) +
-#     
-#     # geom_line(data = env.pairs, aes(group = Paired.plot), linetype = 'solid', color = "grey", alpha = 0.7) +
-#     
-#     labs(fill="Group") +
-#     scale_fill_manual(values = c("HC" = "#440154", "PD" = "#FDE725", "PC" = "#21908C")) +
-#     geom_signif(comparisons = list(c("PD", "HC")), annotations = sig_mapper(HC.pvalue)) +
-#     geom_signif(comparisons = list(c("PC", "PD")), annotations = sig_mapper(PC.pvalue)) +
-#     # ylab(paste0("Observed Counts: ", z[cnt])) +
-#     theme(axis.title.x=element_blank(),
-#           legend.position = "none",
-#           plot.title = element_text(hjust = 0.5))
-#   p1
-#   return(p1)
-# }
-# 

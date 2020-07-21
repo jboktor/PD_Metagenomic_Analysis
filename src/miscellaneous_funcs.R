@@ -155,6 +155,37 @@ boxplot_all <- function(df, x, y, cols, title, ylabel){
   
 }
 
+############################################################################################################
+
+alpha_div_boxplots <- function(df, x, y, 
+                               df.pairs, df.pairs.x, df.pairs.y, pairs.column, 
+                               cols, ylabel,PDvPC.stat, PDvHC.stat){
+  
+  ###' Function for alpha diveristy
+  ###' boxplots with paired lines
+  
+  set.seed(123)
+  p <- ggplot(data = df, aes(x = x, y = y)) + 
+    theme_minimal() + 
+    geom_point(aes(fill = x), position = position_jitterdodge(dodge.width=1),shape=21, size=1, alpha = 1) +
+    geom_boxplot(aes(fill = x), width=0.3, alpha = 0.3, outlier.alpha = 0) +
+    geom_line(data = df.pairs, aes(x = df.pairs.x, y = df.pairs.y, group = pairs.column), 
+              linetype = 'solid', color = "grey", alpha = 0.7) +
+    theme(axis.title.x=element_blank(),
+          legend.position = "none") +
+    ylab(ylabel) +
+    theme(panel.grid.major.x = element_blank(),
+          panel.grid.minor.y = element_blank()) +
+    labs(fill="Group") +
+    scale_fill_manual(values = cols) +
+    geom_signif(comparisons = list(c("PD", "HC")), annotations = sig_mapper(PDvHC.stat)) +
+    geom_signif(comparisons = list(c("PC", "PD")), annotations = sig_mapper(PDvPC.stat))
+  return(p)
+}
+
+
+
+
 
 ############################################################################################################
 # Inspired by MicrobiomeAnalystR: https://github.com/xia-lab/MicrobiomeAnalystR
