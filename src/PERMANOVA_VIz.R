@@ -19,7 +19,7 @@ permdf$FDR.symbol <- sig.symbol.generator(permdf$FDR)
 
 p1 <- ggplot() +
   geom_col(data=permdf, aes(x=R2, y=reorder(vars, -FDR), fill=`FDR`)) +
-  theme_minimal() +
+  theme_bw() +
   # labs(x="Variance Explained - Adjusted R^2 %", fill = "Adjusted\np-value") +
   labs(x=expression("Variance Explained - " ~ R^2~ "(%)"), fill = "Adjusted\np-value") +
   # ggtitle("PERMANOVA Covariate Independence") +
@@ -34,7 +34,7 @@ ggsave("data/PERMANOVA_Analysis/PERMANOVA_Barplt_All_Metdata_Aitchisons.svg", he
 #################### All Metadata - METADATA CATEGORY FILL
 p2 <- ggplot() +
   geom_col(data=permdf, aes(x=R2, y=reorder(vars, -FDR), fill=metacat)) +
-  theme_minimal() +
+  theme_bw() +
   # labs(x="Variance Explained - Adjusted R^2 %", fill = "Adjusted\np-value") +
   labs(x=expression("Variance Explained - " ~ R^2~ "(%)"), fill = "Adjusted\np-value") +
   # ggtitle("PERMANOVA Covariate Independence") +
@@ -56,12 +56,14 @@ ggsave("data/PERMANOVA_Analysis/PERMANOVA_Barplt_All_Metdata_Aitchisons_metacatf
 
 ############# Metadata Category Summary - Fill by p-Value
 p3 <- ggplot() + geom_col(data=permdf, aes(x=R2, y=reorder(metacat, R2), fill=FDR)) +
-  theme_minimal() +
+  theme_bw() +
   ggtitle("Cumulative Metadata Explained Variance") +
   theme(plot.title = element_text(hjust = 0.5))+
   labs(x=expression("Variance Explained - " ~ R^2~ "(%)"), fill = "Adjusted\np-value") +
-  theme(axis.title.y = element_blank())+
-  scale_fill_viridis(direction=1, option="cividis")
+  scale_fill_viridis(direction=1, option="cividis") +
+  theme(axis.title.y = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank())
 p3
 ggsave("data/PERMANOVA_Analysis/PERMANOVA_Barplt_Cumulative_All_Metdata_Aitchisons.svg", height = 4, width =10)
 
@@ -71,7 +73,7 @@ permdfess$FDR.symbol <- sig.symbol.generator(permdfess$FDR)
 
 p6 <- ggplot() +
   geom_col(data=permdfess, aes(x=R2, y=reorder(vars, -FDR), fill=metacat)) +
-  theme_minimal() +
+  theme_bw() +
   ggtitle("Foundational Metadata") +
   theme(plot.title = element_text(hjust = 0.5))+
   labs(x=expression("Variance Explained - " ~ R^2~ "(%)"), fill = "Category") +
@@ -79,9 +81,15 @@ p6 <- ggplot() +
   annotate("text", y = unique(permdfess$vars), x = (permdfess$R2+11), label = permdfess$FDR.symbol, size = 3) +
   annotate("text", y = unique(permdfess$vars), x = (permdfess$R2+4), label = paste0("n =", permdfess$n_meta), size = 3) +
   scale_fill_simpsons()+
-  theme(axis.title.y = element_blank()) 
+  theme(axis.title.y = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank())
 p6
 ggsave("data/PERMANOVA_Analysis/PERMANOVA_Barplt_essential_Metdata_Aitchisons.svg", height = 4, width =10)
+
+c1 <- cowplot::plot_grid(p3, p6, ncol=2, align = "hv")
+ggsave(c1, filename = "figures/Figure_1/PERMANOVA_Analysis.svg", height = 3.25, width =20)
+
 
 ####################################################################################################
 
@@ -95,7 +103,7 @@ ggsave("data/PERMANOVA_Analysis/PERMANOVA_Barplt_essential_Metdata_Aitchisons.sv
 
 p4 <- ggplot() +
   geom_col(data=permdfsig, aes(x=R2, y=reorder(vars, R2), fill=FDR)) +
-  theme_minimal() +
+  theme_bw() +
   ggtitle("Significant Metadata") +
   labs(x=expression("Variance Explained - " ~ R^2~ "(%)"), fill = "Adjusted\np-value") +
   annotate("text", y = unique(permdfsig$vars), x = (permdfsig$R2+3), label = paste0("p =", round(permdfsig$FDR, digits = 3)), size = 2) +
@@ -112,7 +120,7 @@ p4 <- ggplot() +
 
 p5 <- ggplot() +
   geom_col(data=permdfcoresig, aes(x=R2, y=reorder(vars, R2), fill=`FDR`)) +
-  theme_minimal() +
+  theme_bw() +
   # labs(x="Variance Explained - Adjusted R^2 %", fill = "Adjusted\np-value") +
   labs(x=expression("Variance Explained - " ~ R^2~ "(%)"), fill = "Adjusted\np-value") +
   ggtitle("PERMANOVA Covariate Independence") +
@@ -137,7 +145,7 @@ p5 <- ggplot() +
 
 e1 <- ggplot() +
   geom_col(data=permdf_diet, aes(x=R2, y=reorder(vars, -FDR), fill=`FDR`)) +
-  theme_minimal() +
+  theme_bw() +
   # labs(x="Variance Explained - Adjusted R^2 %", fill = "Adjusted\np-value") +
   labs(x=expression("Variance Explained - " ~ R^2~ "(%)"), fill = "Adjusted\np-value") +
   annotate("text", y = unique(permdf_diet$vars), x = (permdf_diet$R2+0.5), label = paste0("p =", round(permdf_diet$FDR, digits = 3)), size = 3) +
@@ -154,7 +162,7 @@ e1 <- ggplot() +
 
 e2 <- ggplot() +
   geom_col(data=permdf_supp, aes(x=R2, y=reorder(vars, -FDR), fill=`FDR`)) +
-  theme_minimal() +
+  theme_bw() +
   # labs(x="Variance Explained - Adjusted R^2 %", fill = "Adjusted\np-value") +
   labs(x=expression("Variance Explained - " ~ R^2~ "(%)"), fill = "Adjusted\np-value") +
   annotate("text", y = unique(permdf_supp$vars), x = (permdf_supp$R2+0.5), label = paste0("p =", round(permdf_supp$FDR, digits = 3)), size = 3) +
@@ -171,7 +179,7 @@ e2 <- ggplot() +
 
 e3 <- ggplot() +
   geom_col(data=permdf_gendrug, aes(x=R2, y=reorder(vars, -FDR), fill=`FDR`)) +
-  theme_minimal() +
+  theme_bw() +
   # labs(x="Variance Explained - Adjusted R^2 %", fill = "Adjusted\np-value") +
   labs(x=expression("Variance Explained - " ~ R^2~ "(%)"), fill = "Adjusted\np-value") +
   annotate("text", y = unique(permdf_gendrug$vars), x = (permdf_gendrug$R2+0.5), label = paste0("p =", round(permdf_gendrug$FDR, digits = 3)), size = 3) +
@@ -188,7 +196,7 @@ e3 <- ggplot() +
 
 e4 <- ggplot() +
   geom_col(data=permdf_pddrug, aes(x=R2, y=reorder(vars, -FDR), fill=`FDR`)) +
-  theme_minimal() +
+  theme_bw() +
   # labs(x="Variance Explained - Adjusted R^2 %", fill = "Adjusted\np-value") +
   labs(x=expression("Variance Explained - " ~ R^2~ "(%)"), fill = "Adjusted\np-value") +
   annotate("text", y = unique(permdf_pddrug$vars), x = (permdf_pddrug$R2+0.5), label = paste0("p =", round(permdf_pddrug$FDR, digits = 3)), size = 3) +
