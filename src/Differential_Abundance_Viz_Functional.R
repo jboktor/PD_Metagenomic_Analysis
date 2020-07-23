@@ -17,8 +17,8 @@ source("src/DAF_Functions.R")
 ########################### SWAP FUNCTION LEVEL HERE: ########################### 
 ################################################################################# 
 
-LEV <- Phylo_Objects$KOs.slim
-lev <- "KOs.slim"
+LEV <- Phylo_Objects$Genus
+lev <- "Genus"
 
 ################################################################################# 
 
@@ -107,19 +107,21 @@ v <- VennPlot(Maas.pd.pc.sig, Maas.pd.hc.sig, qval_threshold = 0.1)
 
 # Save Venn Diagrams
 if (!is.null(v$venn_depleted)){
-  png(file = paste0("data/DAF_Analysis/DAF_", lev, "_VennDiagram_PD_depleted.png"),
+  pdf(file = paste0("data/DAF_Analysis/DAF_", lev, "_VennDiagram_PD_depleted.pdf"),
       width = 7, 
       height = 5,
-      units = "in", pointsize = 12, res=300)
+      pointsize = 12)
+      # units = "in", pointsize = 12, res=300)
   plot(v$venn_depleted)
   dev.off()
 }
 
 if (!is.null(v$venn_enriched)){
-  png(file = paste0("data/DAF_Analysis/DAF_", lev, "_VennDiagram_PD_enriched.png"),
+  pdf(file = paste0("data/DAF_Analysis/DAF_", lev, "_VennDiagram_PD_enriched.pdf"),
       width = 7, 
       height = 5,
-      units = "in", pointsize = 12, res=300)
+      pointsize = 12)
+      # units = "in", pointsize = 12, res=300)
   plot(v$venn_enriched)
   dev.off()
 }
