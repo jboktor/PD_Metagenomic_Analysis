@@ -120,7 +120,7 @@ fit_data = Maaslin2(
   min_prevalence = 0,
   analysis_method = "LM",
   normalization = "NONE",
-  transform = "NONE",
+    transform = "AST",
   cores = 1
 )
 
@@ -135,7 +135,7 @@ fit_data = Maaslin2(
   fixed_effects = c("description"),
   analysis_method = "LM",
   normalization = "NONE",
-  transform = "NONE",
+  transform = "AST",
   cores = 1
 )
 
@@ -153,7 +153,7 @@ fit_data = Maaslin2(
   min_prevalence = 0,
   analysis_method = "LM",
   normalization = "NONE",
-  transform = "NONE",
+  transform = "AST",
   cores = 1
 )
 ############  PD v HC Paired - GBMs ############
@@ -167,18 +167,10 @@ fit_data = Maaslin2(
   fixed_effects = c("description"),
   analysis_method = "LM",
   normalization = "NONE",
-  transform = "NONE",
+  transform = "AST",
   cores = 1
 )
 
 
 
-# A <- dat %>% transform("compositional") %>%
-#   abundances() 
-# asin(sqrt(A)) %>% data.frame() %>% 
-#   distribution_sanity()
-
-# dat %>% transform("clr") %>% 
-#   abundances() %>% data.frame() %>% 
-#   distribution_sanity()
-
+#################
