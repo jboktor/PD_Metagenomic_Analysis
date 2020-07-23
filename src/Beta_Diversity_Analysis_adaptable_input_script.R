@@ -10,21 +10,23 @@ rm(list = ls())
 ####### Load PhyloSeq objects  ####### 
 source("src/load_phyloseq_obj.R")
 source("src/miscellaneous_funcs.R")
+load("files/Eggnogs_PhyloseqObj.RData")
+load("files/Eggnogs.slim_PhyloseqObj.RData")
+load("files/Pfams_PhyloseqObj.RData")
+load("files/Pfams.slim_PhyloseqObj.RData")
 
-x <- c(dat, dat.path, dat.KOs.all)
-z <- c("species", "pathways", "genes")
+x <- c(dat, dat.path.slim, dat.KOs.slim, dat.Pfams.slim,  dat.Eggnogs.slim)
+z <- c("species", "pathways", "KOs", "Pfams", "Eggnogs")
 
 
-### Distribution Sanity Check - CLR
-for (i in x){
-  print(i)
-  
-  A <- i %>% transform("compositional") %>%
-    transform("clr") %>%
-    abundances() %>% data.frame()
-  
-  plot(distribution_sanity(A))
-}
+# ### Distribution Sanity Check - CLR
+# for (i in x){
+#   print(i)
+#   A <- i %>% transform("compositional") %>%
+#     transform("clr") %>%
+#     abundances() %>% data.frame()
+#   plot(distribution_sanity(A))
+# }
 
 
 PD.col <- "#FDE725FF"
@@ -35,7 +37,9 @@ HC.col <- "#440154FF"
 
 cnt <- 1
 for (i in x){
+  cat("\n\n\n")
   cat("Processing input: ", z[cnt], "\n")
+  cat("\n")
   print(i)
   cat("\n")
   
@@ -63,11 +67,9 @@ for (i in x){
     xlab(paste0("PCoA 1 (", round((iMDS$values$Relative_eig[1])*100, digits = 2), "%)")) +
     ylab(paste0("PCoA 2 (", round((iMDS$values$Relative_eig[2])*100, digits = 2), "%)")) +
     labs(fill="Donor Group") +
-    # ggtitle(paste0("Aitchison Distance PCoA")) +
-    # theme(plot.title = element_text(hjust = 0.5)) +
     scale_fill_manual(values = c("Household Control" = HC.col, "PD Patient" = PD.col, "Population Control" = PC.col))
   ord
-  ggsave(paste0("data/Beta_Diversity_Analysis/PCoA_Aitchisons_", z[cnt], ".svg"), height = 6, width =9)
+  # ggsave(paste0("data/Beta_Diversity_Analysis/PCoA_Aitchisons_", z[cnt], ".svg"), height = 6, width =9)
   cat(paste0("Complete:  Aitchison Distance PCoA: ", z[cnt], " abundance \n"))
   
   ## PCoA data to fit ridgeline Plots
@@ -84,7 +86,6 @@ for (i in x){
                         alpha = 0.1, scale = 10) +
     xlab(paste0("PCoA 1 (", round((iMDS$values$Relative_eig[1])*100, digits = 1), "%)")) +
     scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
-    # scale_x_continuous(expand = c(0, 0)) +   # for both axes to remove unneeded padding
     scale_x_continuous(limits = my.ggp.xrange) +
     coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
     scale_color_manual(values = c("Household Control" = HC.col,
@@ -102,12 +103,11 @@ for (i in x){
           axis.line.x = element_blank(),
           axis.ticks.y = element_blank(),
           axis.title.x=element_blank(),
-          # plot.title=element_blank(),
           legend.position = "none")
   r1
 
 
-  ggsave(paste0("data/Beta_Diversity_Analysis/PCoA1_Aitchisons_RidgePlot_", z[cnt], ".svg"), height = 2, width =9)
+  # ggsave(paste0("data/Beta_Diversity_Analysis/PCoA1_Aitchisons_RidgePlot_", z[cnt], ".svg"), height = 2, width =9)
   cat(paste0("Complete:  Aitchison Distance PCoA Ridgeline 1 \n"))
   
   ################################# RidgeLine Plot - Axis 2 #################################
@@ -118,7 +118,6 @@ for (i in x){
                         position = position_raincloud(adjust_vlines = TRUE),
                         alpha = 0.1, scale = 10) +
     scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
-    # scale_x_continuous(expand = c(0, 0)) +   # for both axes to remove unneeded padding
     scale_x_continuous(limits = my.ggp.yrange2) +
     coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
     scale_color_manual(values = c("Household Control" = HC.col,
@@ -129,10 +128,8 @@ for (i in x){
                                  "Population Control" = PC.col)) +
     theme_classic() +
     theme(axis.title.y=element_blank(),
-          # axis.text.y=element_blank(),
           axis.line.y = element_blank(),
           axis.line.x = element_blank(),
-          # axis.ticks.y = element_blank(),
           axis.title.x=element_blank(),
           axis.text.x=element_blank(),
           axis.ticks.x = element_blank(),
@@ -141,7 +138,7 @@ for (i in x){
     coord_flip()
   r2
 
-  ggsave(paste0("data/Beta_Diversity_Analysis/PCoA2_Aitchisons_RidgePlot_", z[cnt], ".svg"), height = 6, width =2)
+  # ggsave(paste0("data/Beta_Diversity_Analysis/PCoA2_Aitchisons_RidgePlot_", z[cnt], ".svg"), height = 6, width =2)
   cat(paste0("Complete:  Aitchison Distance PCoA Ridgeline 2 \n"))
   
   ############## ##############  Beta Diversity Violin/Box Plots ############## ############## ##############
@@ -190,12 +187,12 @@ for (i in x){
     stat_compare_means(comparisons = my_comparisons, label = "p.signif", tip.length = 0.02, step.increase = 0)+ 
     ggtitle(paste0("Aitchison Distance to Population Control\n", z[cnt], " abundance"))
   v
-  ggsave(paste0("data/Beta_Diversity_Analysis/Aitchison_Dissimilarity_ViolinPlot_PC_relative_",  z[cnt], ".svg"), 
-          height = 10, width =4)
+  # ggsave(paste0("data/Beta_Diversity_Analysis/Aitchison_Dissimilarity_ViolinPlot_PC_relative_",  z[cnt], ".svg"), 
+  #         height = 10, width =4)
   cat(paste0("Complete:  Aitchison Distance ViolinPlot \n"))
   
   
-  cat(paste0("Assembling Cowplot Summary for : " , z[cnt], "\n \n \n"))
+  cat(paste0("Assembling Cowplot Summary for : " , z[cnt], "\n"))
   ord.plot <- ord + theme(legend.position = "none")
   cow1 <- cowplot::plot_grid(r1, NULL, ord.plot, r2, nrow = 2, ncol = 2, rel_heights = c(1, 3), rel_widths = c(9/2, 1),  align = "hv")
   cow2 <- cowplot::plot_grid(v, cow1, nrow = 1, rel_widths = c(1, 3), align = "h")
