@@ -4,7 +4,7 @@
 
 # rm(list = ls())
 
-source("src/ load_packages.R")
+source("src/load_packages.R")
 source("src/load_phyloseq_obj.R")
 # source("src/create_phyloseq_obj_genes.R")
 source("src/miscellaneous_funcs.R")
@@ -17,7 +17,7 @@ dat.Pfams.slim
 
 
 kos <- abundances(dat.KOs.slim) %>% as.data.frame() %>% rownames_to_column()
-pfams <- abundances(dat.Pfams.slim) %>% as.data.frame() %>% rownames_to_column()
+# pfams <- abundances(dat.Pfams.slim) %>% as.data.frame() %>% rownames_to_column()
 eggnogs <- abundances(dat.Eggnogs.slim) %>% as.data.frame() %>% rownames_to_column()
 # gos <- abundances(dat.GOs.slim) %>% as.data.frame() %>% rownames_to_column()
 # rxns <- abundances(dat.Rxns.slim) %>% as.data.frame() %>% rownames_to_column()
@@ -144,6 +144,33 @@ Maas.pd.hc.csgA <- read_tsv(paste0("data/MaAsLin2_Analysis/KOs.slim_PDvHC_maasli
   filter(value == "Household Control") %>% filter(feature == "K04334")
 
 
+#### CsgA did not meet variance threshold filter and is not present in KO Exploratory 
+#### Data Analysis model - 
+
+#### Separate MaAsLin Analysis for targeted features here:
+
+######################################################################################
+###############################        KOs        ###############################
+
+# features of interest 
+
+
+# PD v PC abundance data
+dat_pdpc <- NULL
+dat_pdpc = subset_samples(dat.KOs, donor_group !="HC")
+df_input_data_pdpc <- dat_pdpc %>% abundances() %>% 
+  transform("compositional") %>% 
+  t() %>% as.data.frame() %>% 
+  dplyr::select(K04334) %>%
+
+# PD v HC PAIRED abundance data
+dat_pdhc <- NULL
+dat_pdhc = subset_samples(dat.KOs, Paired !="No")
+# Plot Variance Estimate
+PlotVariance(dat_pdhc)
+df_input_data_pdhc <- LowVarianceFilter(dat_pdhc, filter.percent = 0.7) %>%  transform("compositional")
+
+
 ################ plot CsgA ################ 
 
 cols <- c("PD"= "#bfbfbf", "PC" = "#ed7d31", "HC" = "#5b9bd5")
@@ -195,7 +222,12 @@ c1 <- cowplot::plot_grid(p1.a, p2.a, ncol = 2, align="hv", labels = c("C", "D"))
 c2 <- cowplot::plot_grid(c1, get_legend(p1), ncol = 2, 
                         rel_widths = c(6, 1), axis = "l", align="h")
 # c2
-ggsave(c2, filename = "data/Amyloidgenic_Protein_Analysis/SMSvQPCR_data.svg", height = 4, width =12)
+# ggsave(c2, filename = "data/Amyloidgenic_Protein_Analysis/SMSvQPCR_data.svg", height = 4, width =12)
+
+
+
+###################     Boxplots for all bacterial amyloids   #######################
+
 
 
 
