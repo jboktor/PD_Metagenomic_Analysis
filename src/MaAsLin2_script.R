@@ -1,6 +1,5 @@
 # Differential Abundance of Features - MaAsLiN2 Script
 
-
 ######## Load Data & functions
 source("src/load_packages.R")
 source("src/load_phyloseq_obj.R")
@@ -14,18 +13,18 @@ wkd <- getwd()
 
 ## Add prevalence shift on all samples prior to partioning 
 dat <- core(dat, detection = 0, prevalence = 0.1)
-PlotVariance(dat)
-
-# Prep Abundance input
-df_input_data <- LowVarianceFilter(dat, filter.percent = 0.3) %>% transform("compositional")
 
 # PD v PC abundance data
+dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat, donor_group !="HC")
+# Plot Variance Estimate
 PlotVariance(dat_pdpc)
 df_input_data_pdpc <- LowVarianceFilter(dat_pdpc, filter.percent = 0.3) %>%  transform("compositional")
 
 # PD v HC PAIRED abundance data
+dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat, Paired !="No")
+# Plot Variance Estimate
 PlotVariance(dat_pdhc)
 df_input_data_pdhc <- LowVarianceFilter(dat_pdhc, filter.percent = 0.3) %>%  transform("compositional")
 
@@ -51,7 +50,10 @@ df_input_metadata_pdhc$description <- factor(df_input_metadata_pdhc$description,
 ###################                    MODELS                  ###################
 ################################################################################### 
 
-###################   TAXA ANALYSIS    ################### 
+
+################################################################################### 
+###############################         TAXA        ############################## 
+ 
 
 ############  PD v PC - SPECIES ############
 
@@ -103,19 +105,20 @@ fit_data = Maaslin2(
 ###################   TAXA ANALYSIS  - GENUS  ################### 
 ## Add prevalence shift on all samples prior to partioning 
 dat.genus <- core(dat.genus, detection = 0, prevalence = 0.1)
-PlotVariance(dat.genus)
-# Prep Abundance input
-df_input_data <- LowVarianceFilter(dat.genus, filter.percent = 0.3) %>% transform("compositional")
 
 # PD v PC abundance data
+dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.genus, donor_group !="HC")
+# Plot Variance Estimate
 PlotVariance(dat_pdpc)
-df_input_data_pdpc <- LowVarianceFilter(dat_pdpc, filter.percent = 0.3) %>%  transform("compositional")
+df_input_data_pdpc <- LowVarianceFilter(dat_pdpc, filter.percent = 0.1) %>% transform("compositional")
 
 # PD v HC PAIRED abundance data
+dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.genus, Paired !="No")
+# Plot Variance Estimate
 PlotVariance(dat_pdhc)
-df_input_data_pdhc<- LowVarianceFilter(dat_pdhc, filter.percent = 0.3) %>%  transform("compositional")
+df_input_data_pdhc <- LowVarianceFilter(dat_pdhc, filter.percent = 0.1) %>% transform("compositional")
 
 
 #############  PD v PC - GENUS ############
@@ -154,19 +157,20 @@ fit_data = Maaslin2(
 
 ## Add prevalence shift on all samples prior to partioning 
 dat.phylum <- core(dat.phylum, detection = 0, prevalence = 0.1)
-PlotVariance(dat.phylum)
-# Prep Abundance input
-df_input_data <- dat.phylum %>% abundances() %>% transform("compositional")
 
 # PD v PC abundance data
+dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.phylum, donor_group !="HC")
+# Plot Variance Estimate
 PlotVariance(dat_pdpc)
 df_input_data_pdpc <- dat_pdpc %>% abundances() %>%  transform("compositional")
 
 # PD v HC PAIRED abundance data
+dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.phylum, Paired !="No")
+# Plot Variance Estimate
 PlotVariance(dat_pdhc)
-df_input_data_pdhc<- dat_pdhc %>% abundances() %>%  transform("compositional")
+df_input_data_pdhc <- dat_pdhc %>% abundances() %>%  transform("compositional")
 
 
 #############  PD v PC - PHYLUM ############
@@ -202,32 +206,27 @@ fit_data = Maaslin2(
 
 
 
+######################################################################################
+###############################        PATHWAYS        ###############################
 
-
-
-
-
-
-############  Prep Data PATHWAYS ############
+############  Prep Data  ############
 ## Add prevalence shift on all samples prior to partioning 
 dat.path <- core(dat.path, detection = 0, prevalence = 0.1)
-features <- paste0("PATHWAY_", taxa_names(dat.path)) 
-features <- gsub(":", ".", features)
-features <- gsub("\\|", ".", features)
-features <- gsub(" ", "_", features)
-features <- gsub("-", "_", features)
-taxa_names(dat.path) <- features
-
-# Prep Abundance input
-df_input_data <- dat.path %>% abundances() %>% transform("compositional")
+taxa_names(dat.path) <- prep_pathway_names(dat.path)
 
 # PD v PC abundance data
+dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.path, donor_group !="HC")
-df_input_data_pdpc <- dat_pdpc %>% abundances() %>%  transform("compositional")
+# Plot Variance Estimate
+PlotVariance(dat_pdpc)
+df_input_data_pdpc <-  LowVarianceFilter(dat_pdpc, filter.percent = 0.3) %>%  transform("compositional")
 
 # PD v HC PAIRED abundance data
+dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.path, Paired !="No")
-df_input_data_pdhc<- dat_pdhc %>% abundances() %>%  transform("compositional")
+# Plot Variance Estimate
+PlotVariance(dat_pdhc)
+df_input_data_pdhc <- LowVarianceFilter(dat_pdhc, filter.percent = 0.3) %>%  transform("compositional")
 
 
 ############  Pathway Data  ############ PD v PC
@@ -261,23 +260,21 @@ fit_data = Maaslin2(
 ############  Prep Data PATHWAYS SLIM  ############
 ## Add prevalence shift on all samples prior to partioning 
 dat.path.slim <- core(dat.path.slim, detection = 0, prevalence = 0.1)
-features <- paste0("PATHWAY_", taxa_names(dat.path.slim)) 
-features <- gsub(":", ".", features)
-features <- gsub("\\|", ".", features)
-features <- gsub(" ", "_", features)
-features <- gsub("-", "_", features)
-taxa_names(dat.path.slim) <- features
-
-# Prep Abundance input
-df_input_data <- dat.path.slim %>% abundances() %>% transform("compositional")
+taxa_names(dat.path.slim) <- prep_pathway_names(dat.path.slim)
 
 # PD v PC abundance data
+dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.path.slim, donor_group !="HC")
-df_input_data_pdpc <- dat_pdpc %>% abundances() %>%  transform("compositional")
+# Plot Variance Estimate
+PlotVariance(dat_pdpc)
+df_input_data_pdpc <- LowVarianceFilter(dat_pdpc, filter.percent = 0.1) %>%  transform("compositional")
 
 # PD v HC PAIRED abundance data
+dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.path.slim, Paired !="No")
-df_input_data_pdhc<- dat_pdhc %>% abundances() %>%  transform("compositional")
+# Plot Variance Estimate
+PlotVariance(dat_pdhc) #Trim 10%
+df_input_data_pdhc <- LowVarianceFilter(dat_pdhc, filter.percent = 0.1) %>%  transform("compositional")
 
 
 ############  Pathway Data  ############ PD v PC
@@ -309,28 +306,27 @@ fit_data = Maaslin2(
 
 
 
+######################################################################################
+###############################        ENZYMES        ###############################
 
-
-
-
-
-
-
-############  Prep Data ENZYMES ############
+############  Prep Data  ############
 ## Add prevalence shift on all samples prior to partioning 
 dat.ec <- core(dat.ec, detection = 0, prevalence = 0.1)
 taxa_names(dat.ec) <- paste0("ENZYME_", taxa_names(dat.ec))
 
-# Prep Abundance input
-df_input_data <- dat.ec %>% abundances() %>% transform("compositional")
-
 # PD v PC abundance data
+dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.ec, donor_group !="HC")
-df_input_data_pdpc <- dat_pdpc %>% abundances() %>%  transform("compositional")
+# Plot Variance Estimate
+PlotVariance(dat_pdpc)
+df_input_data_pdpc <- LowVarianceFilter(dat_pdpc, filter.percent = 0.7) %>%  transform("compositional")
 
 # PD v HC PAIRED abundance data
+dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.ec, Paired !="No")
-df_input_data_pdhc<- dat_pdhc %>% abundances() %>%  transform("compositional")
+# Plot Variance Estimate
+PlotVariance(dat_pdhc)
+df_input_data_pdhc <- LowVarianceFilter(dat_pdhc, filter.percent = 0.7) %>%  transform("compositional")
 
 
 ############  ENZYME Data  ############ PD v PC
@@ -367,16 +363,19 @@ fit_data = Maaslin2(
 dat.ec.slim <- core(dat.ec.slim, detection = 0, prevalence = 0.1)
 taxa_names(dat.ec.slim) <- paste0("ENZYME_", taxa_names(dat.ec.slim))
 
-# Prep Abundance input
-df_input_data <- dat.ec.slim %>% abundances() %>% transform("compositional")
-
 # PD v PC abundance data
+dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.ec.slim, donor_group !="HC")
-df_input_data_pdpc <- dat_pdpc %>% abundances() %>%  transform("compositional")
+# Plot Variance Estimate
+PlotVariance(dat_pdpc)
+df_input_data_pdpc <- LowVarianceFilter(dat_pdpc, filter.percent = 0.4) %>%  transform("compositional")
 
 # PD v HC PAIRED abundance data
+dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.ec.slim, Paired !="No")
-df_input_data_pdhc<- dat_pdhc %>% abundances() %>%  transform("compositional")
+# Plot Variance Estimate
+PlotVariance(dat_pdhc)
+df_input_data_pdhc <- LowVarianceFilter(dat_pdhc, filter.percent = 0.4) %>%  transform("compositional")
 
 
 ############  ENZYME Data  ############ PD v PC
@@ -409,127 +408,26 @@ fit_data = Maaslin2(
 
 
 
+######################################################################################
+###############################        KOs        ###############################
 
-
-
-
-
-
-############  Prep Data KO's  ############
-## KOs & ungrouped 
-
-## Add prevalence shift on all samples prior to partioning 
-dat.KOs.all <- core(dat.KOs.all, detection = 0, prevalence = 0.1)
-# taxa_names(dat.KOs.slim) <- paste0("GENE_", taxa_names(dat.KOs.slim))
-
-# Prep Abundance input
-df_input_data <- dat.KOs.all %>% abundances() %>% transform("compositional")
-
-# PD v PC abundance data
-dat_pdpc = subset_samples(dat.KOs.all, donor_group !="HC")
-df_input_data_pdpc <- dat_pdpc %>% abundances() %>%  transform("compositional")
-
-# PD v HC PAIRED abundance data
-dat_pdhc = subset_samples(dat.KOs.all, Paired !="No")
-df_input_data_pdhc<- dat_pdhc %>% abundances() %>%  transform("compositional")
-
-
-############  Gene Data  ############ PD v PC
-fit_data = Maaslin2(
-  input_data = df_input_data_pdpc,
-  input_metadata = df_input_metadata_pdpc,
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/KOs.all_PDvPC_maaslin2_output"),
-  min_prevalence = 0,
-  fixed_effects = c("description", "host_age_factor", "sex", "host_body_mass_index"),
-  analysis_method = "LM",
-  normalization = "NONE",
-  transform = "AST",
-  plot_scatter = F,
-  cores = 1)
-
-############  Gene Data  ############ PD v HC Paired
-fit_data = Maaslin2(
-  input_data = df_input_data_pdhc,
-  input_metadata = df_input_metadata_pdhc,
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/KOs.all_PDvHC_maaslin2_output"),
-  min_prevalence = 0,
-  random_effects = c("Paired"),
-  fixed_effects = c("description"),
-  analysis_method = "LM",
-  normalization = "NONE",
-  transform = "AST",
-  plot_scatter = F,
-  cores = 1)
-
-
-
-
-
-
-## KOs & ungrouped with no stratification
-
-## Add prevalence shift on all samples prior to partioning 
-dat.KOs.all.slim <- core(dat.KOs.all.slim, detection = 0, prevalence = 0.1)
-# taxa_names(dat.KOs.all.slim) <- paste0("GENE_", taxa_names(dat.KOs.all.slim))
-
-# Prep Abundance input
-df_input_data <- dat.KOs.all.slim %>% abundances() %>% transform("compositional")
-
-# PD v PC abundance data
-dat_pdpc = subset_samples(dat.KOs.all.slim, donor_group !="HC")
-df_input_data_pdpc <- dat_pdpc %>% abundances() %>%  transform("compositional")
-
-# PD v HC PAIRED abundance data
-dat_pdhc = subset_samples(dat.KOs.all.slim, Paired !="No")
-df_input_data_pdhc<- dat_pdhc %>% abundances() %>%  transform("compositional")
-
-
-############  Gene Data  ############ PD v PC
-fit_data = Maaslin2(
-  input_data = df_input_data_pdpc,
-  input_metadata = df_input_metadata_pdpc,
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/KOs.all.slim_PDvPC_maaslin2_output"),
-  min_prevalence = 0,
-  fixed_effects = c("description", "host_age_factor", "sex", "host_body_mass_index"),
-  analysis_method = "LM",
-  normalization = "NONE",
-  transform = "AST",
-  plot_scatter = F,
-  cores = 1)
-
-############  Gene Data  ############ PD v HC Paired
-fit_data = Maaslin2(
-  input_data = df_input_data_pdhc,
-  input_metadata = df_input_metadata_pdhc,
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/KOs.all.slim_PDvHC_maaslin2_output"),
-  min_prevalence = 0,
-  random_effects = c("Paired"),
-  fixed_effects = c("description"),
-  analysis_method = "LM",
-  normalization = "NONE",
-  transform = "AST",
-  plot_scatter = F,
-  cores = 1)
-
-
-
-
-## KOs only
-
+############  Prep Data  ############
 ## Add prevalence shift on all samples prior to partioning 
 dat.KOs <- core(dat.KOs, detection = 0, prevalence = 0.1)
-# taxa_names(dat.KOs) <- paste0("GENE_", taxa_names(dat.KOs))
-
-# Prep Abundance input
-df_input_data <- dat.KOs %>% abundances() %>% transform("compositional")
 
 # PD v PC abundance data
+dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.KOs, donor_group !="HC")
-df_input_data_pdpc <- dat_pdpc %>% abundances() %>%  transform("compositional")
+# Plot Variance Estimate
+PlotVariance(dat_pdpc)
+df_input_data_pdpc <- LowVarianceFilter(dat_pdpc, filter.percent = 0.7) %>%  transform("compositional")
 
 # PD v HC PAIRED abundance data
+dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.KOs, Paired !="No")
-df_input_data_pdhc<- dat_pdhc %>% abundances() %>%  transform("compositional")
+# Plot Variance Estimate
+PlotVariance(dat_pdhc)
+df_input_data_pdhc <- LowVarianceFilter(dat_pdhc, filter.percent = 0.7) %>%  transform("compositional")
 
 
 ############  Gene Data  ############ PD v PC
@@ -562,28 +460,30 @@ fit_data = Maaslin2(
 
 
 ## KOs only with no stratification
-
+############  Prep Data  ############
 ## Add prevalence shift on all samples prior to partioning 
 dat.KOs.slim <- core(dat.KOs.slim, detection = 0, prevalence = 0.1)
-# taxa_names(dat.KOs.slim) <- paste0("GENE_", taxa_names(dat.KOs.slim))
-
-# Prep Abundance input
-df_input_data <- dat.KOs.slim %>% abundances() %>% transform("compositional")
 
 # PD v PC abundance data
+dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.KOs.slim, donor_group !="HC")
-df_input_data_pdpc <- dat_pdpc %>% abundances() %>%  transform("compositional")
+# Plot Variance Estimate
+PlotVariance(dat_pdpc)
+df_input_data_pdpc <- LowVarianceFilter(dat_pdpc, filter.percent = 0.5) %>%  transform("compositional")
 
 # PD v HC PAIRED abundance data
+dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.KOs.slim, Paired !="No")
-df_input_data_pdhc<- dat_pdhc %>% abundances() %>%  transform("compositional")
+# Plot Variance Estimate
+PlotVariance(dat_pdhc)
+df_input_data_pdhc <- LowVarianceFilter(dat_pdhc, filter.percent = 0.5) %>%  transform("compositional")
 
 
 ############  Gene Data  ############ PD v PC
 fit_data = Maaslin2(
   input_data = df_input_data_pdpc,
   input_metadata = df_input_metadata_pdpc,
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/MaAsLin2_Analysis/KOs.slim_PDvPC_maaslin2_output"),
+  output = paste0(wkd, "/data/MaAsLin2_Analysis/KOs.slim_PDvPC_maaslin2_output"),
   min_prevalence = 0,
   fixed_effects = c("description", "host_age_factor", "sex", "host_body_mass_index"),
   analysis_method = "LM",
@@ -596,7 +496,7 @@ fit_data = Maaslin2(
 fit_data = Maaslin2(
   input_data = df_input_data_pdhc,
   input_metadata = df_input_metadata_pdhc,
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/MaAsLin2_Analysis/KOs.slim_PDvHC_maaslin2_output"),
+  output = paste0(wkd, "/data/MaAsLin2_Analysis/KOs.slim_PDvHC_maaslin2_output"),
   min_prevalence = 0,
   random_effects = c("Paired"),
   fixed_effects = c("description"),
@@ -607,4 +507,4 @@ fit_data = Maaslin2(
   cores = 1)
 
 
-
+# sessionInfo()
