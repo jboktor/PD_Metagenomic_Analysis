@@ -15,15 +15,19 @@ rm(list = ls())
 source("src/load_phyloseq_obj.R")
 source("src/miscellaneous_funcs.R")
 source("src/Metadata_prep_funcs.R")
+load("files/Eggnogs.slim_PhyloseqObj.RData")
 load("files/Eggnogs_PhyloseqObj.RData")
+load("files/Pfams.slim_PhyloseqObj.RData")
 load("files/Pfams_PhyloseqObj.RData")
 
 ################################################################################# 
 ###########################  INPUT LEVELS HERE: ########################### 
 ################################################################################# 
 
-x <- c(dat, dat.path, dat.ec, dat.KOs.all, dat.Eggnogs, dat.Pfams)
-z <- c("Species", "Pathways", "Enzymes", "KOs.all", "Eggnogs", "Pfams")
+x <- c(dat, dat.path, dat.ec, dat.KOs, dat.Eggnogs, dat.Pfams,
+       dat.path.slim, dat.ec.slim, dat.KOs.slim, dat.Eggnogs.slim, dat.Pfams.slim)
+z <- c("Species", "Pathways", "Enzymes", "KOs", "Eggnogs", "Pfams", 
+       "Pathways.slim", "Enzymes.slim", "KOs.slim", "Eggnogs.slim", "Pfams.slim")
 
 color_palette <- c("HC" = "#440154", "PD" = "#FDE725", "PC" = "#21908C")
 
@@ -153,7 +157,7 @@ for (i in x){
   ### MERGE PLOTS ### 
   alpha_cow <- cowplot::plot_grid(p1, p2, p3, nrow = 1, align = "v")
   alpha_cow
-  ggsave(alpha_cow, filename = paste0("data/Alpha_Diversity_Analysis/AlphaDiversity_BoxViolinPlot_",  z[cnt], "_Summary.svg"),
+  ggsave(alpha_cow, filename = paste0("data/Alpha_Diversity_Analysis/AlphaDiversity_BoxPlot_",  z[cnt], "_Summary.svg"),
          height = 6, width =8)
 
   cnt <- cnt + 1

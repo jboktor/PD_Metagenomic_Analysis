@@ -11,8 +11,8 @@ rm(list = ls())
 source("src/load_phyloseq_obj.R")
 source("src/miscellaneous_funcs.R")
 
-x <- c(dat, dat.path, dat.ec, dat.KOs.all)
-z <- c("species", "pathways", "enzymes", "genes")
+x <- c(dat, dat.path, dat.KOs.all)
+z <- c("species", "pathways", "genes")
 
 
 ### Distribution Sanity Check - CLR
@@ -27,6 +27,9 @@ for (i in x){
 }
 
 
+PD.col <- "#FDE725FF"
+PC.col <- "#21908CFF"
+HC.col <- "#440154FF"
 
 #################################   Aitchisons PCoA/Ridgeline/Violin Plots Loop (Species, Pathways, Enzymes, Genes-KOs)   ################################# 
 
@@ -62,7 +65,7 @@ for (i in x){
     labs(fill="Donor Group") +
     # ggtitle(paste0("Aitchison Distance PCoA")) +
     # theme(plot.title = element_text(hjust = 0.5)) +
-    scale_fill_manual(values = c("Household Control" = "#440154FF", "PD Patient" = "#FDE725FF", "Population Control" = "#21908CFF"))
+    scale_fill_manual(values = c("Household Control" = HC.col, "PD Patient" = PD.col, "Population Control" = PC.col))
   ord
   ggsave(paste0("data/Beta_Diversity_Analysis/PCoA_Aitchisons_", z[cnt], ".svg"), height = 6, width =9)
   cat(paste0("Complete:  Aitchison Distance PCoA: ", z[cnt], " abundance \n"))
@@ -84,12 +87,12 @@ for (i in x){
     # scale_x_continuous(expand = c(0, 0)) +   # for both axes to remove unneeded padding
     scale_x_continuous(limits = my.ggp.xrange) +
     coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
-    scale_color_manual(values = c("Household Control" = "#440154FF",
+    scale_color_manual(values = c("Household Control" = HC.col,
                                   "PD Patient" = "#d48a02",
-                                  "Population Control" = "#21908CFF")) +
-    scale_fill_manual(values = c("Household Control" = "#440154FF",
-                                 "PD Patient" = "#FDE725FF",
-                                 "Population Control" = "#21908CFF")) +
+                                  "Population Control" = PC.col)) +
+    scale_fill_manual(values = c("Household Control" = HC.col,
+                                 "PD Patient" = PD.col,
+                                 "Population Control" = PC.col)) +
     theme_classic() +
     ggtitle(paste0("Aitchison Distance PCoA")) +
     theme(plot.title = element_text(hjust = 0.5)) +
@@ -118,12 +121,12 @@ for (i in x){
     # scale_x_continuous(expand = c(0, 0)) +   # for both axes to remove unneeded padding
     scale_x_continuous(limits = my.ggp.yrange2) +
     coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
-    scale_color_manual(values = c("Household Control" = "#440154FF",
+    scale_color_manual(values = c("Household Control" = HC.col,
                                   "PD Patient" = "#d48a02",
-                                  "Population Control" = "#21908CFF")) +
-    scale_fill_manual(values = c("Household Control" = "#440154FF",
-                                 "PD Patient" = "#FDE725FF",
-                                 "Population Control" = "#21908CFF")) +
+                                  "Population Control" = PC.col)) +
+    scale_fill_manual(values = c("Household Control" = HC.col,
+                                 "PD Patient" = PD.col,
+                                 "Population Control" = PC.col)) +
     theme_classic() +
     theme(axis.title.y=element_blank(),
           # axis.text.y=element_blank(),
@@ -182,8 +185,8 @@ for (i in x){
     labs(fill="Group") +
     scale_color_manual(values = c("Household Control" = "#340141", 
                                   "PD Patient" = "#d48a02", "Population Control" = "#217890")) +
-    scale_fill_manual(values = c("Household Control" = "#440154FF", 
-                                 "PD Patient" = "#FDE725FF", "Population Control" = "#21908CFF")) +
+    scale_fill_manual(values = c("Household Control" = HC.col, 
+                                 "PD Patient" = PD.col, "Population Control" = PC.col)) +
     stat_compare_means(comparisons = my_comparisons, label = "p.signif", tip.length = 0.02, step.increase = 0)+ 
     ggtitle(paste0("Aitchison Distance to Population Control\n", z[cnt], " abundance"))
   v
