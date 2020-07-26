@@ -13,5 +13,6 @@ install.packages(
     "ggbeeswarm", "FSA", "ggpubr", "ggsci", "ggridges", "future", "svglite", "cowplot", "coin", "EnvStats", 
     "sjlabelled", "sjmisc", "sjPlot", "nlme", "eulerr", "ggthemes", "ggforce", "huge", "Matrix"))
 
-
-
+#### Install Other Github available Packages
+install.packages("remotes")
+remotes::install_github("gmteunisse/Fantaxtic")
