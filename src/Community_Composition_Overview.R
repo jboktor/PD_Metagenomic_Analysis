@@ -32,14 +32,12 @@ RareFactionPlot(dat.Pfams.slim, featuretype = "non-stratified Pfams", reads)
 ################################################################################################
 #################################  Plot Seq Depth Distributions by group #################################  
 
-PD.col <- "#FDE725";PD.col2 <- "#fdad19";PD.col3 <- "#d48a02"
-PC.col <- "#21908C";PC.col2 <- "#2cc0bb"
-HC.col <- "#440154";HC.col2 <- "#73028e"
+PD.col <- "#bfbfbf"; PC.col <- "#ed7d31"; HC.col <- "#5b9bd5"
 
 df.reads <- group_col_from_ids(reads, reads$id)
 df.reads$group <- factor(df.reads$group, levels=c("PC", "PD", "HC"))
 
-histo_plot <- ggplot(df.reads, aes(x=clean_total_reads, color = group), alpha = 0.4) + 
+histo_plot <- ggplot(df.reads, aes(x=clean_total_reads, color = group), alpha = 0.3) + 
   theme_bw() +
   geom_density() +
   scale_color_manual(values = c("HC" = HC.col, "PD" = PD.col, "PC" = PC.col))  +
@@ -49,6 +47,7 @@ histo_plot <- ggplot(df.reads, aes(x=clean_total_reads, color = group), alpha = 
 
 ecdf_plot <- ggplot(df.reads, aes(x=clean_total_reads, colour = group)) + 
   stat_ecdf(geom = "step", pad = FALSE) +
+  stat_ecdf(geom = "point", pad = FALSE, alpha =0.4) +
   theme_bw() +
   labs(y = "ECDF") +
   scale_color_manual(values = c("HC" = HC.col, "PD" = PD.col, "PC" = PC.col), guide = FALSE)  +
@@ -57,9 +56,14 @@ ecdf_plot <- ggplot(df.reads, aes(x=clean_total_reads, colour = group)) +
 
 c1 <- cowplot::plot_grid(histo_plot, ecdf_plot, ncol = 1, align="v")
 ggsave(c1, filename = "data/Quality_Control/Sequencing_Depth_Density_&_ECDF.png",
-       width = 6, height = 5, dpi = 300)
+       width = 6, height = 5, dpi = 600)
+
 ################################################################################################
 ################################# Seq Depth Boxplots by group #################################  
+
+PD.col <- "#FDE725";PD.col2 <- "#fdad19";PD.col3 <- "#d48a02"
+PC.col <- "#21908C";PC.col2 <- "#2cc0bb"
+HC.col <- "#440154";HC.col2 <- "#73028e"
 
 # Test for normality - Distb is non-normal
 shapiro.test(df.reads$clean_total_reads)
@@ -165,7 +169,7 @@ for (i in obj) {
   QC_alphaVsreads <- cowplot::plot_grid(observed.plot, shannon.plot, evenness.plot, 
                                         ncol = 3, align = "h")
   
-  ggsave(QC_alphaVsreads, filename = paste0("data/Quality_Control/Read_Depth_vs_",  obj.label[cnt], "_AlphaDiversity.png"),
+  ggsave(QC_alphaVsreads, filename = paste0("data/Quality_Control/Read_Depth_vs_Alpha_Diversity/Read_Depth_vs_",  obj.label[cnt], "_AlphaDiversity.png"),
          width = 16, height = 8)
   
   cnt <- cnt + 1
@@ -199,7 +203,7 @@ for (i in obj) {
                            color=df.pcoa$donor_group, fill=df.pcoa$donor_group,
                            feature=obj.label[cnt], title=paste0(obj.label[cnt], ": Beta Diversity by Read Depth"))
 
- ggsave(QC_betaVsreads, filename = paste0("data/Quality_Control/Read_Depth_vs_",  obj.label[cnt], "_BetaDiversity.png"),
+ ggsave(QC_betaVsreads, filename = paste0("data/Quality_Control/Read_Depth_vs_Beta_Diversity/Read_Depth_vs_",  obj.label[cnt], "_BetaDiversity.png"),
          width = 8, height = 8)
   
   cnt <- cnt + 1
@@ -255,7 +259,7 @@ z1 <- abm %>% filter(abundance_factor != 1 ) %>%
   labs(x = "Arcsin(Sqrt(Abundance))", y = "ECDF by Binned Feature Abundance") +
   ggtitle("Sequencing Depth Quantiles") +
   theme(plot.title = element_text(hjust = 0.5))
-z1
+# z1
 ggsave(z1, filename = "data/Quality_Control/SeqDepth_&_Abundance_Quantile_Histogram_Matrix.png",
        width = 9, height = 4.5, dpi = 1200)
 
@@ -270,7 +274,7 @@ z2 <- abm %>% filter(abundance_factor != 1 ) %>%
   scale_color_manual(values = c("HC" = HC.col, "PD" = PD.col, "PC" = PC.col))  +
   theme_classic() +
   theme(plot.title = element_text(hjust = 0.5))
-z2
+# z2
 ggsave(z2, filename = "data/Quality_Control/SeqDepth_&_Abundance_Quantile_ECDF_matrix.png",
        width = 20, height = 8, dpi = 1200)
 
@@ -302,7 +306,7 @@ z2b <- abm %>% filter(abundance_factor == 2 & clean_total_reads_factor_tight == 
 # z2b
 
 QC_speciesAbundanceVsreads <- cowplot::plot_grid(z1b, z2b, align = "h", nrow = 2)
-QC_speciesAbundanceVsreads
+# QC_speciesAbundanceVsreads
 
 ggsave(QC_speciesAbundanceVsreads, filename = "data/Quality_Control/SeqDepth_Quantile_Distribution.png",
        width = 8, height = 6, dpi = 1200)

@@ -43,7 +43,6 @@ for (i in x){
   print(i)
   cat("\n")
   
-  # print(x[[1]])
   obj <- microbiome::transform(i, "compositional") # transforms species abundance table as (x/sum(x))
   obj_clr <- microbiome::transform(i, "clr") # transforms species abundnce table as (x/geometric-Mean(x)) # Allows for variable independence from Sample total
 
