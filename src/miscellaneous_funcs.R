@@ -26,39 +26,13 @@ sig_mapper <- function(pval, shh = F, porq = "p", symbols = T) {
 }
 
 ############################################################################################################
-######## p-value significance (integer to symbol function)
 
-sig_mapper2 <- function(pval, shh = F) {
-  ###' Traditional mapping of p-value to symbol 
-  ###' prints p-values if below significance
-  if (pval <= .01) {
-    sigvalue = "***"
-  } else if (pval <= .05) {
-    sigvalue = "**"
-  } else if (pval <= .1) {
-    sigvalue = "*"
-  } else if (pval > .1 & shh == F) {
-    sigvalue = paste0("p=", format.pval(pval, digits=2)) 
-  } else if (pval > .1 & shh == T) {
-    sigvalue = ""
-  }
-  return(sigvalue)
-}
-
-############################################################################################################
 sig.symbol.generator <- function(Column){
   sig.symbol <- c()
   for (i in Column){
     sig.symbol <- c(sig.symbol, sig_mapper(i))
   }
   return(sig.symbol)
-}
-
-############################################################################################################
-stop_quietly <- function() {
-  opt <- options(show.error.messages = FALSE)
-  on.exit(options(opt))
-  stop()
 }
 
 ############################################################################################################
@@ -191,7 +165,7 @@ alpha_div_boxplots <- function(df, x, y,
 # Inspired by MicrobiomeAnalystR: https://github.com/xia-lab/MicrobiomeAnalystR
 
 
-# Plot IQR features by rank : to help decide on percentage cutoff 
+# Plot (0.1 - 0.9) features by rank : to help decide on percentage cutoff 
 
 PlotVariance <- function(dat) {
   
@@ -245,66 +219,6 @@ LowVarianceFilter <- function(dat, filter.percent = 0.1) {
 
 
 ############################################################################################################
-
-
-RareFactionPlot <- function(dat, featuretype="Species", reads){
-  
-  # Get Pseuo-counts
-  psudocnts <- dat %>% transform("compositional") %>% 
-    abundances() %>% as.data.frame()
-  cat("TSS \n")
-
-  for (i in colnames(psudocnts)){
-    donor_reads <- reads[[which(reads$id == i), 2]]
-    psudocnts[i] <- psudocnts[i] * donor_reads
-  }
-  cat("Pseudocount Estimation \n")
-  
-  # Filter 
-  psudocnts.HC <- psudocnts %>% dplyr::select(contains("HC")) %>% 
-    t() %>% as.data.frame()
-  psudocnts.PC <- psudocnts %>% dplyr::select(contains("PC")) %>% 
-    t() %>% as.data.frame()
-  psudocnts.PD <- psudocnts %>% dplyr::select(!contains(c("HC", "PC"))) %>% 
-    t() %>% as.data.frame()
-  
-  cat("Calculating Rarefaction Estimate for HC : This may take a second -   \n")
-  acc.HC <- specaccum(psudocnts.HC, method = "exact")
-  cat("Calculating Rarefaction Estimate for PC - Almost there -  ༼ つ ಥ_ಥ ༽つ  \n")
-  acc.PC <- specaccum(psudocnts.PC, method = "exact")
-  cat("Calculating Rarefaction Estimate for PD - Homestretch - ಥ_ಥ  \n\n")
-  acc.PD <- specaccum(psudocnts.PD, method = "exact")
-  cat("Rarefaction Calculations Complete: ヽ༼ຈل͜ຈ༽ﾉ  \n\n")
-  
-  df.acc.HC <- data.frame(Sites=acc.HC$sites, Richness=acc.HC$richness, SD=acc.HC$sd)
-  df.acc.PC <- data.frame(Sites=acc.PC$sites, Richness=acc.PC$richness, SD=acc.PC$sd)
-  df.acc.PD <- data.frame(Sites=acc.PD$sites, Richness=acc.PD$richness, SD=acc.PD$sd)
-  
-  PD.col <- "#FDE725FF"
-  PD.col2 <- "#d48a02"
-  PC.col <- "#21908CFF"
-  HC.col <- "#440154FF"
-  
-  p1 <- ggplot() +
-    theme_bw() +
-    geom_point(data=df.acc.PD, aes(x=Sites, y=Richness), alpha=1.5, color = PD.col2) +
-    geom_line(data=df.acc.PD, aes(x=Sites, y=Richness), size = 2, alpha=0.6, color = PD.col2) +
-    geom_ribbon(data=df.acc.PD, aes(x=Sites, ymin=(Richness-2*SD),ymax=(Richness+2*SD)),alpha=0.2, fill = PD.col) +
-    geom_point(data=df.acc.PC, aes(x=Sites, y=Richness), alpha=1.5, color = PC.col) +
-    geom_line(data=df.acc.PC, aes(x=Sites, y=Richness), size = 2, alpha=0.6, color = PC.col) +
-    geom_ribbon(data=df.acc.PC, aes(x=Sites, ymin=(Richness-2*SD),ymax=(Richness+2*SD)),alpha=0.2, fill = PC.col) +
-    geom_point(data=df.acc.HC, aes(x=Sites, y=Richness), alpha=1.5, color = HC.col) +
-    geom_line(data=df.acc.HC, aes(x=Sites, y=Richness), size = 2, alpha=0.6, color = HC.col) +
-    geom_ribbon(data=df.acc.HC, aes(x=Sites, ymin=(Richness-2*SD),ymax=(Richness+2*SD)),alpha=0.2, fill = HC.col) +
-    labs(x = "Sample #", y = paste0(featuretype, " Detected")) +
-    theme(strip.background = element_blank(),
-          panel.grid = element_blank())
-  
-  ggsave(p1, filename = paste0("data/Quality_Control/Rarefaction_Plot_", featuretype, ".svg"),
-         width = 8, height = 6)
-  return(p1)
-  
-}
 
 
 
