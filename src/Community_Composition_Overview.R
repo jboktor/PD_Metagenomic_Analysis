@@ -144,7 +144,7 @@ cnt <- 1
 
 for (i in obj) {
   
-  cat("\n\n"); cat("Processing", obj.label[cnt], "for Alpha Diversity Analysis \n\n")
+  cat("\n\n"); cat("Processing", obj.label[cnt], "for Alpha Diversity x Seq-Depth Linear Regression Analysis \n\n")
   
   # Prep abundnace table
   dat_alpha <-  transform(i, "compositional")
@@ -187,7 +187,7 @@ cnt <- 1
 for (i in obj) {
   
   ## AITCHISONS DISTANCE
-  cat("\n\n"); cat("Processing", obj.label[cnt], "for Beta Diversity Analysis \n\n")
+  cat("\n\n"); cat("Processing", obj.label[cnt], "for Beta Diversity x Seq-Depth Linear Regression Analysis \n\n")
   
   obj_clr <- microbiome::transform(i, "clr")
   iDist <- distance(obj_clr, method="euclidean")
@@ -256,12 +256,12 @@ z1 <- abm %>% filter(abundance_factor != 1 ) %>%
   scale_fill_manual(values = c("HC" = HC.col, "PD" = PD.col, "PC" = PC.col)) +
   scale_color_manual(values = c("HC" = HC.col, "PD" = PD.col, "PC" = PC.col), guide = FALSE)  +
   theme_classic() +
-  labs(x = "Arcsin(Sqrt(Abundance))", y = "ECDF by Binned Feature Abundance") +
+  labs(x = "Arcsin(Sqrt(Abundance))", y = "Histogram by Binned Feature Abundance") +
   ggtitle("Sequencing Depth Quantiles") +
   theme(plot.title = element_text(hjust = 0.5))
 # z1
 ggsave(z1, filename = "data/Quality_Control/SeqDepth_&_Abundance_Quantile_Histogram_Matrix.png",
-       width = 9, height = 4.5, dpi = 1200)
+       width = 20, height = 8, dpi = 1200)
 
 z2 <- abm %>% filter(abundance_factor != 1 ) %>% 
   ggplot(aes(x=value, color = donor_group)) +
