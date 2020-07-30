@@ -1,6 +1,30 @@
 ### QC Functions
 
-###################################################################################################
+
+#--------------------------------------------------------------------------------------------------
+# Get Pseduo-Counts from clean reads and abundance table
+#--------------------------------------------------------------------------------------------------
+
+PseudoCounts <- function(dat, reads){
+  
+  psudocnts <- dat %>% microbiome::transform("compositional") %>% 
+    microbiome::abundances() %>% as.data.frame()
+  cat("TSS \n")
+  
+  for (i in colnames(psudocnts)){
+    donor_reads <- reads[[which(reads$id == i), 2]]
+    psudocnts[i] <- psudocnts[i] * donor_reads
+  }
+  cat("Pseudocount Transformation Complete\n")
+  return(psudocnts)
+}
+
+
+
+
+#--------------------------------------------------------------------------------------------------
+# Rarefaction Analysis 
+#--------------------------------------------------------------------------------------------------
 
 RareFactionPlot <- function(dat, featuretype="Species", reads){
   
@@ -116,7 +140,7 @@ BetaLinearRegressionPlot <- function(df, x, y, y2, color, fill, feature, title){
   p1 <- ggplot(df, aes(x=x, y=y, color=color, fill=fill)) +
     geom_smooth(method="lm", se=F) +
     geom_point(aes(fill=fill),shape=21, size=2, alpha = 0.9) +
-    labs(x="Filtered Sample Reads", paste0("PCoA Axis 1: ", feature)) +
+    labs(x="Filtered Sample Reads", y=paste0("PCoA Axis 1: ", feature)) +
     theme_bw() +
     stat_cor(aes(label = paste(..rr.label.., ..p.label.., sep = "~`,`~"),
                  color = color), label.x = 1.75e7, label.y.npc=0.25, hjust = 0) +
