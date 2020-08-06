@@ -17,6 +17,7 @@
 1. [Probabilistic Graphical Models](#Probabilistic-Graphical-Models)
 1. [Gut Metabolic and Gut Brain Modules GMMs GBMs](#Gut-Metabolic-and-Gut-Brain-Modules-GMMs-GBMs)
 1. [Virulence Analysis](#Virulence-Analysis)
+1. [Microbial Amyloid Quantification](#Microbial-Amyloid-Quantification)
 1. [Biomarker Selection and Validation](#Biomarker-Selection-and-Validation)
 1. [Feature Specificity for Parkinson's Disease](#PD-Feature-Specificity)
 
@@ -140,6 +141,8 @@ To build the interactive network open Jupyter Notebook (type `Jupter Notebook` i
 ### Virulence-Analysis
   * Run: __Virulence_Analysis.R__
 
+### Microbial-Amyloid-Quantification
+  * Run: __Amyloidgenic_Protein_Analysis.R__
 
 ### Biomarker-Selection-and-Validation
 (On-going)
