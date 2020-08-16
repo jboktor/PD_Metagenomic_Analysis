@@ -62,6 +62,38 @@ distribution_sanity <- function(df) {
   cowplot::plot_grid(histo_plot, ecdf_plot, ncol = 1, align="v")
 }
 
+#--------------------------------- Version 2
+
+distribution_sanity2 <- function(df, binN = 30) {
+  
+  ###' input an abundance table and displays
+  ###' a histogram and ECDF distribution of data 
+  ###' colored by donor group
+  
+  abund.melt <- melt(df)
+  abund.melt <- 
+    mutate(abund.melt, group = if_else(grepl("HC", Var2), "HC",
+                                       if_else(grepl("PC", Var2), "PC","PD")))
+  cols=c("PC"= "#bfbfbf", 
+         "PD" = "#ed7d31", 
+         "HC" = "#5b9bd5")
+  
+  histo_plot <- ggplot(abund.melt, aes(x=value, fill = group), alpha = 0.4) + 
+    theme_minimal() +
+    geom_histogram(color = "black", position="dodge", boundary = 0, bins = binN) +
+    scale_fill_manual(values = cols) +
+    theme(axis.title.x = element_blank(),
+          legend.position = c(0.9, 0.5)) 
+  
+  ecdf_plot <- ggplot(abund.melt, aes(x=value, colour = group)) + stat_ecdf(geom = "step", pad = FALSE) +
+    theme_minimal() +
+    labs(y = "ECDF") +
+    scale_colour_manual(values = cols) +
+    theme(legend.position ="none")
+  
+  cowplot::plot_grid(histo_plot, ecdf_plot, ncol = 1, align="v")
+}
+
 
 #-----------------------------------------------------------------------------------------------------------
 ################################  Functions to adjust feature names  ########################################
@@ -141,8 +173,8 @@ alpha_div_boxplots <- function(df, x, y,
   set.seed(123)
   p <- ggplot(data = df, aes(x = x, y = y)) + 
     theme_minimal() + 
-    geom_point(aes(fill = x), position = position_jitterdodge(dodge.width=1),shape=21, size=1, alpha = 1) +
-    geom_boxplot(aes(fill = x), width=0.3, alpha = 0.3, outlier.alpha = 0) +
+    geom_point(aes(fill = x, color = x), position = position_jitterdodge(dodge.width=1),shape=21, size=1, alpha = 1) +
+    geom_boxplot(aes(fill = x, color = x), width=0.3, alpha = 0.1, outlier.alpha = 0) +
     geom_line(data = df.pairs, aes(x = df.pairs.x, y = df.pairs.y, group = pairs.column), 
               linetype = 'solid', color = "grey", alpha = 0.7) +
     theme(axis.title.x=element_blank(),
@@ -152,6 +184,7 @@ alpha_div_boxplots <- function(df, x, y,
           panel.grid.minor.y = element_blank()) +
     labs(fill="Group") +
     scale_fill_manual(values = cols) +
+    scale_colour_manual(values = cols) +
     geom_signif(comparisons = list(c("PD", "HC")), annotations = sig_mapper(PDvHC.stat)) +
     geom_signif(comparisons = list(c("PC", "PD")), annotations = sig_mapper(PDvPC.stat))
   return(p)
@@ -233,7 +266,7 @@ explore_table <- function(obj){
 
 plot_feature <- function(obj, feature){
   
-  d <- dat.genus %>% abundances() %>% 
+  d <- obj %>% abundances() %>% 
     as.data.frame() %>% 
     rownames_to_column() %>% 
     filter(rowname == feature) %>% 
@@ -245,8 +278,8 @@ plot_feature <- function(obj, feature){
   dm$group <- factor(dm$group, levels = c("PC", "PD", "HC"))
   
   boxplot_all(dm, x=dm$group, y=dm$value, 
-              cols=c("PD"= "#bfbfbf", 
-                     "PC" = "#ed7d31", 
+              cols=c("PC"= "#bfbfbf", 
+                     "PD" = "#ed7d31", 
                      "HC" = "#5b9bd5"), 
               title=" ", 
               ylabel= paste(unique(dm$rowname), "Abundance"))
