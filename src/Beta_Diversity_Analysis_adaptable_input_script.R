@@ -1,10 +1,10 @@
 # Aitchisons Distance Analysis
 
-library(ggplot2); library(tidyverse); library(readxl);library(dplyr); library(ggrepel);library(grid);
-library(gridExtra);library(reshape2);library(plyr);library(grid);library(devtools);library(RColorBrewer);
-library(ggfortify);library(vegan);library(MASS);library(compositions);library(zCompositions);library(phyloseq);
-library(Biobase);library(viridis);library("foreach");library("doParallel");library(ggbeeswarm);
-library(FSA);library(ggpubr);library(ggsci);library(microbiome);library(ggridges);library(future);library(cowplot)
+# library(ggplot2); library(tidyverse); library(readxl);library(dplyr); library(ggrepel);library(grid);
+# library(gridExtra);library(reshape2);library(plyr);library(grid);library(devtools);library(RColorBrewer);
+# library(ggfortify);library(vegan);library(MASS);library(compositions);library(zCompositions);library(phyloseq);
+# library(Biobase);library(viridis);library("foreach");library("doParallel");library(ggbeeswarm);
+# library(FSA);library(ggpubr);library(ggsci);library(microbiome);library(ggridges);library(future);library(cowplot)
 
 rm(list = ls())
 ####### Load PhyloSeq objects  ####### 
@@ -18,7 +18,6 @@ load("files/Pfams.slim_PhyloseqObj.RData")
 x <- c(dat, dat.path.slim, dat.KOs.slim, dat.Pfams.slim,  dat.Eggnogs.slim)
 z <- c("species", "pathways", "KOs", "Pfams", "Eggnogs")
 
-
 # ### Distribution Sanity Check - CLR
 # for (i in x){
 #   print(i)
@@ -29,9 +28,21 @@ z <- c("species", "pathways", "KOs", "Pfams", "Eggnogs")
 # }
 
 
-PD.col <- "#FDE725FF"
-PC.col <- "#21908CFF"
-HC.col <- "#440154FF"
+# PD.col <- "#FDE725FF"
+# PC.col <- "#21908CFF"
+# HC.col <- "#440154FF"
+PD.col <- "#bfbfbf"
+PC.col <- "#ed7d31"
+HC.col <- "#5b9bd5"
+
+group_colors <- 
+  c("Household Control" = "#5b9bd5",
+  "PD Patient" = "#ed7d31",
+  "Population Control" = "#bfbfbf")
+group_colors2 <- 
+  c("Household Control" = "#1e4c75",
+    "PD Patient" = "#ed4e31",
+    "Population Control" = "#848484")
 
 #################################   Aitchisons PCoA/Ridgeline/Violin Plots Loop (Species, Pathways, Enzymes, Genes-KOs)   ################################# 
 
@@ -47,8 +58,8 @@ for (i in x){
   obj_clr <- microbiome::transform(i, "clr") # transforms species abundnce table as (x/geometric-Mean(x)) # Allows for variable independence from Sample total
 
   ################################# AITCHISONS DISTANCE (EUCLIDIAN DIST ON CLR TRANSFORMED DATA)  ################################# 
-  iDist <- distance(obj_clr, method="euclidean")
-  iMDS  <- ordinate(obj_clr, "MDS", distance=iDist)
+  iDist <- phyloseq::distance(obj_clr, method="euclidean")
+  iMDS  <- phyloseq::ordinate(obj_clr, "MDS", distance=iDist)
   
   
   #################################  PCoA for Axis 1 and 2
@@ -57,17 +68,19 @@ for (i in x){
   df12 = p$data
   df12$donor_group <- factor(df12$donor_group, levels=c("PC", "PD", "HC"))
   
-  p <- ggplot(df12, aes(Axis.1, Axis.2, fill = description))
-  p <- p + geom_point(shape=21, size=5, alpha=0.7, color="black")
+  p <- ggplot(df12, aes(Axis.1, Axis.2, fill = description, color=description))
+  p <- p + geom_point(shape=21, size=5, alpha=0.7)
   ord <- p + 
-    theme_minimal() + 
-    theme(plot.title = element_text(hjust = 0.5)) +
+    theme_bw() + 
     labs(fill="Donor Group") +
     xlab(paste0("PCoA 1 (", round((iMDS$values$Relative_eig[1])*100, digits = 2), "%)")) +
     ylab(paste0("PCoA 2 (", round((iMDS$values$Relative_eig[2])*100, digits = 2), "%)")) +
     labs(fill="Donor Group") +
-    scale_fill_manual(values = c("Household Control" = HC.col, "PD Patient" = PD.col, "Population Control" = PC.col))
-  ord
+    scale_fill_manual(values = group_colors) +
+    scale_color_manual(values = group_colors2) +
+    theme(plot.title = element_text(hjust = 0.5), 
+          panel.grid = element_blank())
+  # ord
   # ggsave(paste0("data/Beta_Diversity_Analysis/PCoA_Aitchisons_", z[cnt], ".svg"), height = 6, width =9)
   cat(paste0("Complete:  Aitchison Distance PCoA: ", z[cnt], " abundance \n"))
   
@@ -76,23 +89,16 @@ for (i in x){
   my.ggp.yrange2 <- ggplot_build(ord)$layout$panel_scales_y[[1]]$range$range # For PCoA2
   
   
-  ################################# RidgeLine Plot - Axis 1 #################################
+  ################################# Boxplot - Axis 1 #################################
 
   r1 <- ggplot(df12, aes(x = Axis.1, y = description)) +
-    geom_density_ridges(aes(color = description, fill = description),
-                        jittered_points = TRUE, quantile_lines = TRUE,
-                        position = position_raincloud(adjust_vlines = TRUE),
-                        alpha = 0.1, scale = 10) +
+    geom_boxplot(aes(color = description, fill = description), alpha = 0.1) +
     xlab(paste0("PCoA 1 (", round((iMDS$values$Relative_eig[1])*100, digits = 1), "%)")) +
     scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
     scale_x_continuous(limits = my.ggp.xrange) +
     coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
-    scale_color_manual(values = c("Household Control" = HC.col,
-                                  "PD Patient" = "#d48a02",
-                                  "Population Control" = PC.col)) +
-    scale_fill_manual(values = c("Household Control" = HC.col,
-                                 "PD Patient" = PD.col,
-                                 "Population Control" = PC.col)) +
+    scale_color_manual(values = group_colors) +
+    scale_fill_manual(values = group_colors) +
     theme_classic() +
     ggtitle(paste0("Aitchison Distance PCoA")) +
     theme(plot.title = element_text(hjust = 0.5)) +
@@ -103,28 +109,25 @@ for (i in x){
           axis.ticks.y = element_blank(),
           axis.title.x=element_blank(),
           legend.position = "none")
-  r1
+  # r1
 
 
   # ggsave(paste0("data/Beta_Diversity_Analysis/PCoA1_Aitchisons_RidgePlot_", z[cnt], ".svg"), height = 2, width =9)
-  cat(paste0("Complete:  Aitchison Distance PCoA Ridgeline 1 \n"))
+  cat(paste0("Complete:  Aitchison Distance PCoA Boxplot 1 \n"))
   
-  ################################# RidgeLine Plot - Axis 2 #################################
+  ################################# Boxplot - Axis 2 #################################
 
   r2 <- ggplot(df12, aes(x = Axis.2, y = description)) +
-    geom_density_ridges(aes(color = description, fill = description),
-                        jittered_points = TRUE, quantile_lines = TRUE,
-                        position = position_raincloud(adjust_vlines = TRUE),
-                        alpha = 0.1, scale = 10) +
+    # geom_density_ridges(aes(color = description, fill = description),
+    #                     jittered_points = TRUE, quantile_lines = TRUE,
+    #                     position = position_raincloud(adjust_vlines = TRUE),
+    #                     alpha = 0.1, scale = 10) +
+    geom_boxplot(aes(color = description, fill = description), alpha = 0.1) +
     scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
     scale_x_continuous(limits = my.ggp.yrange2) +
     coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
-    scale_color_manual(values = c("Household Control" = HC.col,
-                                  "PD Patient" = "#d48a02",
-                                  "Population Control" = PC.col)) +
-    scale_fill_manual(values = c("Household Control" = HC.col,
-                                 "PD Patient" = PD.col,
-                                 "Population Control" = PC.col)) +
+    scale_color_manual(values = group_colors) +
+    scale_fill_manual(values = group_colors) +
     theme_classic() +
     theme(axis.title.y=element_blank(),
           axis.line.y = element_blank(),
@@ -135,10 +138,10 @@ for (i in x){
           plot.title=element_blank(),
           legend.position = "none") +
     coord_flip()
-  r2
+  # r2
 
   # ggsave(paste0("data/Beta_Diversity_Analysis/PCoA2_Aitchisons_RidgePlot_", z[cnt], ".svg"), height = 6, width =2)
-  cat(paste0("Complete:  Aitchison Distance PCoA Ridgeline 2 \n"))
+  cat(paste0("Complete:  Aitchison Distance PCoA Boxplot 2 \n"))
   
   ############## ##############  Beta Diversity Violin/Box Plots ############## ############## ##############
   
@@ -170,34 +173,31 @@ for (i in x){
   
   # Specifying comparisons for analysis
   my_comparisons <- list( c("Household Control", "PD Patient"),c("Population Control", "PD Patient"))
+  wu.sd$Type2 <- factor(wu.sd$Type2, levels = c("Population Control", "PD Patient", "Household Control"))
   
   v <- ggplot(wu.sd, aes(x = Type2, y = value)) + theme_minimal() + 
-    geom_violin(draw_quantiles = c(0.5), trim = T) +
     geom_beeswarm(aes(color = Type2, fill = Type2), shape = 21, size=.3, alpha = .5, cex = .5) +
+    geom_violin(draw_quantiles = c(0.5), trim = T, alpha=0) +
     theme(axis.title.x=element_blank(),
           legend.position = "none") +
     ylab("Aitchison Distance") +
     theme(plot.title = element_text(hjust = 0.5)) +
     labs(fill="Group") +
-    scale_color_manual(values = c("Household Control" = "#340141", 
-                                  "PD Patient" = "#d48a02", "Population Control" = "#217890")) +
-    scale_fill_manual(values = c("Household Control" = HC.col, 
-                                 "PD Patient" = PD.col, "Population Control" = PC.col)) +
+    scale_color_manual(values = group_colors) +
+    scale_fill_manual(values = group_colors) +
     stat_compare_means(comparisons = my_comparisons, label = "p.signif", tip.length = 0.02, step.increase = 0)+ 
     ggtitle(paste0("Aitchison Distance to Population Control\n", z[cnt], " abundance"))
-  v
-  # ggsave(paste0("data/Beta_Diversity_Analysis/Aitchison_Dissimilarity_ViolinPlot_PC_relative_",  z[cnt], ".svg"), 
-  #         height = 10, width =4)
-  cat(paste0("Complete:  Aitchison Distance ViolinPlot \n"))
+  # v
+  cat(paste0("Complete:  Aitchison Distance Violin Plot \n"))
   
   
   cat(paste0("Assembling Cowplot Summary for : " , z[cnt], "\n"))
   ord.plot <- ord + theme(legend.position = "none")
-  cow1 <- cowplot::plot_grid(r1, NULL, ord.plot, r2, nrow = 2, ncol = 2, rel_heights = c(1, 3), rel_widths = c(9/2, 1),  align = "hv")
-  cow2 <- cowplot::plot_grid(v, cow1, nrow = 1, rel_widths = c(1, 3), align = "h")
+  cow1 <- cowplot::plot_grid(r1, NULL, ord.plot, r2, nrow = 2, ncol = 2, rel_heights = c(1, 5), rel_widths = c(5, 1),  align = "vh")
+  cow2 <- cowplot::plot_grid(v, cow1, nrow = 1, rel_widths = c(1, 2.75), align = "h")
   cow2
   ggsave(cow2, filename = paste0("data/Beta_Diversity_Analysis/CowplotSummary_",  z[cnt], ".svg"),
-         width = 14, height = 10)
+         width = 13, height = 9)
   
   cnt <- cnt + 1
 }
