@@ -4,13 +4,11 @@ source("src/load_packages.R")
 source("src/miscellaneous_funcs.R")
 source("src/load_phyloseq_obj.R")
 source("src/Metadata_prep_funcs.R")
-source("src/Community_Composition_Functions.R")
+source("src/Community_Composition_Funcs.R")
 load("files/Pfams.slim_PhyloseqObj.RData")
 load("files/Eggnogs.slim_PhyloseqObj.RData")
 
-func_reads <- read_tsv("files/humann2_read_and_species_count_table.tsv", col_names = T)
-reads <- dplyr::select(func_reads, c("# samples","total reads")) %>% 
-  dplyr::rename( "id" = "# samples", "clean_total_reads" = "total reads")
+reads <- load_reads()
 reads$id <- gsub("_", ".", reads$id)
 
 #################################  Plot Rarefaction Curves per group #################################  

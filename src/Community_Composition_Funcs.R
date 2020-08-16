@@ -20,8 +20,6 @@ PseudoCounts <- function(dat, reads){
 }
 
 
-
-
 #--------------------------------------------------------------------------------------------------
 # Rarefaction Analysis 
 #--------------------------------------------------------------------------------------------------
@@ -89,7 +87,9 @@ RareFactionPlot <- function(dat, featuretype="Species", reads){
   
 }
 
-###################################################################################################
+#--------------------------------------------------------------------------------------------------
+# Linear Regression Analysis - Alpha Diversity
+#--------------------------------------------------------------------------------------------------
 
 
 AlphaLinearRegressionQuantilePlot <- function(df, x, x2, y, color, fill, ylabel, title){
@@ -128,7 +128,9 @@ AlphaLinearRegressionQuantilePlot <- function(df, x, x2, y, color, fill, ylabel,
   return(c1)
 }
 
-###################################################################################################
+#--------------------------------------------------------------------------------------------------
+# Linear Regression Analysis - Beta Diversity PCoA 1 & 2
+#--------------------------------------------------------------------------------------------------
 
 BetaLinearRegressionPlot <- function(df, x, y, y2, color, fill, feature, title){
   
@@ -169,6 +171,13 @@ BetaLinearRegressionPlot <- function(df, x, y, y2, color, fill, feature, title){
 }
 
 
-###################################################################################################
+#--------------------------------------------------------------------------------------------------
+# Load number of clean sample reads
+#--------------------------------------------------------------------------------------------------
 
-
+load_reads <- function(){
+  func_reads <- read_tsv("files/humann2_read_and_species_count_table.tsv", col_names = T)
+  reads <- dplyr::select(func_reads, c("# samples","total reads")) %>% 
+    dplyr::rename( "id" = "# samples", "clean_total_reads" = "total reads")
+  return(reads)
+}
