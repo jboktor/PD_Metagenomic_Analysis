@@ -8,6 +8,7 @@ library(Biobase);library(viridis);library("foreach");library("doParallel");libra
 library(FSA);library(ggpubr);library(ggsci);library(microbiome);library(ggridges);library(future);library(cowplot);
 library(EnvStats);library(sjlabelled);library(sjmisc);library(sjPlot);library(nlme);library(eulerr);library(ggthemes);
 library(ggforce);library(huge);library(Matrix);library(Maaslin2);library(fantaxtic);library(igraph);library(slam);
-library(scales);library(DirichletMultinomial);library(magrittr)
+library(scales);library(DirichletMultinomial);library(magrittr);library(randomForest);library(pROC);library(SGL);
+library(rstatix)
 
 
