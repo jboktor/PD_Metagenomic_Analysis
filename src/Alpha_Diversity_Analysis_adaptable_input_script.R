@@ -2,12 +2,12 @@
 
 ##### Alpha Diversity Boxplots Script
 
-library(ggplot2); library(tidyverse); library(readxl);library(dplyr); library(ggrepel);library(grid);
-library(gridExtra);library(reshape2);library(plyr);library(grid);library(devtools);library(RColorBrewer);
-library(ggfortify);library(vegan);library(MASS);library(compositions);library(zCompositions);library(phyloseq);
-library(Biobase);library(viridis);library("foreach");library("doParallel");library(ggbeeswarm);
-library(FSA);library(ggpubr);library(ggsci);library(microbiome);library(ggridges);library(future);library(cowplot);
-library(EnvStats);library(sjlabelled);library(sjmisc);library(sjPlot);library(nlme)
+# library(ggplot2); library(tidyverse); library(readxl);library(dplyr); library(ggrepel);library(grid);
+# library(gridExtra);library(reshape2);library(plyr);library(grid);library(devtools);library(RColorBrewer);
+# library(ggfortify);library(vegan);library(MASS);library(compositions);library(zCompositions);library(phyloseq);
+# library(Biobase);library(viridis);library("foreach");library("doParallel");library(ggbeeswarm);
+# library(FSA);library(ggpubr);library(ggsci);library(microbiome);library(ggridges);library(future);library(cowplot);
+# library(EnvStats);library(sjlabelled);library(sjmisc);library(sjPlot);library(nlme)
 
 rm(list = ls())
 
@@ -29,7 +29,8 @@ x <- c(dat, dat.path, dat.ec, dat.KOs, dat.Eggnogs, dat.Pfams,
 z <- c("Species", "Pathways", "Enzymes", "KOs", "Eggnogs", "Pfams", 
        "Pathways.slim", "Enzymes.slim", "KOs.slim", "Eggnogs.slim", "Pfams.slim")
 
-color_palette <- c("HC" = "#440154", "PD" = "#FDE725", "PC" = "#21908C")
+# color_palette <- c("HC" = "#440154", "PD" = "#FDE725", "PC" = "#21908C")
+color_palette <- c("HC" = "#5b9bd5","PD" = "#ed7d31","PC" = "#bfbfbf")
 
 ################################ Begining of Loop################################ 
 
@@ -50,8 +51,8 @@ for (i in x){
   env$donor_group <- factor(env$donor_group, levels=c("PC", "PD", "HC"))
   
   ## Calculate Alpha Diversity Metrics and add cols to df
-  env$Observed <- alpha(abundances(dat_alpha), 'observed')$observed
-  env$Shannon <- alpha(abundances(dat_alpha), 'shannon')$diversity_shannon
+  env$Observed <- microbiome::alpha(abundances(dat_alpha), 'observed')$observed
+  env$Shannon <- microbiome::alpha(abundances(dat_alpha), 'shannon')$diversity_shannon
   env$Evenness <- evenness(abundances(dat_alpha), 'simpson')$simpson
   
   # Create new paired column with only household pairs and NAs for rest 
