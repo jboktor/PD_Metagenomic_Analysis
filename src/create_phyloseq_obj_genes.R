@@ -1,7 +1,7 @@
 ## Phyloseq Obj Creation - HUMANn2 REGROUP OBJECTS
 
 ############  load packages  ############
-source("src/ load_packages.R")
+source("src/load_packages.R")
 source("src/load_phyloseq_obj.R")
 
 ### Metadata 
