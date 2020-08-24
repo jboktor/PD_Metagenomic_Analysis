@@ -9,6 +9,8 @@ source("src/DAF_Functions.R")
 # Will take some time
 source("src/omixer-rmpR_setup.R")
 
+# ArcSinSqrt - Transformation
+df.gbm[-1] <- asin(sqrt(df.gbm[-1]))
 
 df.gbm.plt <- df.gbm %>% dplyr::select(-module) %>% 
   t() %>% melt()
@@ -19,9 +21,9 @@ df.gbm.plt$Var2 <- gsub(" ", ".", df.gbm.plt$Var2)
 df.gbm.plt$Var2 <- gsub("-", ".", df.gbm.plt$Var2)
 
 # Prep plotting vars
-df.gbm.plt$group <- factor(df.gbm.plt$group, levels = c("HC", "PD","PC"))
-cols <- c("PD"= "#bfbfbf", "PC" = "#ed7d31", "HC" = "#5b9bd5")
-ylabel <- "RPK Relative Abundance"
+df.gbm.plt$group <- factor(df.gbm.plt$group, levels = c("PC", "PD","HC"))
+cols <- c("PD"= "#ed7d31", "PC" = "#bfbfbf", "HC" = "#5b9bd5")
+ylabel <- "Normalized Abundance"
 
 # Pull stats from MaAsLin2
 Maas.pd.pc <- read_tsv(paste0("data/MaAsLin2_Analysis/GBM_PDvPC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
@@ -97,13 +99,13 @@ PlotGBMs(df.gbm.plt = df.gbm.plt,
          Maas.pd.hc = Maas.pd.hc)
 
 
-##### Butyrate
-## Explore Butyrate variables
-df.butyrate <- df.gbm.plt %>% 
-  filter(grepl("Butyrate", Var2, ignore.case = T))
-unique(df.butyrate$Var2)
-
-PlotGBMs(df.gbm.plt = df.gbm.plt,
-         df.targets = df.butyrate,
-         Maas.pd.pc = Maas.pd.pc, 
-         Maas.pd.hc = Maas.pd.hc)
+# ##### Butyrate
+# ## Explore Butyrate variables
+# df.butyrate <- df.gbm.plt %>% 
+#   filter(grepl("Butyrate", Var2, ignore.case = T))
+# unique(df.butyrate$Var2)
+# 
+# PlotGBMs(df.gbm.plt = df.gbm.plt,
+#          df.targets = df.butyrate,
+#          Maas.pd.pc = Maas.pd.pc, 
+#          Maas.pd.hc = Maas.pd.hc)
