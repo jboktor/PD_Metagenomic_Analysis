@@ -12,22 +12,26 @@ rm(list = ls())
 source("src/load_phyloseq_obj.R")
 source("src/miscellaneous_funcs.R")
 source("src/DAF_Functions.R")
+load("files/GBMs_PhyloseqObj.RData")
+load("files/GMMs_PhyloseqObj.RData")
 
 ################################################################################# 
 ########################### SWAP FUNCTION LEVEL HERE: ########################### 
 ################################################################################# 
 
-LEV <- Phylo_Objects$Enzymes.slim
-lev <- "Enzymes.slim"
+# LEV <- Phylo_Objects$Enzymes.slim
+# lev <- "Enzymes.slim"
+LEV <- dat.GMMs
+lev <- "GMMs"
 
 ################################################################################# 
 
-## Color Schemes
-cols.pdpc <- c("PD"= "#bfbfbf", "PC" = "#ed7d31")
-cols.pdhc <- c("PD"= "#bfbfbf", "HC" = "#5b9bd5")
+# ## Color Schemes
+cols.pdpc <- c("PD"= "#ed7d31", "PC" = "#bfbfbf")
+cols.pdhc <- c("PD"= "#ed7d31", "HC" = "#5b9bd5")
 # Rims
-cols.pdpc.rim <- c("PD"= "#999999", "PC" = "#ed4e31")
-cols.pdhc.rim <- c("PD"= "#999999", "HC" = "#5b7dd5")
+cols.pdpc.rim <- c("PD"= "#ed4e31", "PC" = "#999999")
+cols.pdhc.rim <- c("PD"= "#ed4e31", "HC" = "#5b7dd5")
 
 
 # To protect against row/colname errors 
@@ -47,6 +51,8 @@ if (lev == "Pathways"| lev == "Pathways.slim") {
   taxa_names(LEV) <- features
 } else if (lev == "Species") {
   taxa_names(LEV) <- gsub("s__", "", taxa_names(LEV))
+} else if (lev == "GMMs" | lev == "GBMs" ) {
+  taxa_names(LEV) <- gsub(" ", ".", taxa_names(LEV))
   } else {
   features <- taxa_names(LEV)
   features <- gsub(":", ".", features)
@@ -191,7 +197,7 @@ g2 <- significance_barplot(sigplot.df.pdpc)
 ## Prepping Significance labels
 abun.pdpc.inpt <- daf_boxplot_sigvalues(sigplot.df.pdpc, abun.pdpc.inpt)
 abun.pdpc.inpt$Var2 <- factor(abun.pdpc.inpt$Var2, levels = PDovrPC.order$feature) 
-g1 <- daf_boxplots(abun.pdpc.inpt, cols.pdpc, alfa = 0.8)
+g1 <- daf_boxplots(abun.pdpc.inpt, cols.pdpc, alfa = 0.2)
 
 
 ###### Prevalence Plot ######
@@ -205,7 +211,7 @@ colnames(dat_pdpc.PCprev) <- c("feature", "PC")
 dat_pdpc.PREV <- left_join(dat_pdpc.PDprev, dat_pdpc.PCprev, by = "feature") %>% melt()
 dat_pdpc.PREV$feature <- factor(dat_pdpc.PREV$feature, levels = PDovrPC.order$feature)
 dat_pdpc.PREV$variable <- factor(dat_pdpc.PREV$variable, levels = c("PC", "PD"))
-g3 <- prevalence_barplot(dat_pdpc.PREV, cols.pdpc, alfa = 0.8)
+g3 <- prevalence_barplot(dat_pdpc.PREV, cols.pdpc, alfa = 0.2)
 
 
 
@@ -256,7 +262,7 @@ h2 <- significance_barplot(sigplot.df.pdhc)
 ## Prepping Significance labels
 abun.pdhc.inpt <- daf_boxplot_sigvalues(sigplot.df.pdhc, abun.pdhc.inpt)
 abun.pdhc.inpt$Var2 <- factor(abun.pdhc.inpt$Var2, levels = PDovrHC.order$feature)
-h1 <- daf_boxplots(abun.pdhc.inpt, cols.pdhc, alfa = 0.8)
+h1 <- daf_boxplots(abun.pdhc.inpt, cols.pdhc, alfa = 0.2)
 
 
 ###### Prevalence Plot ######
@@ -268,7 +274,7 @@ colnames(dat_pdhc.HCprev) <- c("feature", "HC")
 dat_pdhc.PREV <- left_join(dat_pdhc.PDprev, dat_pdhc.HCprev, by = "feature") %>% melt()
 dat_pdhc.PREV$feature <- factor(dat_pdhc.PREV$feature, levels = PDovrHC.order$feature)
 dat_pdhc.PREV$variable <- factor(dat_pdhc.PREV$variable, levels = c("HC", "PD"))
-h3 <- prevalence_barplot(dat_pdhc.PREV, cols.pdhc, alfa = 0.8)
+h3 <- prevalence_barplot(dat_pdhc.PREV, cols.pdhc, alfa = 0.2)
 
 
 #############################################################################
