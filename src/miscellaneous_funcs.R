@@ -141,8 +141,10 @@ group_col_from_ids <- function(df, ids){
 
 #-----------------------------------------------------------------------------------------------------------
 
-boxplot_all <- function(df, x, y, cols, title, ylabel){
+boxplot_all <- function(df, x, y, cols = group.cols, title = blank.title, ylabel = blank.ylabel){
   
+  blank.title = " "; blank.ylabel = " "
+  group.cols = c("PC"= "#bfbfbf", "PD" = "#ed7d31", "HC" = "#5b9bd5")
   ###' Basic all group boxplot function
   
   set.seed(123)
@@ -240,7 +242,7 @@ LowVarianceFilter <- function(dat, filter.percent = 0.1) {
   
   rk <- rank(-filter.val, ties.method='random')
   var.num <- nrow(int.mat);
-  remain <- rk < var.num*(1-filter.percent);
+  remain <- rk <= var.num*(1-filter.percent);
   int.mat <- int.mat[remain,];
   
   cat("A total of", sum(!remain), "low variance features were removed based on the Quantile Range between [0.1 - 0.9]. \n")
