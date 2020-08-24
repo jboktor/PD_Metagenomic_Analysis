@@ -17,7 +17,6 @@ input_kos <- microbiome::abundances(dat.KOs.slim) %>%
   rownames_to_column(var = "entry")
 # listDB()
 
-
 # Run the module mapping on the loaded table.
 gmm <- rpm(input_kos, minimum.coverage=0.3, annotation = 1, 
            module.db	= loadDB("GMMs.v1.07"))
@@ -55,6 +54,7 @@ df.gbm <- data.frame(row.names = translated_annotations_gbm,
 # Distribtution Sanity Check
 source("src/miscellaneous_funcs.R")
 distribution_sanity(df.gbm)
+distribution_sanity(asin(sqrt(df.gbm[-1])) )
 
 ####### GMM ####### 
 translated_annotations_gmm <- c()
@@ -70,6 +70,35 @@ for (mod in gmm@annotation){
 df.gmm <- data.frame(row.names=translated_annotations_gmm,
                      "module"=modname_list_gmm,
                      gmm.abundnace)
+
+#---------------------------------------------------------------------------------
+#                            Create GM Phyloseq Objects
+#---------------------------------------------------------------------------------
+
+### Metadata 
+my_sample_data <- meta(dat) %>% sample_data()
+
+#------------------ Gut Brain Modules ------------------ 
+
+my_GBM.ab_table <- df.gbm[-1] %>% 
+  t() %>% 
+  otu_table(taxa_are_rows=F)
+dat.GBMs <- phyloseq(my_GBM.ab_table, my_sample_data)
+print(dat.GBMs)
+save(dat.GBMs, file = "files/GBMs_PhyloseqObj.RData")
+
+#------------------ Gut Metabolic Modules ------------------ 
+
+my_GMM.ab_table <- df.gmm[-1] %>% 
+  t() %>% 
+  otu_table(taxa_are_rows=F)
+dat.GMMs <- phyloseq(my_GMM.ab_table, my_sample_data)
+print(dat.GMMs)
+save(dat.GMMs, file = "files/GMMs_PhyloseqObj.RData")
+
+#---------------------------------------------------------------------------------
+
+
 
 # Distribtution Sanity Check
 distribution_sanity(df.gmm)
@@ -104,18 +133,18 @@ df_input_metadata_pdhc$description <- factor(df_input_metadata_pdhc$description,
                                              levels = c("PD Patient", "Household Control"))
 
 
-################################################################################### 
-###################                 GMM MODELS                  ###################
-################################################################################### 
+#---------------------------------------------------------------------------------
+#                                GMM MODELS                
+#---------------------------------------------------------------------------------
 #set file path 
 wkd <- getwd()
 
-############  PD v PC - GMMs ############
+#----------- PD v PC - GMMs ----------- 
 
 fit_data = Maaslin2(
   input_data = df.gmm_pdpc[,-1],
   input_metadata = df_input_metadata_pdpc,
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/GMM_PDvPC_maaslin2_output"), 
+  output = paste0(wkd, "/data/MaAsLin2_Analysis/GMMs_PDvPC_maaslin2_output"), 
   fixed_effects = c("description", "host_age_factor", "sex", "host_body_mass_index"),
   min_prevalence = 0,
   analysis_method = "LM",
@@ -124,12 +153,12 @@ fit_data = Maaslin2(
   cores = 1
 )
 
-############  PD v HC Paired - GMMs ############
+#----------- PD v HC Paired - GMMs ----------- 
 
 fit_data = Maaslin2(
   input_data = df.gmm_pdhc[,-1], 
   input_metadata = df_input_metadata_pdhc, 
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/GMM_PDvHC_maaslin2_output"), 
+  output = paste0(wkd, "/data/MaAsLin2_Analysis/GMMs_PDvHC_maaslin2_output"), 
   min_prevalence = 0,
   random_effects = c("Paired"),
   fixed_effects = c("description"),
@@ -139,16 +168,16 @@ fit_data = Maaslin2(
   cores = 1
 )
 
-################################################################################### 
-###################                 GBM MODELS                  ###################
-################################################################################### 
+#---------------------------------------------------------------------------------
+#                                GBM MODELS                
+#---------------------------------------------------------------------------------
 
-############  PD v PC - GBMs ############
+#----------- PD v PC - GBMs ----------
 
 fit_data = Maaslin2(
   input_data = df.gbm_pdpc[,-1],
   input_metadata = df_input_metadata_pdpc,
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/GBM_PDvPC_maaslin2_output"), 
+  output = paste0(wkd, "/data/MaAsLin2_Analysis/GBMs_PDvPC_maaslin2_output"), 
   fixed_effects = c("description", "host_age_factor", "sex", "host_body_mass_index"),
   min_prevalence = 0,
   analysis_method = "LM",
@@ -156,12 +185,12 @@ fit_data = Maaslin2(
   transform = "AST",
   cores = 1
 )
-############  PD v HC Paired - GBMs ############
+#---------- PD v HC Paired - GBMs ----------
 
 fit_data = Maaslin2(
   input_data = df.gbm_pdhc[,-1],
   input_metadata = df_input_metadata_pdhc, 
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/GBM_PDvHC_maaslin2_output"), 
+  output = paste0(wkd, "/data/MaAsLin2_Analysis/GBMs_PDvHC_maaslin2_output"), 
   min_prevalence = 0,
   random_effects = c("Paired"),
   fixed_effects = c("description"),
