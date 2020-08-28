@@ -91,7 +91,6 @@ taxa_genus_phlyum_annotation = function(physeq, selectedTaxa){
 }
 
 
-
 ############################################################################################################
 
 pull.phylo.sig <- function(comparison, phylo.names){
@@ -134,6 +133,7 @@ boxplot_phylobars <- function(inpt.phylo, sigvals, tile.cols){
   ##' mapping each feature's Phylum and Genus
   ##' Adds significance symbol if below threshold in respective
   ##' MaAsLin2 model
+  
   full_plot <- NULL
   Legends <- NULL
   products <- NULL
@@ -142,7 +142,6 @@ boxplot_phylobars <- function(inpt.phylo, sigvals, tile.cols){
   phylo.plot$Species <- gsub("s__", "", phylo.plot$Species)
   phylo.plot <-  left_join(phylo.plot, sigvals, by = "Species")
   
-
   ## Sorting - Phylum then qval
   phylo.plot <- phylo.plot[order(phylo.plot$Phylum, phylo.plot$qval), ]
   phylo.plot$order_col <- 1:nrow(phylo.plot)
@@ -177,7 +176,56 @@ boxplot_phylobars <- function(inpt.phylo, sigvals, tile.cols){
 }
 
 ############################################################################################################
-## Adapted from: 
+
+
+boxplot_hl1.bars <- function(inpt.hl1, tile.cols){
+  
+  ##' Function takes in features selected for plotting 
+  ##' Returns color bars, legends, and y-axis order separately, 
+  ##' mapping each feature's Metabolic Module and it's higher level hierarchy
+  ##' Adds significance symbol if below threshold in respective
+  ##' MaAsLin2 model
+  
+  full_plot <- NULL
+  Legends <- NULL
+  products <- NULL
+  
+  ## Sorting - HL1 then qval
+  hl1.plot <- inpt.hl1[order(inpt.hl1$HL1, inpt.hl1$qval), ]
+  hl1.plot$order_col <- 1:nrow(hl1.plot)
+  hl1.plot$xaxis <- "level_1"
+  
+  ## Select colors from pre-made list
+  cut_colors <- tile.cols[names(tile.cols) %in% hl1.plot$HL1]
+  
+  full_plot <- 
+    ggplot(hl1.plot, aes(x= xaxis, y=reorder(Name, -order_col), fill= HL1)) + 
+    geom_tile() +
+    theme_minimal() +
+    scale_fill_manual(values=cut_colors) +
+    theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_text(face = "italic"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position="none")
+  
+  Phylum_legend <-
+    hl1.plot %>%
+    ggplot(aes(x=xaxis, y=reorder(Name, -order_col), fill= HL1)) +
+    geom_tile() +
+    scale_fill_manual(values = cut_colors, name = "HL1")
+  
+  Legends <- cowplot::plot_grid(get_legend(Phylum_legend))
+  
+  products <- list("Bars" = full_plot, "Legends" = Legends, "Axis.order" = unique(hl1.plot$Name))
+  
+  return(products)
+  
+}
+
+
+############################################################################################################
+## Adapted from: https://github.com/zellerlab/crc_meta
 
 
 generalized_fold_change <- function(pd_abundance, ctrl_abundances){
@@ -246,6 +294,7 @@ significance_barplot <- function(df){
 daf_boxplot_sigvalues <- function(sigplot.df, abund.input){
   
   sigplot.df.QVAL <- filter(sigplot.df, variable == "qval")
+  sigplot.df.QVAL$value <- round(sigplot.df.QVAL$value, digits = 3)
   
   sig.labs <- c()
   for (i in sigplot.df.QVAL$value){
@@ -262,11 +311,11 @@ daf_boxplot_sigvalues <- function(sigplot.df, abund.input){
 
 ############################################################################################################
 
-daf_boxplots <- function(df, fill_cols, alfa = 0.5){
+daf_boxplots <- function(df, fill_cols, rim_cols, alfa = 0.5){
   
   set.seed(123)
   p <- ggplot(data=df, aes(x=value, y= Var2)) +
-    geom_boxplot(aes(color = group, fill = group), alpha = alfa, outlier.alpha = 0, width = 0.8) +
+    geom_boxplot(aes(fill = group), alpha = alfa, outlier.alpha = 0, width = 0.8) +
     geom_point(aes(fill=group, color=group), position = position_jitterdodge(jitter.width = .2), shape=21, size=1, alpha = 0.9) +
     theme_minimal() +
     ggtitle(paste0("Differential Abundance: ", lev)) +
@@ -274,7 +323,7 @@ daf_boxplots <- function(df, fill_cols, alfa = 0.5){
                   y=Var2, label = sig.labels), size = 4, check_overlap = TRUE) +
     labs(x = "Abundance") +
     scale_fill_manual(values = fill_cols, name ="Group") +
-    scale_color_manual(values = fill_cols, name ="Group") +
+    scale_color_manual(values = rim_cols, name ="Group") +
     theme(plot.title = element_text(hjust = 0.5),
           axis.title.y = element_blank(),
           panel.grid.major.y = element_blank())
