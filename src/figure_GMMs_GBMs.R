@@ -188,7 +188,8 @@ for (process in unique(metabolism_df3$feature)){
 featmax <- data.frame("feature"=feats, Max.values)
 metabolism_df3 <- left_join(metabolism_df3, featmax, by = c("feature"))
 
-group.cols = c("PC"= "#bfbfbf", "PD" = "#ed7d31", "HC" = "#5b9bd5")
+group.cols.fill = c("PC"= "#ed7d31", "PD" = "#bfbfbf", "HC" = "#5b9bd5")
+group.cols.rims = c("PC"= "#c15811", "PD" = "#494949", "HC" = "#2e75b5")
 metabolism_df3$group <- factor(metabolism_df3$group, levels = c("PC", "PD", "HC"))
 metlabels <- c("amino.acid.degradation" = "Amino acid\n degradation", 
                "organic.acid.metabolism" = "Organic acid\n metabolism",
@@ -220,11 +221,12 @@ metabolism_overview <-
   facet_wrap(. ~ feature, scale="free", nrow = 2,
              labeller = labeller(feature = metlabels)) +
   labs(y = "Summated Normalized Abundance") +
-  scale_color_manual(values = group.cols, name ="Group") +
-  scale_fill_manual(values = group.cols, name ="Group") +
+  scale_color_manual(values = group.cols.rims, name ="Group") +
+  scale_fill_manual(values = group.cols.fill, name ="Group") +
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.x = element_blank(),
         axis.text.x = element_blank(),
+        axis.ticks.length.x = unit(0, "cm"),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         axis.line = element_line(color = "grey"),
@@ -250,7 +252,7 @@ metabolism_overview2 <- gridExtra::arrangeGrob(g)
 
 
 ggsave(metabolism_overview2, filename = "figures/Figure_4/Metabolism_Overview_Boxplot_colored.svg",
-       width = 9.5, height = 5)
+       width = 10, height = 5)
 
 
-DAF_Analysis(obj.name = "GMMs", obj = dat.GMMs)
+# DAF_Analysis(obj.name = "GMMs", obj = dat.GMMs)
