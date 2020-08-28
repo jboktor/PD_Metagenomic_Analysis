@@ -40,5 +40,5 @@ Phylo_Objects$Enzymes <- dat.ec; Phylo_Objects$Enzymes.slim <- dat.ec.slim;
 Phylo_Objects$KOs.all <- dat.KOs.all; Phylo_Objects$KOs.all.slim <- dat.KOs.all.slim; 
 Phylo_Objects$KOs <- dat.KOs; Phylo_Objects$KOs.slim <- dat.KOs.slim
 
-
+save(Phylo_Objects, file = "files/PhyloseqObj.RData")
 
