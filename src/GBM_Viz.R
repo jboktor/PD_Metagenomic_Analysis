@@ -19,6 +19,9 @@ df.gbm.plt <- df.gbm.plt %>% group_col_from_ids(df.gbm.plt$Var1)
 # Adjust feature names to match MaAsLin 
 df.gbm.plt$Var2 <- gsub(" ", ".", df.gbm.plt$Var2)
 df.gbm.plt$Var2 <- gsub("-", ".", df.gbm.plt$Var2)
+df.gbm.plt$Var2 <- gsub("[[:punct:][:blank:]]",".", df.gbm.plt$Var2)
+
+
 
 # Prep plotting vars
 df.gbm.plt$group <- factor(df.gbm.plt$group, levels = c("PC", "PD","HC"))
@@ -58,7 +61,7 @@ PlotGBMs <- function(df.gbm.plt, df.targets, Maas.pd.pc, Maas.pd.hc) {
             axis.line.y = element_line(colour="grey"))
     
     plot(p)
-    ggsave(p, filename = paste0("data/SCFA_Analysis/Boxplot_",i ,".svg"), height = 4, width =3)
+    ggsave(p, filename = paste0("data/GBM_SCFA_Analysis/Boxplot_",i ,".svg"), height = 4, width =3)
     p <- NULL  
   }
 }
@@ -99,13 +102,18 @@ PlotGBMs(df.gbm.plt = df.gbm.plt,
          Maas.pd.hc = Maas.pd.hc)
 
 
-# ##### Butyrate
-# ## Explore Butyrate variables
-# df.butyrate <- df.gbm.plt %>% 
-#   filter(grepl("Butyrate", Var2, ignore.case = T))
-# unique(df.butyrate$Var2)
-# 
-# PlotGBMs(df.gbm.plt = df.gbm.plt,
-#          df.targets = df.butyrate,
-#          Maas.pd.pc = Maas.pd.pc, 
-#          Maas.pd.hc = Maas.pd.hc)
+##### Filter all significant plots from GBM Model 
+
+Maas.pd.hc.sig <- Maas.pd.hc %>% 
+  dplyr::filter(qval < 0.25) %>% 
+  dplyr::select(feature)
+
+df.pdhc.sig <- df.gbm.plt %>% 
+  filter(Var2 %in% Maas.pd.hc.sig$feature)
+unique(df.pdhc.sig$Var2)
+
+PlotGBMs(df.gbm.plt = df.gbm.plt,
+         df.targets = df.pdhc.sig,
+         Maas.pd.pc = Maas.pd.pc, 
+         Maas.pd.hc = Maas.pd.hc)
+
