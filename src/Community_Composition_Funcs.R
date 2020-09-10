@@ -29,7 +29,7 @@ RareFactionPlot <- function(dat, featuretype="Species", reads){
   cat("\n\n\n"); cat(featuretype, "Rarefaction  \n")
 
   # Get Pseuo-counts
-  psudocnts <- dat %>% transform("compositional") %>% 
+  psudocnts <- dat %>% microbiome::transform("compositional") %>% 
     abundances() %>% as.data.frame()
   cat("TSS \n")
   
@@ -48,41 +48,44 @@ RareFactionPlot <- function(dat, featuretype="Species", reads){
     t() %>% as.data.frame()
   
   cat("Calculating Rarefaction Estimate for HC : This may take a second -   \n")
-  acc.HC <- specaccum(psudocnts.HC, method = "exact")
+  acc.HC <- specaccum(psudocnts.HC, method="random", permutations=1000)
   cat("Calculating Rarefaction Estimate for PC - Almost there - ༼ つ ◕_◕ ༽つ  \n")
-  acc.PC <- specaccum(psudocnts.PC, method = "exact")
+  acc.PC <- specaccum(psudocnts.PC, method="random", permutations=1000)
   cat("Calculating Rarefaction Estimate for PD - Homestretch -  ༼ つ ಥ_ಥ ༽つ  \n\n")
-  acc.PD <- specaccum(psudocnts.PD, method = "exact")
+  acc.PD <- specaccum(psudocnts.PD, method="random", permutations=1000)
   cat(featuretype, " Rarefaction Calculations Complete:  ヽ༼ຈل͜ຈ༽ﾉ  \n\n")
   
   df.acc.HC <- data.frame(Sites=acc.HC$sites, Richness=acc.HC$richness, SD=acc.HC$sd)
   df.acc.PC <- data.frame(Sites=acc.PC$sites, Richness=acc.PC$richness, SD=acc.PC$sd)
   df.acc.PD <- data.frame(Sites=acc.PD$sites, Richness=acc.PD$richness, SD=acc.PD$sd)
   
-  PD.col <- "#FDE725"; PD.col2 <- "#fdad19"; PD.col3 <- "#d48a02"
-  PC.col <- "#21908C"; PC.col2 <- "#2cc0bb"
-  HC.col <- "#440154"; HC.col2 <- "#73028e"
+  # PD.col <- "#FDE725"; PD.col2 <- "#fdad19"; PD.col3 <- "#d48a02"
+  # PC.col <- "#21908C"; PC.col2 <- "#2cc0bb"
+  # HC.col <- "#440154"; HC.col2 <- "#73028e"
+  PD.col <- "#bfbfbf"; PD.col2 <- "#494949"; PD.col3 <- "#848484"
+  PC.col <- "#ed7d31"; PC.col2 <- "#f3a977"
+  HC.col <- "#5b9bd5"; HC.col2 <- "#99c1e5"
   
   p1 <- ggplot() +
     theme_bw() +
     # PD data
-    geom_point(data=df.acc.PD, aes(x=Sites, y=Richness), alpha=1.5, color = PD.col2) +
-    geom_line(data=df.acc.PD, aes(x=Sites, y=Richness), size = 2, alpha=0.6, color = PD.col3) +
-    geom_ribbon(data=df.acc.PD, aes(x=Sites, ymin=(Richness-2*SD),ymax=(Richness+2*SD)),alpha=0.2, fill = PD.col) +
+    # geom_point(data=df.acc.PD, aes(x=Sites, y=Richness), alpha=1.5, color = PD.col2) +
+    geom_line(data=df.acc.PD, aes(x=Sites, y=Richness), size = 1, alpha=0.6, color = PD.col2) +
+    geom_ribbon(data=df.acc.PD, aes(x=Sites, ymin=(Richness-2*SD),ymax=(Richness+2*SD)),alpha=0.2, fill = PD.col3) +
     # PC data
-    geom_point(data=df.acc.PC, aes(x=Sites, y=Richness), alpha=1.5, color = PC.col) +
-    geom_line(data=df.acc.PC, aes(x=Sites, y=Richness), size = 2, alpha=0.6, color = PC.col) +
-    geom_ribbon(data=df.acc.PC, aes(x=Sites, ymin=(Richness-2*SD),ymax=(Richness+2*SD)),alpha=0.2, fill = PC.col2) +
+    # geom_point(data=df.acc.PC, aes(x=Sites, y=Richness), alpha=1.5, color = PC.col) +
+    geom_line(data=df.acc.PC, aes(x=Sites, y=Richness), size = 1, alpha=0.6, color = PC.col) +
+    geom_ribbon(data=df.acc.PC, aes(x=Sites, ymin=(Richness-2*SD),ymax=(Richness+2*SD)),alpha=0.2, fill = PC.col) +
     # HC data
-    geom_point(data=df.acc.HC, aes(x=Sites, y=Richness), alpha=1.5, color = HC.col) +
-    geom_line(data=df.acc.HC, aes(x=Sites, y=Richness), size = 2, alpha=0.6, color = HC.col2) +
-    geom_ribbon(data=df.acc.HC, aes(x=Sites, ymin=(Richness-2*SD),ymax=(Richness+2*SD)),alpha=0.2, fill = HC.col2) +
-    labs(x = "Sample #", y = paste0(featuretype, " Detected")) +
+    # geom_point(data=df.acc.HC, aes(x=Sites, y=Richness), alpha=1.5, color = HC.col) +
+    geom_line(data=df.acc.HC, aes(x=Sites, y=Richness), size = 1, alpha=0.6, color = HC.col) +
+    geom_ribbon(data=df.acc.HC, aes(x=Sites, ymin=(Richness-2*SD),ymax=(Richness+2*SD)),alpha=0.2, fill = HC.col) +
+    labs(x = "Number of Samples", y = paste0("Number of ", featuretype)) +
     theme(strip.background = element_blank(),
           panel.grid = element_blank())
   
   ggsave(p1, filename = paste0("data/Quality_Control/Rarefaction_Plots/Rarefaction_Plot_", featuretype, ".svg"),
-         width = 8, height = 6)
+         width = 4, height = 3)
   return(p1)
   
 }

@@ -10,19 +10,23 @@ load("files/Eggnogs.slim_PhyloseqObj.RData")
 
 reads <- load_reads()
 reads$id <- gsub("_", ".", reads$id)
-
+d <- meta(dat)
 #################################  Plot Rarefaction Curves per group #################################  
 
 ##' Manual Input here: to create the species, genus, phylum, pathways, enzyme, KO, Eggnog, or Pfam 
 ##' Rarefaction plot input the appropriate __ dat __ frame below
+##' This analysis does 1000 random permutations per number of samples (1-(n of group)) and plots richness along 
+##' with it's 95% confidence interval
 
 RareFactionPlot(dat, featuretype = "Species", reads)
 
-RareFactionPlot(dat.path.slim, featuretype = "non-stratified Pathways", reads)
+RareFactionPlot(dat.genus, featuretype = "Genera", reads)
 
-RareFactionPlot(dat.KOs.slim, featuretype = "non-stratified KOs", reads)
+RareFactionPlot(dat.path.slim, featuretype = "Pathways", reads)
 
-RareFactionPlot(dat.Pfams.slim, featuretype = "non-stratified Pfams", reads)
+RareFactionPlot(dat.KOs.slim, featuretype = "Kegg Orthologous", reads)
+
+RareFactionPlot(dat.Pfams.slim, featuretype = "Pfams", reads)
 
 # This may crash desktop
 # RareFactionPlot(dat.Eggnogs.slim, featuretype = "non-stratified Eggnogs", reads)
@@ -30,7 +34,15 @@ RareFactionPlot(dat.Pfams.slim, featuretype = "non-stratified Pfams", reads)
 ################################################################################################
 #################################  Plot Seq Depth Distributions by group #################################  
 
-PD.col <- "#bfbfbf"; PC.col <- "#ed7d31"; HC.col <- "#5b9bd5"
+cols.pdpchc <- c("PD"= "#bfbfbf", 
+                 "PC" = "#ed7d31",
+                 "HC" = "#5b9bd5")
+cols.pdpchc_dark <- c("PD"= "#494949", 
+                 "PC" = "#ed7d31",
+                 "HC" = "#5b9bd5")
+cols.pdpchc.rim <- c("PD"= "#494949", 
+                     "PC" = "#c15811",
+                     "HC" = "#2e75b5")
 
 df.reads <- group_col_from_ids(reads, reads$id)
 df.reads$group <- factor(df.reads$group, levels=c("PC", "PD", "HC"))
@@ -38,17 +50,17 @@ df.reads$group <- factor(df.reads$group, levels=c("PC", "PD", "HC"))
 histo_plot <- ggplot(df.reads, aes(x=clean_total_reads, color = group), alpha = 0.3) + 
   theme_bw() +
   geom_density() +
-  scale_color_manual(values = c("HC" = HC.col, "PD" = PD.col, "PC" = PC.col))  +
+  scale_color_manual(values = cols.pdpchc)  +
   theme(axis.title.x = element_blank(),
         legend.position = c(0.9, 0.5),
         panel.grid = element_blank())
 
 ecdf_plot <- ggplot(df.reads, aes(x=clean_total_reads, colour = group)) + 
-  stat_ecdf(geom = "step", pad = FALSE) +
-  stat_ecdf(geom = "point", pad = FALSE, alpha =0.4) +
+  stat_ecdf(geom = "step", pad = FALSE, alpha = 0.5) +
+  stat_ecdf(geom = "point", pad = FALSE, alpha = 0.9, size = 0.75) +
   theme_bw() +
-  labs(y = "ECDF") +
-  scale_color_manual(values = c("HC" = HC.col, "PD" = PD.col, "PC" = PC.col), guide = FALSE)  +
+  labs(x ="Clean Reads", y = "ECDF") +
+  scale_color_manual(values = cols.pdpchc, guide = FALSE)  +
   theme(legend.position = c(0.9, 0.5),
         panel.grid = element_blank())
 
@@ -58,10 +70,6 @@ ggsave(c1, filename = "data/Quality_Control/Sequencing_Depth_Density_&_ECDF.png"
 
 ################################################################################################
 ################################# Seq Depth Boxplots by group #################################  
-
-PD.col <- "#FDE725";PD.col2 <- "#fdad19";PD.col3 <- "#d48a02"
-PC.col <- "#21908C";PC.col2 <- "#2cc0bb"
-HC.col <- "#440154";HC.col2 <- "#73028e"
 
 # Test for normality - Distb is non-normal
 shapiro.test(df.reads$clean_total_reads)
@@ -80,15 +88,16 @@ HCvsPD.stat <- stat.test$p.value
 
 
 p2 <- ggplot(df.reads, aes(x=group, y=clean_total_reads)) +
-  geom_point(aes(fill = group), position = position_jitterdodge(dodge.width=1),shape=21, size=1.25, alpha = 1) +
+  geom_point(aes(fill = group, color = group), position = position_jitterdodge(dodge.width=1),shape=21, size=1.25, alpha = 1) +
   geom_boxplot(aes(fill = group), outlier.alpha = 0, alpha = 0.3, width = 0.45) +
   theme_minimal() +
   labs(y="Total Clean Reads per Sample") +
-  scale_fill_manual(values = c("HC" = HC.col, "PD" = PD.col, "PC" = PC.col)) +
+  scale_fill_manual(values = cols.pdpchc) +
+  scale_color_manual(values = cols.pdpchc.rim) +
   geom_signif(comparisons = list(c("HC", "PC")), tip_length = 0, 
-              annotations = sig_mapper(PCvsHC.stat,  symbols = F, porq = "q")) +
+              annotations = sig_mapper(PCvsHC.stat,  symbols = F, porq = "p")) +
   geom_signif(comparisons = list(c("PC", "PD")), tip_length = 0.01, 
-              y_position = 1.95e7, annotations = sig_mapper(PCvsPD.stat,  symbols = F, porq = "q")) +
+              y_position = 1.95e7, annotations = sig_mapper(PCvsPD.stat,  symbols = F, porq = "p")) +
   geom_signif(comparisons = list(c("HC", "PD")), tip_length = 0.01, 
               y_position = 1.95e7, annotations = sig_mapper(HCvsPD.stat, symbols = F, porq = "p")) +
   theme(panel.grid.major.x = element_blank(),
@@ -106,8 +115,9 @@ dat2 <- core(dat.genus, detection = 0, prevalence = 0.1)
 dat.top <- get_top_taxa(dat2, n=15, relative = TRUE, discard_other = TRUE,
                               other_label = "Other")
 ps1 <- merge_samples(dat.top, "donor_group")
+# ps1 <- phylosmith::set_treatment_levels(ps1, "donor_group", c("PC","PD","HC"))
 
-p <- fantaxtic_bar(ps1, color_by = "Order", label_by = "Genus", 
+p <- fantaxtic_bar(ps1, color_by = "Order", label_by = "Genus",
                    palette =  c("#c9ca9c", "#8d5576", "#15476c", "#f2e8d5"))
 p <- p + theme(axis.title.x = element_blank()) +
   labs(y = "Relative Abundance")
