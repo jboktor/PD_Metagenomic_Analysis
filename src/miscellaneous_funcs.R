@@ -167,7 +167,7 @@ boxplot_all <- function(df, x, y, cols = group.cols, title = blank.title, ylabel
 
 alpha_div_boxplots <- function(df, x, y, 
                                df.pairs, df.pairs.x, df.pairs.y, pairs.column, 
-                               cols, ylabel,PDvPC.stat, PDvHC.stat){
+                               cols, cols.rim, ylabel,PDvPC.stat, PDvHC.stat){
   
   ###' Function for alpha diveristy
   ###' boxplots with paired lines
@@ -186,7 +186,7 @@ alpha_div_boxplots <- function(df, x, y,
           panel.grid.minor.y = element_blank()) +
     labs(fill="Group") +
     scale_fill_manual(values = cols) +
-    scale_colour_manual(values = cols) +
+    scale_colour_manual(values = cols.rim) +
     geom_signif(comparisons = list(c("PD", "HC")), annotations = sig_mapper(PDvHC.stat)) +
     geom_signif(comparisons = list(c("PC", "PD")), annotations = sig_mapper(PDvPC.stat))
   return(p)
@@ -287,6 +287,104 @@ plot_feature <- function(obj, feature){
               ylabel= paste(unique(dm$rowname), "Abundance"))
 }
 
+#-----------------------------------------------------------------------------------------------------------
+#                                            ML FUNCTIONS
+#-----------------------------------------------------------------------------------------------------------
+# from: http://jaehyeon-kim.github.io/2015/05/Setup-Random-Seeds-on-Caret-Package.html
+
+setSeeds <- function(method = "repeatedcv", numbers = 1, repeats = 1, tunes = NULL, seed = 42) {
+  
+  #' function to set up random seeds for repeated ML cross validation models
+  
+  #B is the number of resamples and integer vector of M (numbers + tune length if any)
+  
+  B <- if (method == "cv") numbers
+  else if(method == "repeatedcv") numbers * repeats
+  else NULL
+  
+  if(is.null(length)) {
+    seeds <- NULL
+  } else {
+    set.seed(seed = seed)
+    seeds <- vector(mode = "list", length = B)
+    seeds <- lapply(seeds, function(x) sample.int(n = 1000000, size = numbers + ifelse(is.null(tunes), 0, tunes)))
+    seeds[[length(seeds) + 1]] <- sample.int(n = 1000000, size = 1)
+  }
+  # return seeds
+  seeds
+}
+
+#-----------------------------------------------------------------------------------------------------------
+
+unregister <- function() {
+  #' Unregister a foreach backend 
+  #' Use when looping functions that run 
+  #' analyses in parallel
+  
+  enviorn <- foreach:::.foreachGlobals
+  rm(list=ls(name=enviorn), pos=enviorn)
+}
+
+
+#-----------------------------------------------------------------------------------------------------------
+
+group_col_from_ids_ML <- function(df.in, ids){
+  df.out <- mutate(df.in, group = if_else(grepl("control", ids), "control", "disease"))
+  rownames(df.out) <- rownames(df.in)
+  return(df.out)
+}
+
+#-----------------------------------------------------------------------------------------------------------
+
+
+prep.CMD.Species.ML <- function(study, metafilter = NA){
+  
+  #' Funtion that preps input for ML analysis 
+  #' Input: Study name from curatedMetagenomicData
+  #' Output: dataframe of Species abundnace inluding an 
+  #' identifying group column
+  
+  study <- study
+  alt.disease <- curatedMetagenomicData(paste0(study, ".metaphlan_bugs_list.stool"), dryrun=F)
+
+  df.spec <- alt.disease[[1]] %>%
+    ExpressionSet2phyloseq() %>% 
+    subset_taxa(!is.na(Species)) %>% 
+    subset_taxa(is.na(Strain)) 
+  
+  df.abund <- df.spec %>% 
+    microbiome::transform("compositional") %>% 
+    microbiome::abundances() %>% 
+    t() %>% 
+    as.data.frame() %>% 
+    rownames_to_column()
+  df.abund[-1] <- asin(sqrt(df.abund[-1]))
+  
+  m <- microbiome::meta(df.spec) %>% 
+    select(study_condition) %>% 
+    rownames_to_column()
+  
+  model.input <- left_join(df.abund, m) %>% 
+    column_to_rownames() 
+  
+  if (!is.na(metafilter)){
+    model.input <- filter(model.input, study_condition != metafilter)
+  }
+  
+  count(model.input$study_condition)
+  unique(model.input$study_condition)
+  
+  model.input <- model.input %>% 
+    group_col_from_ids_ML(ids = model.input$study_condition) %>% 
+    dplyr::select(-study_condition)
+  
+  model.input$group <- factor(model.input$group)
+  
+  return(model.input)
+}
+
+#-----------------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------------------------------
 
 
