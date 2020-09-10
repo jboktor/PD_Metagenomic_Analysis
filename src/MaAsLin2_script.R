@@ -111,14 +111,14 @@ dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.genus, donor_group !="HC")
 # Plot Variance Estimate
 PlotVariance(dat_pdpc)
-df_input_data_pdpc <- dat_pdpc %>% transform("compositional") %>% LowVarianceFilter(filter.percent = 0)
+df_input_data_pdpc <- dat_pdpc %>% microbiome::transform("compositional") %>% LowVarianceFilter(filter.percent = 0)
 
 # PD v HC PAIRED abundance data
 dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.genus, Paired !="No")
 # Plot Variance Estimate
 PlotVariance(dat_pdhc)
-df_input_data_pdhc <- dat_pdhc %>% transform("compositional") %>% LowVarianceFilter(filter.percent = 0)
+df_input_data_pdhc <- dat_pdhc %>% microbiome::transform("compositional") %>% LowVarianceFilter(filter.percent = 0)
 
 
 #############  PD v PC - GENUS ############
@@ -163,14 +163,14 @@ dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.phylum, donor_group !="HC")
 # Plot Variance Estimate
 PlotVariance(dat_pdpc)
-df_input_data_pdpc <- dat_pdpc %>% transform("compositional") %>% abundances()
+df_input_data_pdpc <- dat_pdpc %>% microbiome::transform("compositional") %>% abundances()
 
 # PD v HC PAIRED abundance data
 dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.phylum, Paired !="No")
 # Plot Variance Estimate
 PlotVariance(dat_pdhc)
-df_input_data_pdhc <- dat_pdhc %>% transform("compositional") %>% abundances()
+df_input_data_pdhc <- dat_pdhc %>% microbiome::transform("compositional") %>% abundances()
 
 
 #############  PD v PC - PHYLUM ############
@@ -219,14 +219,14 @@ dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.path, donor_group !="HC")
 # Plot Variance Estimate
 PlotVariance(dat_pdpc)
-df_input_data_pdpc <- dat_pdpc %>% transform("compositional") %>% LowVarianceFilter(filter.percent = 0.3)
+df_input_data_pdpc <- dat_pdpc %>% microbiome::transform("compositional") %>% LowVarianceFilter(filter.percent = 0.3)
 
 # PD v HC PAIRED abundance data
 dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.path, Paired !="No")
 # Plot Variance Estimate
 PlotVariance(dat_pdhc)
-df_input_data_pdhc <- dat_pdhc %>% transform("compositional") %>% LowVarianceFilter(filter.percent = 0.3) 
+df_input_data_pdhc <- dat_pdhc %>% microbiome::transform("compositional") %>% LowVarianceFilter(filter.percent = 0.3) 
 
 
 ############  Pathway Data  ############ PD v PC
@@ -267,14 +267,14 @@ dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.path.slim, donor_group !="HC")
 # Plot Variance Estimate
 PlotVariance(dat_pdpc)
-df_input_data_pdpc <- dat_pdpc %>% transform("compositional") %>% LowVarianceFilter(filter.percent = 0.1)
+df_input_data_pdpc <- dat_pdpc %>% microbiome::transform("compositional") %>% LowVarianceFilter(filter.percent = 0.1)
 
 # PD v HC PAIRED abundance data
 dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.path.slim, Paired !="No")
 # Plot Variance Estimate
 PlotVariance(dat_pdhc) #Trim 10%
-df_input_data_pdhc <- dat_pdhc %>% transform("compositional") %>% LowVarianceFilter(filter.percent = 0.1)
+df_input_data_pdhc <- dat_pdhc %>% microbiome::transform("compositional") %>% LowVarianceFilter(filter.percent = 0.1)
 
 
 ############  Pathway Data  ############ PD v PC
@@ -319,14 +319,14 @@ dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.ec, donor_group !="HC")
 # Plot Variance Estimate
 PlotVariance(dat_pdpc)
-df_input_data_pdpc <- dat_pdpc %>% transform("compositional") %>% LowVarianceFilter(filter.percent = 0.7)
+df_input_data_pdpc <- dat_pdpc %>% microbiome::transform("compositional") %>% LowVarianceFilter(filter.percent = 0.7)
 
 # PD v HC PAIRED abundance data
 dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.ec, Paired !="No")
 # Plot Variance Estimate
 PlotVariance(dat_pdhc)
-df_input_data_pdhc <- dat_pdhc %>% transform("compositional") %>% LowVarianceFilter(filter.percent = 0.7)
+df_input_data_pdhc <- dat_pdhc %>% microbiome::transform("compositional") %>% LowVarianceFilter(filter.percent = 0.7)
 
 
 ############  ENZYME Data  ############ PD v PC
@@ -368,14 +368,14 @@ dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.ec.slim, donor_group !="HC")
 # Plot Variance Estimate
 PlotVariance(dat_pdpc)
-df_input_data_pdpc <- dat_pdpc %>% transform("compositional") %>%  LowVarianceFilter(filter.percent = 0.4)
+df_input_data_pdpc <- dat_pdpc %>% microbiome::transform("compositional") %>%  LowVarianceFilter(filter.percent = 0.4)
 
 # PD v HC PAIRED abundance data
 dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.ec.slim, Paired !="No")
 # Plot Variance Estimate
 PlotVariance(dat_pdhc)
-df_input_data_pdhc <- dat_pdhc %>% transform("compositional") %>% LowVarianceFilter(filter.percent = 0.4)
+df_input_data_pdhc <- dat_pdhc %>% microbiome::transform("compositional") %>% LowVarianceFilter(filter.percent = 0.4)
 
 
 ############  ENZYME Data  ############ PD v PC
@@ -420,14 +420,14 @@ dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.KOs, donor_group !="HC")
 # Plot Variance Estimate
 PlotVariance(dat_pdpc)
-df_input_data_pdpc <- dat_pdpc %>% transform("compositional") %>% LowVarianceFilter(filter.percent = 0.7)
+df_input_data_pdpc <- dat_pdpc %>% microbiome::transform("compositional") %>% LowVarianceFilter(filter.percent = 0.7)
 
 # PD v HC PAIRED abundance data
 dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.KOs, Paired !="No")
 # Plot Variance Estimate
 PlotVariance(dat_pdhc)
-df_input_data_pdhc <- dat_pdhc %>% transform("compositional") %>% LowVarianceFilter(filter.percent = 0.7)
+df_input_data_pdhc <- dat_pdhc %>% microbiome::transform("compositional") %>% LowVarianceFilter(filter.percent = 0.7)
 
 
 ############  Gene Data  ############ PD v PC
@@ -469,14 +469,14 @@ dat_pdpc <- NULL
 dat_pdpc = subset_samples(dat.KOs.slim, donor_group !="HC")
 # Plot Variance Estimate
 PlotVariance(dat_pdpc)
-df_input_data_pdpc <- dat_pdpc %>% transform("compositional") %>% LowVarianceFilter(filter.percent = 0.5)
+df_input_data_pdpc <- dat_pdpc %>% microbiome::transform("compositional") %>% LowVarianceFilter(filter.percent = 0.5)
 
 # PD v HC PAIRED abundance data
 dat_pdhc <- NULL
 dat_pdhc = subset_samples(dat.KOs.slim, Paired !="No")
 # Plot Variance Estimate
 PlotVariance(dat_pdhc)
-df_input_data_pdhc <- dat_pdhc %>% transform("compositional") %>% LowVarianceFilter(filter.percent = 0.5)
+df_input_data_pdhc <- dat_pdhc %>% microbiome::transform("compositional") %>% LowVarianceFilter(filter.percent = 0.5)
 
 
 ############  Gene Data  ############ PD v PC
