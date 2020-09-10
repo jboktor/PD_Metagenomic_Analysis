@@ -12,9 +12,10 @@
 rm(list = ls())
 
 ######## Load Data & functions
+source("src/load_packages.R")
 source("src/load_phyloseq_obj.R")
-source("src/miscellaneous_funcs.R")
 source("src/Metadata_prep_funcs.R")
+source("src/miscellaneous_funcs.R")
 load("files/Eggnogs.slim_PhyloseqObj.RData")
 load("files/Eggnogs_PhyloseqObj.RData")
 load("files/Pfams.slim_PhyloseqObj.RData")
@@ -30,8 +31,13 @@ z <- c("Species", "Pathways", "Enzymes", "KOs", "Eggnogs", "Pfams",
        "Pathways.slim", "Enzymes.slim", "KOs.slim", "Eggnogs.slim", "Pfams.slim")
 
 # color_palette <- c("HC" = "#440154", "PD" = "#FDE725", "PC" = "#21908C")
-color_palette <- c("HC" = "#5b9bd5","PD" = "#ed7d31","PC" = "#bfbfbf")
-
+# color_palette <- c("HC" = "#5b9bd5","PD" = "#ed7d31","PC" = "#bfbfbf")
+cols.pdpchc <- c("PD"= "#494949", 
+                 "PC" = "#ed7d31",
+                 "HC" = "#5b9bd5")
+cols.pdpchc.rim <- c("PD"= "#494949", 
+                     "PC" = "#c15811",
+                     "HC" = "#2e75b5")
 ################################ Begining of Loop################################ 
 
 
@@ -117,7 +123,8 @@ for (i in x){
   p1 <- alpha_div_boxplots(df=env, x=env$donor_group, y=env$Observed, 
                            df.pairs=env.pairs, df.pairs.x = env.pairs$donor_group, df.pairs.y=env.pairs$Observed,
                            pairs.column=env.pairs$Paired.plot,
-                           cols=color_palette, ylabel = paste0("Observed Counts: ", z[cnt]), 
+                           cols=cols.pdpchc, cols.rim=cols.pdpchc.rim, 
+                           ylabel = paste0("Observed Counts: ", z[cnt]), 
                            PDvPC.stat = observed.PdPC.pval, PDvHC.stat = observed.PdHC.pval)
   
   ########### Shannon Diversity ########### 
@@ -133,7 +140,8 @@ for (i in x){
   p2 <- alpha_div_boxplots(df=env, x=env$donor_group, y=env$Shannon, 
                            df.pairs=env.pairs, df.pairs.x = env.pairs$donor_group, df.pairs.y=env.pairs$Shannon,
                            pairs.column=env.pairs$Paired.plot,
-                           cols=color_palette, ylabel = paste0("Shannon's Diversity: ", z[cnt]), 
+                           cols=cols.pdpchc, cols.rim=cols.pdpchc.rim,
+                           ylabel = paste0("Shannon's Diversity: ", z[cnt]), 
                            PDvPC.stat = shannon.PdPC.pval, PDvHC.stat = shannon.PdHC.pval)
   
   
@@ -151,7 +159,8 @@ for (i in x){
   p3 <- alpha_div_boxplots(df=env, x=env$donor_group, y=env$Evenness, 
                      df.pairs=env.pairs, df.pairs.x = env.pairs$donor_group, df.pairs.y=env.pairs$Evenness,
                      pairs.column=env.pairs$Paired.plot,
-                     cols=color_palette, ylabel = paste0("Simpson's Evenness: ", z[cnt]), 
+                     cols=cols.pdpchc, cols.rim=cols.pdpchc.rim,
+                     ylabel = paste0("Simpson's Evenness: ", z[cnt]), 
                      PDvPC.stat = evenness.PdPC.pval, PDvHC.stat = evenness.PdHC.pval)
 
   

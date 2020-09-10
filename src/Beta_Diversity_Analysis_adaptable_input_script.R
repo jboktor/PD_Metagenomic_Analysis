@@ -18,15 +18,6 @@ load("files/Pfams.slim_PhyloseqObj.RData")
 x <- c(dat, dat.path.slim, dat.KOs.slim, dat.Pfams.slim,  dat.Eggnogs.slim)
 z <- c("species", "pathways", "KOs", "Pfams", "Eggnogs")
 
-# ### Distribution Sanity Check - CLR
-# for (i in x){
-#   print(i)
-#   A <- i %>% transform("compositional") %>%
-#     transform("clr") %>%
-#     abundances() %>% data.frame()
-#   plot(distribution_sanity(A))
-# }
-
 
 # PD.col <- "#FDE725FF"
 # PC.col <- "#21908CFF"
@@ -35,14 +26,27 @@ PD.col <- "#bfbfbf"
 PC.col <- "#ed7d31"
 HC.col <- "#5b9bd5"
 
-group_colors <- 
-  c("Household Control" = "#5b9bd5",
-  "PD Patient" = "#ed7d31",
-  "Population Control" = "#bfbfbf")
-group_colors2 <- 
-  c("Household Control" = "#1e4c75",
-    "PD Patient" = "#ed4e31",
-    "Population Control" = "#848484")
+# group_colors <- 
+#   c("Household Control" = "#5b9bd5",
+#   "PD Patient" = "#ed7d31",
+#   "Population Control" = "#bfbfbf")
+# group_colors2 <- 
+#   c("Household Control" = "#1e4c75",
+#     "PD Patient" = "#ed4e31",
+#     "Population Control" = "#848484")
+
+## Color Schemes
+cols.pdpchc <- c("PD Patient"= "#bfbfbf", 
+                 "Population Control" = "#ed7d31",
+                 "Household Control" = "#5b9bd5")
+cols.pdpchc_dark <- c("PD Patient"= "#494949", 
+                 "Population Control" = "#ed7d31",
+                 "Household Control" = "#5b9bd5")
+# Rims
+cols.pdpchc.rim <- c("PD Patient"= "#494949", 
+                     "Population Control" = "#c15811",
+                     "Household Control" = "#2e75b5")
+
 
 #################################   Aitchisons PCoA/Ridgeline/Violin Plots Loop (Species, Pathways, Enzymes, Genes-KOs)   ################################# 
 
@@ -76,8 +80,8 @@ for (i in x){
     xlab(paste0("PCoA 1 (", round((iMDS$values$Relative_eig[1])*100, digits = 2), "%)")) +
     ylab(paste0("PCoA 2 (", round((iMDS$values$Relative_eig[2])*100, digits = 2), "%)")) +
     labs(fill="Donor Group") +
-    scale_fill_manual(values = group_colors) +
-    scale_color_manual(values = group_colors2) +
+    scale_fill_manual(values = cols.pdpchc_dark) +
+    scale_color_manual(values = cols.pdpchc.rim) +
     theme(plot.title = element_text(hjust = 0.5), 
           panel.grid = element_blank())
   # ord
@@ -92,13 +96,13 @@ for (i in x){
   ################################# Boxplot - Axis 1 #################################
 
   r1 <- ggplot(df12, aes(x = Axis.1, y = description)) +
-    geom_boxplot(aes(color = description, fill = description), alpha = 0.1) +
+    geom_boxplot(aes(color = description, fill = description), alpha = 0.2) +
     xlab(paste0("PCoA 1 (", round((iMDS$values$Relative_eig[1])*100, digits = 1), "%)")) +
     scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
     scale_x_continuous(limits = my.ggp.xrange) +
     coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
-    scale_color_manual(values = group_colors) +
-    scale_fill_manual(values = group_colors) +
+    scale_color_manual(values = cols.pdpchc_dark) +
+    scale_fill_manual(values = cols.pdpchc) +
     theme_classic() +
     ggtitle(paste0("Aitchison Distance PCoA")) +
     theme(plot.title = element_text(hjust = 0.5)) +
@@ -122,12 +126,12 @@ for (i in x){
     #                     jittered_points = TRUE, quantile_lines = TRUE,
     #                     position = position_raincloud(adjust_vlines = TRUE),
     #                     alpha = 0.1, scale = 10) +
-    geom_boxplot(aes(color = description, fill = description), alpha = 0.1) +
+    geom_boxplot(aes(color = description, fill = description), alpha = 0.2) +
     scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
     scale_x_continuous(limits = my.ggp.yrange2) +
     coord_cartesian(clip = "off") + # to avoid clipping of the very top of the top ridgeline
-    scale_color_manual(values = group_colors) +
-    scale_fill_manual(values = group_colors) +
+    scale_color_manual(values = cols.pdpchc_dark) +
+    scale_fill_manual(values = cols.pdpchc) +
     theme_classic() +
     theme(axis.title.y=element_blank(),
           axis.line.y = element_blank(),
@@ -183,8 +187,8 @@ for (i in x){
     ylab("Aitchison Distance") +
     theme(plot.title = element_text(hjust = 0.5)) +
     labs(fill="Group") +
-    scale_color_manual(values = group_colors) +
-    scale_fill_manual(values = group_colors) +
+    scale_color_manual(values = cols.pdpchc) +
+    scale_fill_manual(values = cols.pdpchc) +
     stat_compare_means(comparisons = my_comparisons, label = "p.signif", tip.length = 0.02, step.increase = 0)+ 
     ggtitle(paste0("Aitchison Distance to Population Control\n", z[cnt], " abundance"))
   # v
