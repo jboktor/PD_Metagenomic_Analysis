@@ -111,7 +111,7 @@ g2 <- significance_barplot(sigplot.df.pdpc)
 ## Prepping Significance labels
 abun.pdpc.inpt <- daf_boxplot_sigvalues(sigplot.df.pdpc, abun.pdpc.inpt)
 abun.pdpc.inpt$Var2 <- factor(abun.pdpc.inpt$Var2, levels = rev(phylo.pc$Axis.order)) 
-g1 <- daf_boxplots(abun.pdpc.inpt, cols.pdpc, alfa = 0.2)
+g1 <- daf_boxplots(abun.pdpc.inpt, fill_cols = cols.pdpc, rim_cols = cols.pdpc.rim, alfa = 0.2)
 
 ###### Prevalence Plot ######
 # Subset of phlyoseq obj subset to get samples of interest
@@ -122,7 +122,7 @@ colnames(dat_pdpc.PCprev) <- c("feature", "PC")
 dat_pdpc.PREV <- left_join(dat_pdpc.PDprev, dat_pdpc.PCprev, by = "feature") %>% melt()
 dat_pdpc.PREV$feature <- factor(dat_pdpc.PREV$feature,  rev(phylo.pc$Axis.order))
 dat_pdpc.PREV$variable <- factor(dat_pdpc.PREV$variable, levels = c("PC", "PD"))
-g3 <- prevalence_barplot(dat_pdpc.PREV, cols.pdpc, alfa = 0.7)
+g3 <- prevalence_barplot(dat_pdpc.PREV, cols.pdpc, alfa = 0.8)
 
 
 
@@ -164,7 +164,7 @@ h2 <- significance_barplot(sigplot.df.pdhc)
 ## Prepping Significance labels
 abun.pdhc.inpt <- daf_boxplot_sigvalues(sigplot.df.pdhc, abun.pdhc.inpt)
 abun.pdhc.inpt$Var2 <- factor(abun.pdhc.inpt$Var2, levels = rev(phylo.hc$Axis.order)) 
-h1 <- daf_boxplots(abun.pdhc.inpt, cols.pdhc, alfa = 0.2)
+h1 <- daf_boxplots(abun.pdhc.inpt, fill_cols = cols.pdhc, rim_cols = cols.pdhc.rim, alfa = 0.2)
 
 ###### Prevalence Plot ######
 # Subset of phlyoseq obj subset to get samples of interest
@@ -175,7 +175,7 @@ colnames(dat_pdhc.HCprev) <- c("feature", "HC")
 dat_pdhc.PREV <- left_join(dat_pdhc.PDprev, dat_pdhc.HCprev, by = "feature") %>% melt()
 dat_pdhc.PREV$feature <- factor(dat_pdhc.PREV$feature, levels = rev(phylo.hc$Axis.order))
 dat_pdhc.PREV$variable <- factor(dat_pdhc.PREV$variable, levels = c("HC", "PD"))
-h3 <- prevalence_barplot(dat_pdhc.PREV, cols.pdhc, alfa = 0.7)
+h3 <- prevalence_barplot(dat_pdhc.PREV, cols.pdhc, alfa = 0.8)
 
 
 ######################## Merge Panels ######################## 

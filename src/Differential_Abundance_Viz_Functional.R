@@ -19,10 +19,8 @@ load("files/GMMs_PhyloseqObj.RData")
 ########################### SWAP FUNCTION LEVEL HERE: ########################### 
 ################################################################################# 
 
-# LEV <- Phylo_Objects$Enzymes.slim
-# lev <- "Enzymes.slim"
-LEV <- dat.GMMs
-lev <- "GMMs"
+LEV <- Phylo_Objects$KOs.slim
+lev <- "KOs.slim"
 
 ################################################################################# 
 
@@ -215,7 +213,7 @@ colnames(dat_pdpc.PCprev) <- c("feature", "PC")
 dat_pdpc.PREV <- left_join(dat_pdpc.PDprev, dat_pdpc.PCprev, by = "feature") %>% melt()
 dat_pdpc.PREV$feature <- factor(dat_pdpc.PREV$feature, levels = PDovrPC.order$feature)
 dat_pdpc.PREV$variable <- factor(dat_pdpc.PREV$variable, levels = c("PC", "PD"))
-g3 <- prevalence_barplot(dat_pdpc.PREV, cols.pdpc, alfa = 0.7)
+g3 <- prevalence_barplot(dat_pdpc.PREV, cols.pdpc, alfa = 0.8)
 
 
 
@@ -278,7 +276,7 @@ colnames(dat_pdhc.HCprev) <- c("feature", "HC")
 dat_pdhc.PREV <- left_join(dat_pdhc.PDprev, dat_pdhc.HCprev, by = "feature") %>% melt()
 dat_pdhc.PREV$feature <- factor(dat_pdhc.PREV$feature, levels = PDovrHC.order$feature)
 dat_pdhc.PREV$variable <- factor(dat_pdhc.PREV$variable, levels = c("HC", "PD"))
-h3 <- prevalence_barplot(dat_pdhc.PREV, cols.pdhc, alfa = 0.7)
+h3 <- prevalence_barplot(dat_pdhc.PREV, cols.pdhc, alfa = 0.8)
 
 
 #############################################################################
@@ -317,7 +315,7 @@ DAF_part2 <- cowplot::plot_grid(g2a, g3a, g0a, h2a, h3a, h0a, nrow = 2, ncol=3, 
 DAF_final <- cowplot::plot_grid(DAF_part1, DAF_part2, ncol = 2, rel_widths = c(1.5, 1))
 # DAF_final
 
-ggsave(DAF_final, filename = paste0("data/DAF_Analysis/DAF_", lev, "_PDvHC_MaaslinSig.svg"),
+ggsave(DAF_final, filename = paste0("data/DAF_Analysis/DAF_", lev, ".svg"),
        width = 20, height = (top_len+bottom_len)/3)
 
 
