@@ -1,5 +1,21 @@
 ### Miscellaneous Functions
 
+
+#-----------------------------------------------------------------------------------------------------------
+# Aesthetic variables
+
+## Color Schemes
+cols.pdpc <- c("PD"= "#bfbfbf", "PC" = "#ed7d31")
+cols.pdhc <- c("PD"= "#bfbfbf", "HC" = "#5b9bd5")
+cols.pdpchc <- c("PD"= "#bfbfbf", "PC" = "#ed7d31", "HC" = "#5b9bd5")
+# Rims
+cols.pdpc.rim <- c("PD"= "#494949", "PC" = "#c15811")
+cols.pdhc.rim <- c("PD"= "#494949", "HC" = "#2e75b5")
+cols.pdpchc.rim <- c("PD"= "#494949", "PC" = "#c15811", "HC" = "#2e75b5")
+
+
+
+
 #-----------------------------------------------------------------------------------------------------------
 ######## p-value significance (integer to symbol function)
 
@@ -132,10 +148,11 @@ prep_ko_names <- function(phylo_obj){
 
 #-----------------------------------------------------------------------------------------------------------
 
-group_col_from_ids <- function(df, ids){
-  df <- mutate(df, group = if_else(grepl("HC", ids), "HC",
+group_col_from_ids <- function(df.in, ids){
+  df.out <- mutate(df.in, group = if_else(grepl("HC", ids), "HC",
                                    if_else(grepl("PC", ids), "PC","PD")))
-  return(df)
+  rownames(df.out) <- rownames(df.in)
+  return(df.out)
 }
 
 
@@ -144,7 +161,7 @@ group_col_from_ids <- function(df, ids){
 boxplot_all <- function(df, x, y, cols = group.cols, title = blank.title, ylabel = blank.ylabel){
   
   blank.title = " "; blank.ylabel = " "
-  group.cols = c("PC"= "#bfbfbf", "PD" = "#ed7d31", "HC" = "#5b9bd5")
+  group.cols = c("PC"= "#ed7d31", "PD" = "#bfbfbf", "HC" = "#5b9bd5")
   ###' Basic all group boxplot function
   
   set.seed(123)
@@ -384,7 +401,14 @@ prep.CMD.Species.ML <- function(study, metafilter = NA){
 }
 
 #-----------------------------------------------------------------------------------------------------------
-#-----------------------------------------------------------------------------------------------------------
-#-----------------------------------------------------------------------------------------------------------
 
+# helper function for vizualizing Xgboost plots
+# https://www.kaggle.com/pelkoja/visual-xgboost-tuning-with-caret/report
+tuneplot <- function(x, probs = .90) {
+  ggplot(x) +
+    theme_bw()
+}
+
+#-----------------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------
 
