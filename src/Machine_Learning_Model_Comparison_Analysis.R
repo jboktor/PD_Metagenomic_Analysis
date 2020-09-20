@@ -10,10 +10,8 @@ source("src/Machine_Learning_Models.R")
 #                Data Objects for Loop  
 #---------------------------------------------------------
 
-# x <- c(dat, dat.path.slim, dat.KOs.slim)
-# z <- c("Species", "Pathways", "KOs")
-x <- c(dat)
-z <- c("Species")
+x <- c(dat, dat.path.slim, dat.KOs.slim)
+z <- c("Species", "Pathways", "KOs")
 
 #---------------------------------------------------------
 #           Beginning of ML Comparison Loop
@@ -26,6 +24,7 @@ for (i in x){
   cat("\n")
   print(i)
   cat("\n")
+
   
   # Ridge Regression 
   ridge.PDPC <- ridge.lasso.enet.regression.model(obj = dat.path, comparison = "PDvPC", model.type = "ridge")
