@@ -25,7 +25,7 @@ df.gbm.plt$Var2 <- gsub("[[:punct:][:blank:]]",".", df.gbm.plt$Var2)
 
 # Prep plotting vars
 df.gbm.plt$group <- factor(df.gbm.plt$group, levels = c("PC", "PD","HC"))
-cols <- c("PD"= "#ed7d31", "PC" = "#bfbfbf", "HC" = "#5b9bd5")
+cols <- c("PC"= "#ed7d31", "PD" = "#bfbfbf", "HC" = "#5b9bd5")
 ylabel <- "Normalized Abundance"
 
 # Pull stats from MaAsLin2
@@ -100,6 +100,18 @@ PlotGBMs(df.gbm.plt = df.gbm.plt,
          df.targets = df.butyrate,
          Maas.pd.pc = Maas.pd.pc, 
          Maas.pd.hc = Maas.pd.hc)
+
+##### Valerate
+## Explore Butyrate variables
+df.valerate <- df.gbm.plt %>% 
+  filter(grepl("Valer", Var2, ignore.case = T))
+unique(df.valerate$Var2)
+
+PlotGBMs(df.gbm.plt = df.gbm.plt,
+         df.targets = df.valerate,
+         Maas.pd.pc = Maas.pd.pc, 
+         Maas.pd.hc = Maas.pd.hc)
+
 
 
 ##### Filter all significant plots from GBM Model 
