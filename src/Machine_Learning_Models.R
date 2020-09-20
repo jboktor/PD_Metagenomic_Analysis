@@ -248,11 +248,11 @@ random.forest.model <- function(obj, comparison = "PDvPC"){
 xgboost.model <- function(obj, comparison = "PDvPC"){
   
   
-  # ## TEMP #
+  # ########    DELETE LATER  4 - TESTING ######## 
   # obj = dat
   # comparison = "PDvPC"
+  # ########  ########  ########  ########  ######## 
   # 
-  
   
   #' Function to train a Random Forrest Model
   #' Input: Phlyoseq Obj and comparison of interest 
@@ -262,19 +262,13 @@ xgboost.model <- function(obj, comparison = "PDvPC"){
   #' 3) MLeval AUC-ROC values 
   #' 4) Other MLeval analysis parameters
   
+  intervalStart <- Sys.time()
+  
   # Initalize variables
   model <- NULL
   output.list <- vector(mode="list", length=3)
   names(output.list) <- c("optimal.df", "AUCROC", "MLevaldata")
-  mytrainControl <- 
-    trainControl(method='repeatedcv',
-                 number=10, 
-                 repeats=5,
-                 search='grid',
-                 savePredictions = TRUE, 
-                 classProbs = TRUE, 
-                 allowParallel = TRUE, 
-                 verboseIter = TRUE)
+
   set.seed(42)
   
   # Select samples and prep abundance DF 
@@ -306,49 +300,205 @@ xgboost.model <- function(obj, comparison = "PDvPC"){
   }
   
   # Set-up Parallel Processing Threads
-  omp_set_num_threads(3)
-  intervalStart <- Sys.time()
+  # omp_set_num_threads(3)
+  # intervalStart <- Sys.time()
   
   #----------------------------------- 
-  # Parameter Tuning 
-  #----------------------------------- 
+  # Hyperparameter Tuning 
+  #Informed by: https://www.kaggle.com/pelkoja/visual-xgboost-tuning-with-caret/report
+  
+  #---------------------------------------------------------- 
+  # 1) nrounds & eta 
+  #---------------------------------------------------------- 
 
-  
-  tune.grid <- expand.grid(nrounds = seq(from = 100, to = 1000, by = 100),
-                           max_depth = seq(from = 2, to = 6, by = 1),
-                           colsample_bytree = seq(0.5, 0.9, length.out = 5),
-                           eta = c(0.025, 0.05, 0.1, 0.3),
-                           gamma=0,
-                           min_child_weight = 1,
-                           subsample = 1
+  tune_grid <- expand.grid(
+    nrounds = seq(from = 200, to = 1000, by = 50),
+    eta = c(0.025, 0.05, 0.1, 0.3),
+    max_depth = c(2, 3, 4, 5, 6),
+    gamma = 0,
+    colsample_bytree = 1,
+    min_child_weight = 1,
+    subsample = 1
   )
   
+  tune_control <-
+    trainControl(method='repeatedcv',
+                 number=5,
+                 repeats=3,
+                 search='grid',
+                 # savePredictions = TRUE,
+                 # classProbs = TRUE,
+                 # allowParallel = TRUE,
+                 verboseIter = TRUE)
+  
+  xgb_tune <- caret::train(
+    group ~.,
+    data=model.input,
+    trControl = tune_control,
+    tuneGrid = tune_grid,
+    method = "xgbTree",
+    verbose = TRUE
+  )
+  
+  cat("Tuning Step 1: Maximum Depth, learning rate, and nrounds baseline \n COMPLETE \n")
+  print(tuneplot(xgb_tune))
+  print(xgb_tune$bestTune)
+  
+  #---------------------------------------------------------- 
+  # 2) Maximum Depth and Minimum Child Weight
+  #---------------------------------------------------------- 
+  
+  if (xgb_tune$bestTune$max_depth == 2) {
+    mxdpth <- 
+      c(xgb_tune$bestTune$max_depth:4)
+  }  else {
+    mxdpth <-  
+      c((xgb_tune$bestTune$max_depth - 1):(xgb_tune$bestTune$max_depth + 1))
+  }
 
-  # Run 10-fold CV Model with 5 Repitions
+  tune_grid2 <- expand.grid(
+    nrounds = seq(from = 50, to = 1000, by = 50),
+    eta = xgb_tune$bestTune$eta,
+    max_depth = mxdpth,
+    gamma = 0,
+    colsample_bytree = 1,
+    min_child_weight = c(1, 2, 3),
+    subsample = 1
+  )
+  
+  xgb_tune2 <- caret::train(
+    group ~.,
+    data=model.input,
+    trControl = tune_control,
+    tuneGrid = tune_grid2,
+    method = "xgbTree",
+    verbose = TRUE
+  )
+  cat("Tuning Step 2: Maximum Depth and Minimum Child Weight \n COMPLETE \n")
+  print(tuneplot(xgb_tune2))
+  print(xgb_tune2$bestTune)
+  
+  #---------------------------------------------------------- 
+  # 3)  Column and Row Sampling
+  #---------------------------------------------------------- 
+  
+  tune_grid3 <- expand.grid(
+    nrounds = seq(from = 50, to = 1000, by = 50),
+    eta = xgb_tune$bestTune$eta,
+    max_depth = xgb_tune2$bestTune$max_depth,
+    gamma = 0,
+    colsample_bytree = c(0.4, 0.6, 0.8, 1.0),
+    min_child_weight = xgb_tune2$bestTune$min_child_weight,
+    subsample = c(0.5, 0.75, 1.0)
+  )
+  
+  xgb_tune3 <- caret::train(
+    group ~.,
+    data=model.input,
+    trControl = tune_control,
+    tuneGrid = tune_grid3,
+    method = "xgbTree",
+    verbose = TRUE
+  )
+  
+  cat("Tuning Step 3: Column and Row Sampling \n COMPLETE \n")
+  print(tuneplot(xgb_tune3, probs = .95))
+  print(xgb_tune3$bestTune)
+  
+  #---------------------------------------------------------- 
+  # 4)  Gamma
+  #---------------------------------------------------------- 
+  
+  tune_grid4 <- expand.grid(
+    nrounds = seq(from = 50, to = 1000, by = 50),
+    eta = xgb_tune$bestTune$eta,
+    max_depth = xgb_tune2$bestTune$max_depth,
+    gamma = c(0, 0.05, 0.1, 0.5, 0.7, 0.9, 1.0),
+    colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
+    min_child_weight = xgb_tune2$bestTune$min_child_weight,
+    subsample = xgb_tune3$bestTune$subsample
+  )
+  
+  xgb_tune4 <- caret::train(
+    group ~.,
+    data=model.input,
+    trControl = tune_control,
+    tuneGrid = tune_grid4,
+    method = "xgbTree",
+    verbose = TRUE
+  )
+  
+  cat("Tuning Step 4: Gamma \n COMPLETE \n")
+  print(tuneplot(xgb_tune4))
+  print(xgb_tune4$bestTune)
+  
+  #---------------------------------------------------------- 
+  # 5)  Reducing the Learning Rate
+  #---------------------------------------------------------- 
+  
+  tune_grid5 <- expand.grid(
+    nrounds = seq(from = 100, to = 1000, by = 100),
+    eta = c(0.01, 0.015, 0.025, 0.05, 0.1),
+    max_depth = xgb_tune2$bestTune$max_depth,
+    gamma = xgb_tune4$bestTune$gamma,
+    colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
+    min_child_weight = xgb_tune2$bestTune$min_child_weight,
+    subsample = xgb_tune3$bestTune$subsample
+  )
+  
+  xgb_tune5 <- caret::train(
+    group ~.,
+    data=model.input,
+    trControl = tune_control,
+    tuneGrid = tune_grid5,
+    method = "xgbTree",
+    verbose = TRUE
+  )
+  
+  cat("Tuning Step 5: Final Learning Rate \n COMPLETE \n")
+  print(tuneplot(xgb_tune5))
+  print(xgb_tune5$bestTune)
+  
+  
+  #---------------------------------------------------------- 
+  # 5)  Fitting the Model
+  #---------------------------------------------------------- 
+  
+  final_grid <- expand.grid(
+    nrounds = xgb_tune5$bestTune$nrounds,
+    eta = xgb_tune5$bestTune$eta,
+    max_depth = xgb_tune5$bestTune$max_depth,
+    gamma = xgb_tune5$bestTune$gamma,
+    colsample_bytree = xgb_tune5$bestTune$colsample_bytree,
+    min_child_weight = xgb_tune5$bestTune$min_child_weight,
+    subsample = xgb_tune5$bestTune$subsample
+  )
+  
+  mytrainControl <-
+    trainControl(method='repeatedcv',
+                 number=5,
+                 repeats=5,
+                 search='grid',
+                 savePredictions = TRUE,
+                 classProbs = TRUE,
+                 allowParallel = TRUE,
+                 verboseIter = TRUE)
+  
+
+  # Run 5-fold CV Model with 5 Repetition
   model <-train(group ~.,
                 data=model.input, 
                 method='xgbTree', 
                 metric='Accuracy', 
-                tuneGrid=tune.grid, 
+                tuneGrid=final_grid, 
                 trControl=mytrainControl,
                 verbose = TRUE)
-  
-  # helper function for the plots
-  tuneplot <- function(x, probs = .90) {
-    ggplot(x) +
-      coord_cartesian(ylim = c(quantile(x$results$RMSE, probs = probs), min(x$results$RMSE))) +
-      theme_bw()
-  }
-  
-  tuneplot(model)
-  model$bestTune
-  
-  
+
   
   cat("Model Summary")
   print(model)
   cat("\n\n")
-  print(plot(model))
+  # print(plot(model))
   
   intervalEnd <- Sys.time()
   cat("XGBoost model tuning completed in: ",
@@ -356,10 +506,7 @@ xgboost.model <- function(obj, comparison = "PDvPC"){
   cat("\n\n")
   
   # Select model with optimal hyper-parameters
-  df.output <- model$pred %>% dplyr::filter(nrounds ==  model$bestTune$nrounds) %>% 
-    filter(max_depth ==  model$bestTune$max_depth) %>% 
-    filter(colsample_bytree ==  model$bestTune$colsample_bytree)  %>% 
-    filter(eta ==  model$bestTune$eta) 
+  df.output <- model$pred 
 
   # MLeval
   mleval <- evalm(model)
@@ -512,11 +659,16 @@ ridge.lasso.enet.regression.model.DSxPD <- function(disease.model.input, model.t
   pd.model.input <- group_col_from_ids(d, id= rownames(d))
   rownames(pd.model.input) <- rownames(d)
   
+  
 # Merge Disease and PD input datasets
   model.input <- full_join(pd.model.input, disease.model.input)
   model.input$group <- factor(model.input$group)
-  # model.input[is.na(model.input)] = 0
-  model.input <- model.input[ ,colSums(is.na(model.input)) == 0]
+  
+  # Replace all NAs with 0s 
+  model.input[is.na(model.input)] = 0
+  
+  # Trim all features that aren't shared (Detected in both groups)
+  # model.input <- model.input[ ,colSums(is.na(model.input)) == 0]
   
   # Model Parameters
   numbers <- 10
