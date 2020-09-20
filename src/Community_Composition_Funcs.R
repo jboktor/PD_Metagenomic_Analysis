@@ -84,7 +84,7 @@ RareFactionPlot <- function(dat, featuretype="Species", reads){
     theme(strip.background = element_blank(),
           panel.grid = element_blank())
   
-  ggsave(p1, filename = paste0("data/Quality_Control/Rarefaction_Plots/Rarefaction_Plot_", featuretype, ".svg"),
+  ggsave(p1, filename = paste0("data/Community_Composition/Rarefaction_Plots/Rarefaction_Plot_", featuretype, ".svg"),
          width = 4, height = 3)
   return(p1)
   

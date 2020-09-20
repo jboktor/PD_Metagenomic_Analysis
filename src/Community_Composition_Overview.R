@@ -65,7 +65,7 @@ ecdf_plot <- ggplot(df.reads, aes(x=clean_total_reads, colour = group)) +
         panel.grid = element_blank())
 
 c1 <- cowplot::plot_grid(histo_plot, ecdf_plot, ncol = 1, align="v")
-ggsave(c1, filename = "data/Quality_Control/Sequencing_Depth_Density_&_ECDF.png",
+ggsave(c1, filename = "data/Community_Composition/Quality_Control/Sequencing_Depth_Density_&_ECDF.png",
        width = 6, height = 5, dpi = 600)
 
 ################################################################################################
@@ -104,7 +104,7 @@ p2 <- ggplot(df.reads, aes(x=group, y=clean_total_reads)) +
         legend.position = "none",
         axis.title.x = element_blank())
 
-ggsave(p2, filename = "data/Quality_Control/Sequencing_Depth_Boxplt.svg",
+ggsave(p2, filename = "data/Community_Composition/Quality_Control/Sequencing_Depth_Boxplt.svg",
        width = 3, height = 6)
 
 ################################################################################################
@@ -177,7 +177,7 @@ for (i in obj) {
   QC_alphaVsreads <- cowplot::plot_grid(observed.plot, shannon.plot, evenness.plot, 
                                         ncol = 3, align = "h")
   
-  ggsave(QC_alphaVsreads, filename = paste0("data/Quality_Control/Read_Depth_vs_Alpha_Diversity/Read_Depth_vs_",  obj.label[cnt], "_AlphaDiversity.png"),
+  ggsave(QC_alphaVsreads, filename = paste0("data/Community_Composition/Quality_Control/Read_Depth_vs_Alpha_Diversity/Read_Depth_vs_",  obj.label[cnt], "_AlphaDiversity.png"),
          width = 16, height = 8)
   
   cnt <- cnt + 1
@@ -211,7 +211,7 @@ for (i in obj) {
                            color=df.pcoa$donor_group, fill=df.pcoa$donor_group,
                            feature=obj.label[cnt], title=paste0(obj.label[cnt], ": Beta Diversity by Read Depth"))
 
- ggsave(QC_betaVsreads, filename = paste0("data/Quality_Control/Read_Depth_vs_Beta_Diversity/Read_Depth_vs_",  obj.label[cnt], "_BetaDiversity.png"),
+ ggsave(QC_betaVsreads, filename = paste0("data/Community_Composition/Quality_Control/Read_Depth_vs_Beta_Diversity/Read_Depth_vs_",  obj.label[cnt], "_BetaDiversity.png"),
          width = 8, height = 8)
   
   cnt <- cnt + 1
@@ -268,7 +268,7 @@ z1 <- abm %>% filter(abundance_factor != 1 ) %>%
   ggtitle("Sequencing Depth Quantiles") +
   theme(plot.title = element_text(hjust = 0.5))
 # z1
-ggsave(z1, filename = "data/Quality_Control/SeqDepth_&_Abundance_Quantile_Histogram_Matrix.png",
+ggsave(z1, filename = "data/Community_Composition/Quality_Control/SeqDepth_&_Abundance_Quantile_Histogram_Matrix.png",
        width = 20, height = 8, dpi = 1200)
 
 z2 <- abm %>% filter(abundance_factor != 1 ) %>% 
@@ -283,7 +283,7 @@ z2 <- abm %>% filter(abundance_factor != 1 ) %>%
   theme_classic() +
   theme(plot.title = element_text(hjust = 0.5))
 # z2
-ggsave(z2, filename = "data/Quality_Control/SeqDepth_&_Abundance_Quantile_ECDF_matrix.png",
+ggsave(z2, filename = "data/Community_Composition/Quality_Control/SeqDepth_&_Abundance_Quantile_ECDF_matrix.png",
        width = 20, height = 8, dpi = 1200)
 
 
@@ -316,7 +316,7 @@ z2b <- abm %>% filter(abundance_factor == 2 & clean_total_reads_factor_tight == 
 QC_speciesAbundanceVsreads <- cowplot::plot_grid(z1b, z2b, align = "h", nrow = 2)
 # QC_speciesAbundanceVsreads
 
-ggsave(QC_speciesAbundanceVsreads, filename = "data/Quality_Control/SeqDepth_Quantile_Distribution.png",
+ggsave(QC_speciesAbundanceVsreads, filename = "data/Community_Composition/Quality_Control/SeqDepth_Quantile_Distribution.png",
        width = 8, height = 6, dpi = 1200)
 
 

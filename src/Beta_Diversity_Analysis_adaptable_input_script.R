@@ -200,7 +200,7 @@ for (i in x){
   cow1 <- cowplot::plot_grid(r1, NULL, ord.plot, r2, nrow = 2, ncol = 2, rel_heights = c(1, 5), rel_widths = c(5, 1),  align = "vh")
   cow2 <- cowplot::plot_grid(v, cow1, nrow = 1, rel_widths = c(1, 2.75), align = "h")
   cow2
-  ggsave(cow2, filename = paste0("data/Beta_Diversity_Analysis/CowplotSummary_",  z[cnt], ".svg"),
+  ggsave(cow2, filename = paste0("data/Community_Composition/Beta_Diversity_Analysis/CowplotSummary_",  z[cnt], ".svg"),
          width = 13, height = 9)
   
   cnt <- cnt + 1

@@ -167,7 +167,7 @@ for (i in x){
   ### MERGE PLOTS ### 
   alpha_cow <- cowplot::plot_grid(p1, p2, p3, nrow = 1, align = "v")
   alpha_cow
-  ggsave(alpha_cow, filename = paste0("data/Alpha_Diversity_Analysis/AlphaDiversity_BoxPlot_",  z[cnt], "_Summary.svg"),
+  ggsave(alpha_cow, filename = paste0("data/Community_Composition/Alpha_Diversity_Analysis/AlphaDiversity_BoxPlot_",  z[cnt], "_Summary.svg"),
          height = 6, width =8)
 
   cnt <- cnt + 1
