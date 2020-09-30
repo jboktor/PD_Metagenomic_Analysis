@@ -27,7 +27,7 @@ for (i in x){
 
   
   # Ridge Regression 
-  ridge.PDPC <- ridge.lasso.enet.regression.model(obj = dat.path, comparison = "PDvPC", model.type = "ridge")
+  ridge.PDPC <- ridge.lasso.enet.regression.model(obj = i, comparison = "PDvPC", model.type = "ridge")
   ridge.PDHC <- ridge.lasso.enet.regression.model(obj = i, comparison = "PDvHC", model.type = "ridge")
   # LASSO Regression 
   lasso.PDPC <- ridge.lasso.enet.regression.model(obj = i, comparison = "PDvPC", model.type = "lasso")
@@ -39,7 +39,7 @@ for (i in x){
   rf.PDPC <- random.forest.model(obj = i, comparison = "PDvPC")
   rf.PDHC <- random.forest.model(obj = i, comparison = "PDvHC")
   # XGBoost Models
-  xgboost.PDPC <- xgboost.model(obj = dat, comparison = "PDvPC")
+  xgboost.PDPC <- xgboost.model(obj = i, comparison = "PDvPC")
   xgboost.PDHC <- xgboost.model(obj = i, comparison = "PDvHC")
   
   
