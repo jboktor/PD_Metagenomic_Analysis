@@ -410,5 +410,27 @@ tuneplot <- function(x, probs = .90) {
 }
 
 #-----------------------------------------------------------------------------------------------------------
+
+
+# Plot feature of interest (foi)
+plot.foi <- function(datObj, foi){
+  
+  asin.input <- datObj %>%
+    microbiome::transform("compositional") %>% 
+    microbiome::abundances()
+  df1 <- asin(sqrt(asin.input)) %>% 
+    as.data.frame() %>% 
+    rownames_to_column() 
+  d <- df1 %>% 
+    filter(rowname == foi) %>% 
+    melt()
+  dm <-  group_col_from_ids(d, id=d$variable)
+  dm$group <- factor(dm$group, levels = c("PC", "PD", "HC"))
+  boxplot_all(dm, x=dm$group, y=dm$value, 
+              title=" ", 
+              ylabel= paste(unique(dm$rowname), "Abundance"))
+  
+}
+
 #-----------------------------------------------------------------------------------------------------------
 
