@@ -46,12 +46,35 @@ taxa_names(dat.genus) <- tax_table(dat.genus)[,6]
 # Save Phylum level Phyloseq obj as .RData file 
 save(dat.genus, file = "files/Genus_PhyloseqObj.RData")
 
+######### Family Level Object ######### 
+dat.family = tax_glom(dat, taxrank = "Family", NArm = F)
+taxa_names(dat.family) <- tax_table(dat.family)[,5]
+# Save Phylum level Phyloseq obj as .RData file 
+save(dat.family, file = "files/Family_PhyloseqObj.RData")
+
+######### Order Level Object ######### 
+dat.order = tax_glom(dat, taxrank = "Order", NArm = F)
+taxa_names(dat.order) <- tax_table(dat.order)[,4]
+# Save Phylum level Phyloseq obj as .RData file 
+save(dat.order, file = "files/Order_PhyloseqObj.RData")
+
+######### Class Level Object ######### 
+dat.class = tax_glom(dat, taxrank = "Class", NArm = F)
+taxa_names(dat.class) <- tax_table(dat.class)[,3]
+# Save Phylum level Phyloseq obj as .RData file 
+save(dat.class, file = "files/Class_PhyloseqObj.RData")
+
 ######### Phylum Level Object ######### 
 dat.phylum = tax_glom(dat, taxrank = "Phylum", NArm = F)
 taxa_names(dat.phylum) <- tax_table(dat.phylum)[,2]
 # Save Phylum level Phyloseq obj as .RData file 
 save(dat.phylum, file = "files/Phylum_PhyloseqObj.RData")
 
+######### Kingdom Level Object ######### 
+dat.kingdom = tax_glom(dat, taxrank = "Kingdom", NArm = F)
+taxa_names(dat.kingdom) <- tax_table(dat.kingdom)[,1]
+# Save Phylum level Phyloseq obj as .RData file 
+save(dat.kingdom, file = "files/Kingdom_PhyloseqObj.RData")
 
 
 
