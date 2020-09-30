@@ -18,12 +18,12 @@ library(curatedMetagenomicData)
 
 # ?combined_metadata
 # View(combined_metadata)
-# unique(combined_metadata$body_site)
-# 
-# stool_samples <- combined_metadata %>% 
-#   filter(body_site == "stool")
+unique(combined_metadata$body_site)
+stool_samples <- combined_metadata %>%
+  filter(body_site == "stool")
+
+## Explore studies
 # unique(stool_samples$disease)
-# # 
 # testg <- filter(combined_metadata, grepl("metabolic_syndrome", disease))
 # testg$dataset_name
 
@@ -42,10 +42,12 @@ study_vars <- stool_samples %>%
 unique(study_vars$study_condition)
 # Prep input data and fit model
 VincentC_2016.model.input <- prep.CMD.Species.ML(study = "VincentC_2016")
+
 VincentC_2016.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = VincentC_2016.model.input, model.type = "lasso")
+  model.input = VincentC_2016.model.input, model.type = "enet")
+
 VincentC_2016.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = VincentC_2016.model.input, obj = dat, model.type = "lasso")
+  disease.model.input = VincentC_2016.model.input, obj = dat, model.type = "enet")
 
 
 # ACVD
@@ -57,9 +59,9 @@ study_vars <- stool_samples %>%
 unique(study_vars$study_condition)
 JieZ_2017.model.input <- prep.CMD.Species.ML(study = "JieZ_2017")
 JieZ_2017.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = JieZ_2017.model.input, model.type = "lasso")
+  model.input = JieZ_2017.model.input, model.type = "enet")
 JieZ_2017.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = JieZ_2017.model.input, obj = dat, model.type = "lasso")
+  disease.model.input = JieZ_2017.model.input, obj = dat, model.type = "enet")
 
 #  T1D
 KosticAD_2015.metaphlan_bugs_list.stool()%>% 
@@ -70,9 +72,9 @@ study_vars <- stool_samples %>%
 unique(study_vars$study_condition) # Trim NAs
 KosticAD.model.input <- prep.CMD.Species.ML(study = "KosticAD_2015" , metafilter = "NA")
 KosticAD.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = KosticAD.model.input, model.type = "lasso")
+  model.input = KosticAD.model.input, model.type = "enet")
 KosticAD.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = KosticAD.model.input, obj = dat, model.type = "lasso")
+  disease.model.input = KosticAD.model.input, obj = dat, model.type = "enet")
 
 # T2D
 QinJ_2012.metaphlan_bugs_list.stool() %>%
@@ -83,9 +85,9 @@ study_vars <- stool_samples %>%
 unique(study_vars$study_condition) # Trim NAs
 QinJ_2012.model.input <- prep.CMD.Species.ML(study = "QinJ_2012", metafilter = "NA")
 QinJ_2012.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = QinJ_2012.model.input, model.type = "lasso")
+  model.input = QinJ_2012.model.input, model.type = "enet")
 QinJ_2012.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = QinJ_2012.model.input, obj = dat, model.type = "lasso")
+  disease.model.input = QinJ_2012.model.input, obj = dat, model.type = "enet")
 
 # cirrhosis
 QinN_2014.metaphlan_bugs_list.stool() %>% 
@@ -96,9 +98,9 @@ study_vars <- stool_samples %>%
 unique(study_vars$study_condition)
 QinN_2014.model.input <- prep.CMD.Species.ML(study = "QinN_2014")
 QinN_2014.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = QinN_2014.model.input, model.type = "lasso")
+  model.input = QinN_2014.model.input, model.type = "enet")
 QinN_2014.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = QinN_2014.model.input, obj = dat, model.type = "lasso")
+  disease.model.input = QinN_2014.model.input, obj = dat, model.type = "enet")
 
 # IBD
 NielsenHB_2014.metaphlan_bugs_list.stool() %>% 
@@ -109,9 +111,9 @@ study_vars <- stool_samples %>%
 unique(study_vars$study_condition)
 NielsenHB_2014.model.input <- prep.CMD.Species.ML(study = "NielsenHB_2014")
 NielsenHB_2014.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = NielsenHB_2014.model.input, model.type = "lasso")
+  model.input = NielsenHB_2014.model.input, model.type = "enet")
 NielsenHB_2014.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = NielsenHB_2014.model.input, obj = dat, model.type = "lasso")
+  disease.model.input = NielsenHB_2014.model.input, obj = dat, model.type = "enet")
 
 # Hypertension
 LiJ_2017.metaphlan_bugs_list.stool() %>% 
@@ -122,9 +124,9 @@ study_vars <- stool_samples %>%
 unique(study_vars$study_condition) # Trim pre-hypertension vars
 LiJ_2017.model.input <- prep.CMD.Species.ML(study = "LiJ_2017", metafilter = "pre-hypertension")
 LiJ_2017.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = LiJ_2017.model.input, model.type = "lasso")
+  model.input = LiJ_2017.model.input, model.type = "enet")
 LiJ_2017.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = LiJ_2017.model.input, obj = dat, model.type = "lasso")
+  disease.model.input = LiJ_2017.model.input, obj = dat, model.type = "enet")
 
 # metabolic_syndrome
 LiSS_2016.metaphlan_bugs_list.stool() %>% 
@@ -135,9 +137,9 @@ study_vars <- stool_samples %>%
 unique(study_vars$study_condition) # Trim FMT vars
 LiSS_2016.model.input <- prep.CMD.Species.ML(study = "LiSS_2016", metafilter = "FMT")
 LiSS_2016.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = LiSS_2016.model.input, model.type = "lasso")
+  model.input = LiSS_2016.model.input, model.type = "enet")
 LiSS_2016.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = LiSS_2016.model.input, obj = dat, model.type = "lasso")
+  disease.model.input = LiSS_2016.model.input, obj = dat, model.type = "enet")
 
 
 #-------------------------------------------------------------------------------------
