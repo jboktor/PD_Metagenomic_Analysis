@@ -64,6 +64,21 @@ vf.data <- left_join(family_merge_wide, m, by="MBI_Sample_ID") %>%
   column_to_rownames(var = "id") %>% 
   dplyr::select(-MBI_Sample_ID)
 
+## Save cleaned VF data with trimmed non-counted features as csv
+write.csv(vf.data, file = 'files/ShortBRED_regrouped.csv')
+vf.data.t <- vf.data %>% t() %>%  as.data.frame()
+rs <- rowSums(vf.data.t) %>% 
+  as.data.frame()
+colnames(rs) <- "sum" 
+vf.data.t$sum <- rs$sum
+rank(vf.data.t$sum)
+vf.data.t.ranked <- vf.data.t %>% 
+  rownames_to_column() %>% 
+  arrange(-sum) %>% 
+  column_to_rownames()
+write.csv(vf.data.t.ranked, file = 'files/ShortBRED_regrouped_ranked.csv', row.names = TRUE)
+
+
 
 ### Metadata 
 my_sample_data <- meta(dat) %>% sample_data()
