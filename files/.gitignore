@@ -18,3 +18,7 @@ KOs.all.slim_PhyloseqObj.RData
 KOs.all_PhyloseqObj.RData
 KOs.slim_PhyloseqObj.RData
 KOs_PhyloseqObj.RData
+Class_PhyloseqObj.RData
+Family_PhyloseqObj.RData
+GBMs_PhyloseqObj.RData
+Kingdom_PhyloseqObj.RData
