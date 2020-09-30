@@ -74,8 +74,8 @@ distribution_sanity2 <- function(df, binN = 30) {
   abund.melt <- 
     mutate(abund.melt, group = if_else(grepl("HC", Var2), "HC",
                                        if_else(grepl("PC", Var2), "PC","PD")))
-  cols=c("PC"= "#bfbfbf", 
-         "PD" = "#ed7d31", 
+  cols=c("PD"= "#bfbfbf", 
+         "PC" = "#ed7d31", 
          "HC" = "#5b9bd5")
   
   histo_plot <- ggplot(abund.melt, aes(x=value, fill = group), alpha = 0.4) + 
@@ -144,7 +144,7 @@ group_col_from_ids <- function(df, ids){
 boxplot_all <- function(df, x, y, cols = group.cols, title = blank.title, ylabel = blank.ylabel){
   
   blank.title = " "; blank.ylabel = " "
-  group.cols = c("PC"= "#bfbfbf", "PD" = "#ed7d31", "HC" = "#5b9bd5")
+  group.cols = c("PC"= "#ed7d31", "PD" = "#bfbfbf", "HC" = "#5b9bd5")
   ###' Basic all group boxplot function
   
   set.seed(123)
