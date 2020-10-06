@@ -19,6 +19,10 @@ module.levels$Name <- gsub(":", ".", module.levels$Name)
 module.levels$Name <- gsub("-", ".", module.levels$Name)
 module.levels$Name <- gsub("/", ".", module.levels$Name)
 
+features <- gsub(" ", ".", taxa_names(LEV))
+features <- gsub(":", ".", features)
+features <- gsub("-", ".", features)
+taxa_names(LEV) <- gsub("/", ".", features)
 
 ############# Visualization Transformations ############# 
 taxa_names(LEV) <- gsub(" ", ".", taxa_names(LEV))
