@@ -361,7 +361,7 @@ prep.CMD.Species.ML <- function(study, metafilter = NA){
   #' Output: dataframe of Species abundnace inluding an 
   #' identifying group column
   
-  study <- study
+  # study <- study
   alt.disease <- curatedMetagenomicData(paste0(study, ".metaphlan_bugs_list.stool"), dryrun=F)
 
   df.spec <- alt.disease[[1]] %>%
@@ -375,7 +375,7 @@ prep.CMD.Species.ML <- function(study, metafilter = NA){
     t() %>% 
     as.data.frame() %>% 
     rownames_to_column()
-  df.abund[-1] <- asin(sqrt(df.abund[-1]))
+  # df.abund[-1] <- asin(sqrt(df.abund[-1]))
   
   m <- microbiome::meta(df.spec) %>% 
     select(study_condition) %>% 

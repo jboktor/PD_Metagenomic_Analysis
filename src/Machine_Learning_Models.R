@@ -558,7 +558,6 @@ ridge.lasso.enet.regression.model.DS <- function(model.input, model.type){
   
   # Initalize variables
   model <- NULL
-  # model.input <- NULL
   output.list <- vector(mode="list", length=4)
   names(output.list) <- c("fitted_model", "optimal.df", "AUCROC", "MLevaldata")
   
@@ -569,6 +568,12 @@ ridge.lasso.enet.regression.model.DS <- function(model.input, model.type){
   } else if (model.type == "enet"){
     tune.grid = expand.grid(alpha = 0.5, lambda=seq(0, 1, 0.1))
   }
+  
+  # AST Transformation on merged data
+  groupcol <- factor(model.input$group)
+  temp <- dplyr::select(model.input, -group)
+  model.input <- asin(sqrt(temp))
+  model.input$group <- groupcol
   
   # Model Parameters
   numbers <- 10
@@ -625,6 +630,11 @@ ridge.lasso.enet.regression.model.DS <- function(model.input, model.type){
 
 ridge.lasso.enet.regression.model.DSxPD <- function(disease.model.input, model.type, obj = dat){
   
+  # # TROUBLESHOOTING
+  # disease.model.input = VincentC_2016.model.input;
+  # obj = dat;
+  # model.type = "enet"
+  # 
   #' Function to train a Rigde, lASSO, or ElasticNet Regression Model
   #' Input: Phlyoseq Obj, comparison of interest, and model type
   #' Returns: a list including 
@@ -655,20 +665,25 @@ ridge.lasso.enet.regression.model.DSxPD <- function(disease.model.input, model.t
     microbiome::abundances() %>% 
     t() %>% 
     as.data.frame() 
-  d <- asin(sqrt(d))
   pd.model.input <- group_col_from_ids(d, id= rownames(d))
   rownames(pd.model.input) <- rownames(d)
   
   
 # Merge Disease and PD input datasets
   model.input <- full_join(pd.model.input, disease.model.input)
-  model.input$group <- factor(model.input$group)
+  groupcol <- factor(model.input$group)
   
-  # Replace all NAs with 0s 
-  model.input[is.na(model.input)] = 0
+  # option 1)   Replace all NAs with 0s 
+  # model.input[is.na(model.input)] = 0
+  # option 2)  Trim all features that aren't shared (Detected in both groups)
+  model.input <- model.input[ ,colSums(is.na(model.input)) == 0]
   
-  # Trim all features that aren't shared (Detected in both groups)
-  # model.input <- model.input[ ,colSums(is.na(model.input)) == 0]
+  # AST Transformation on merged data
+  temp <- dplyr::select(model.input, -group)
+  model.input <- asin(sqrt(temp))
+  model.input$group <- groupcol
+  
+
   
   # Model Parameters
   numbers <- 10

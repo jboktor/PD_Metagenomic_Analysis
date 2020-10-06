@@ -247,10 +247,11 @@ HM2 <- ml.heatmap(ml.models.PD.df)
 feature.specificity <- 
   cowplot::plot_grid(HM1, NULL, HM2, NULL, ncol = 4, align = "hv", 
                      rel_widths = c(5, 0.5, 5, 0.5), labels = "AUTO")
+feature.specificity
 
-ggsave(feature.specificity,
-       filename = "data/Machine_Learning_Analysis/Feature_Specificity_Heatmap_Species_sharedfeatures.svg",
-       width = 9, height = 4.5)
+# ggsave(feature.specificity,
+#        filename = "data/Machine_Learning_Analysis/Feature_Specificity_Heatmap_Species_sharedfeatures.svg",
+#        width = 9, height = 4.5)
 
 
 
