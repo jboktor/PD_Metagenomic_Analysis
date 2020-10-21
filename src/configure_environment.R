@@ -7,9 +7,9 @@ BiocManager::install(c(
   "microbiome",
   "Biobase",
   "Maaslin2",
-  "DirichletMultinomial"
-))
-
+  "DirichletMultinomial",
+  "MMUPHin"
+  ))
 
 #### Install CRAN Packages
 install.packages(
@@ -75,3 +75,12 @@ install.packages(
 install.packages("remotes")
 remotes::install_github("gmteunisse/Fantaxtic")
 remotes::install_github("schuyler-smith/phyloschuyler")
+
+# Development Version Packages
+BiocManager::install(version = "devel")
+BiocManager::install("curatedMetagenomicData")
+BiocManager::valid()
+
+
+
+
