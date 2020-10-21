@@ -82,13 +82,15 @@ distribution_sanity2 <- function(df, binN = 30) {
     theme_minimal() +
     geom_histogram(color = "black", position="dodge", boundary = 0, bins = binN) +
     scale_fill_manual(values = cols) +
+    # scale_size_area(limits = c(0, 1000), max_size = 10, guide = NULL)
     theme(axis.title.x = element_blank(),
-          legend.position = c(0.9, 0.5)) 
+          legend.position = c(0.9, 0.5))
   
   ecdf_plot <- ggplot(abund.melt, aes(x=value, colour = group)) + stat_ecdf(geom = "step", pad = FALSE) +
     theme_minimal() +
     labs(y = "ECDF") +
     scale_colour_manual(values = cols) +
+    scale_size_area(limits = c(0, 1000), max_size = 10, guide = NULL)
     theme(legend.position ="none")
   
   cowplot::plot_grid(histo_plot, ecdf_plot, ncol = 1, align="v")
