@@ -361,23 +361,24 @@ prep.CMD.Species.ML <- function(study, metafilter = NA){
   #' Output: dataframe of Species abundnace inluding an 
   #' identifying group column
   
-  # study <- study
-  alt.disease <- curatedMetagenomicData(paste0(study, ".metaphlan_bugs_list.stool"), dryrun=F)
-
-  df.spec <- alt.disease[[1]] %>%
-    ExpressionSet2phyloseq() %>% 
-    subset_taxa(!is.na(Species)) %>% 
-    subset_taxa(is.na(Strain)) 
+  # alt.disease <- curatedMetagenomicData(paste0(study, ".metaphlan_bugs_list.stool"), dryrun=F)
+  # 
+  # df.spec <- alt.disease[[1]] %>%
+  #   ExpressionSet2phyloseq() %>% 
+  #   subset_taxa(!is.na(Species)) %>% 
+  #   subset_taxa(is.na(Strain)) 
   
-  df.abund <- df.spec %>% 
-    microbiome::transform("compositional") %>% 
+  # study <- study
+
+  df.abund <- study %>% 
+    # microbiome::transform("compositional") %>%
     microbiome::abundances() %>% 
     t() %>% 
     as.data.frame() %>% 
     rownames_to_column()
   # df.abund[-1] <- asin(sqrt(df.abund[-1]))
   
-  m <- microbiome::meta(df.spec) %>% 
+  m <- microbiome::meta(study) %>% 
     select(study_condition) %>% 
     rownames_to_column()
   

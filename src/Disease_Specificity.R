@@ -5,137 +5,156 @@ source("src/load_phyloseq_obj.R")
 source("src/Metadata_prep_funcs.R")
 source("src/miscellaneous_funcs.R")
 source("src/Machine_Learning_Models.R")
-
-
-# if (!requireNamespace("BiocManager", quietly=TRUE))
-#   install.packages("BiocManager")
-# BiocManager::install(version = "devel")
-# BiocManager::valid()
-# BiocManager::install("curatedMetagenomicData")
-
+source("src/Meta_Analysis_Batch_Correction.R")
 
 library(curatedMetagenomicData)
-
 # ?combined_metadata
 # View(combined_metadata)
 unique(combined_metadata$body_site)
 stool_samples <- combined_metadata %>%
   filter(body_site == "stool")
 
-## Explore studies
-# unique(stool_samples$disease)
-# testg <- filter(combined_metadata, grepl("metabolic_syndrome", disease))
-# testg$dataset_name
+# Explore studies
+unique(stool_samples$disease)
+testg <- filter(combined_metadata, grepl("RA", disease))
+testg$dataset_name
+
 
 
 #-------------------------------------------------------------------------------------
 #                        Explore Dataset Features
 #-------------------------------------------------------------------------------------
 
-# Study Summary - CDI
-VincentC_2016.metaphlan_bugs_list.stool() %>% 
+# Bechet's Disease - multisystemic inflammatory disease 
+YeZ_2018.metaphlan_bugs_list.stool() %>%
   experimentData()
 # Examine sample conditions
-study_vars <- stool_samples %>% 
-  filter(dataset_name == "VincentC_2016") %>% 
+study_vars <- stool_samples %>%
+  filter(dataset_name == "YeZ_2018") %>%
   select(study_condition)
 unique(study_vars$study_condition)
-# Prep input data and fit model
-VincentC_2016.model.input <- prep.CMD.Species.ML(study = "VincentC_2016")
 
+
+# ankylosing spondylitis Autoimmune disease
+ChengpingW_2017.metaphlan_bugs_list.stool() %>%
+  experimentData()
+# Examine sample conditions
+study_vars <- stool_samples %>%
+  filter(dataset_name == "ChengpingW_2017") %>%
+  select(study_condition)
+unique(study_vars$study_condition)
+
+
+# # Study Summary - CDI
+# VincentC_2016.metaphlan_bugs_list.stool() %>%
+#   experimentData()
+# # Examine sample conditions
+# study_vars <- stool_samples %>%
+#   filter(dataset_name == "VincentC_2016") %>%
+#   select(study_condition)
+# unique(study_vars$study_condition)
+CDI <- subset_samples(physeq_adj, studyID == "VincentC_2016.metaphlan_bugs_list.stool")
+VincentC_2016.model.input <- prep.CMD.Species.ML(study = CDI)
 VincentC_2016.model <- ridge.lasso.enet.regression.model.DS(
   model.input = VincentC_2016.model.input, model.type = "enet")
-
 VincentC_2016.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
   disease.model.input = VincentC_2016.model.input, obj = dat, model.type = "enet")
 
 
+
 # ACVD
-JieZ_2017.metaphlan_bugs_list.stool() %>%
-  experimentData()
-study_vars <- stool_samples %>% 
-  filter(dataset_name == "JieZ_2017") %>% 
-  select(study_condition)
-unique(study_vars$study_condition)
-JieZ_2017.model.input <- prep.CMD.Species.ML(study = "JieZ_2017")
+# JieZ_2017.metaphlan_bugs_list.stool() %>%
+#   experimentData()
+# study_vars <- stool_samples %>% 
+#   filter(dataset_name == "JieZ_2017") %>% 
+#   select(study_condition)
+# unique(study_vars$study_condition)
+ACVD <- subset_samples(physeq_adj, studyID == "JieZ_2017.metaphlan_bugs_list.stool")
+JieZ_2017.model.input <- prep.CMD.Species.ML(study = ACVD)
 JieZ_2017.model <- ridge.lasso.enet.regression.model.DS(
   model.input = JieZ_2017.model.input, model.type = "enet")
 JieZ_2017.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
   disease.model.input = JieZ_2017.model.input, obj = dat, model.type = "enet")
 
 #  T1D
-KosticAD_2015.metaphlan_bugs_list.stool()%>% 
-  experimentData()
-study_vars <- stool_samples %>% 
-  filter(dataset_name == "KosticAD_2015") %>% 
-  select(study_condition)
-unique(study_vars$study_condition) # Trim NAs
-KosticAD.model.input <- prep.CMD.Species.ML(study = "KosticAD_2015" , metafilter = "NA")
+# KosticAD_2015.metaphlan_bugs_list.stool()%>% 
+#   experimentData()
+# study_vars <- stool_samples %>% 
+#   filter(dataset_name == "KosticAD_2015") %>% 
+#   select(study_condition)
+# unique(study_vars$study_condition) # Trim NAs
+T1D <- subset_samples(physeq_adj, studyID == "KosticAD_2015.metaphlan_bugs_list.stool")
+KosticAD.model.input <- prep.CMD.Species.ML(study = T1D, metafilter = "NA")
 KosticAD.model <- ridge.lasso.enet.regression.model.DS(
   model.input = KosticAD.model.input, model.type = "enet")
 KosticAD.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
   disease.model.input = KosticAD.model.input, obj = dat, model.type = "enet")
 
 # T2D
-QinJ_2012.metaphlan_bugs_list.stool() %>%
-  experimentData()
-study_vars <- stool_samples %>% 
-  filter(dataset_name == "QinJ_2012") %>% 
-  select(study_condition)
-unique(study_vars$study_condition) # Trim NAs
-QinJ_2012.model.input <- prep.CMD.Species.ML(study = "QinJ_2012", metafilter = "NA")
+# QinJ_2012.metaphlan_bugs_list.stool() %>%
+#   experimentData()
+# study_vars <- stool_samples %>% 
+#   filter(dataset_name == "QinJ_2012") %>% 
+#   select(study_condition)
+# unique(study_vars$study_condition) # Trim NAs
+T2D <- subset_samples(physeq_adj, studyID == "QinJ_2012.metaphlan_bugs_list.stool")
+QinJ_2012.model.input <- prep.CMD.Species.ML(study = T2D, metafilter = "NA")
 QinJ_2012.model <- ridge.lasso.enet.regression.model.DS(
   model.input = QinJ_2012.model.input, model.type = "enet")
 QinJ_2012.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
   disease.model.input = QinJ_2012.model.input, obj = dat, model.type = "enet")
 
 # cirrhosis
-QinN_2014.metaphlan_bugs_list.stool() %>% 
-  experimentData()
-study_vars <- stool_samples %>% 
-  filter(dataset_name == "QinN_2014") %>% 
-  select(study_condition)
-unique(study_vars$study_condition)
-QinN_2014.model.input <- prep.CMD.Species.ML(study = "QinN_2014")
+# QinN_2014.metaphlan_bugs_list.stool() %>% 
+#   experimentData()
+# study_vars <- stool_samples %>% 
+#   filter(dataset_name == "QinN_2014") %>% 
+#   select(study_condition)
+# unique(study_vars$study_condition)
+cirrhosis <- subset_samples(physeq_adj, studyID == "QinN_2014.metaphlan_bugs_list.stool")
+QinN_2014.model.input <- prep.CMD.Species.ML(study = cirrhosis)
 QinN_2014.model <- ridge.lasso.enet.regression.model.DS(
   model.input = QinN_2014.model.input, model.type = "enet")
 QinN_2014.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
   disease.model.input = QinN_2014.model.input, obj = dat, model.type = "enet")
 
 # IBD
-NielsenHB_2014.metaphlan_bugs_list.stool() %>% 
-  experimentData()
-study_vars <- stool_samples %>% 
-  filter(dataset_name == "NielsenHB_2014") %>% 
-  select(study_condition)
-unique(study_vars$study_condition)
-NielsenHB_2014.model.input <- prep.CMD.Species.ML(study = "NielsenHB_2014")
+# NielsenHB_2014.metaphlan_bugs_list.stool() %>% 
+#   experimentData()
+# study_vars <- stool_samples %>% 
+#   filter(dataset_name == "NielsenHB_2014") %>% 
+#   select(study_condition)
+# unique(study_vars$study_condition)
+IBD <- subset_samples(physeq_adj, studyID == "NielsenHB_2014.metaphlan_bugs_list.stool")
+NielsenHB_2014.model.input <- prep.CMD.Species.ML(study = IBD)
 NielsenHB_2014.model <- ridge.lasso.enet.regression.model.DS(
   model.input = NielsenHB_2014.model.input, model.type = "enet")
 NielsenHB_2014.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
   disease.model.input = NielsenHB_2014.model.input, obj = dat, model.type = "enet")
 
 # Hypertension
-LiJ_2017.metaphlan_bugs_list.stool() %>% 
-  experimentData()
-study_vars <- stool_samples %>% 
-  filter(dataset_name == "LiJ_2017") %>% 
-  select(study_condition)
-unique(study_vars$study_condition) # Trim pre-hypertension vars
-LiJ_2017.model.input <- prep.CMD.Species.ML(study = "LiJ_2017", metafilter = "pre-hypertension")
+# LiJ_2017.metaphlan_bugs_list.stool() %>% 
+#   experimentData()
+# study_vars <- stool_samples %>% 
+#   filter(dataset_name == "LiJ_2017") %>% 
+#   select(study_condition)
+# unique(study_vars$study_condition) # Trim pre-hypertension vars
+Hypertension <- subset_samples(physeq_adj, studyID == "LiJ_2017.metaphlan_bugs_list.stool")
+LiJ_2017.model.input <- prep.CMD.Species.ML(study = Hypertension, metafilter = "pre-hypertension")
 LiJ_2017.model <- ridge.lasso.enet.regression.model.DS(
   model.input = LiJ_2017.model.input, model.type = "enet")
 LiJ_2017.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
   disease.model.input = LiJ_2017.model.input, obj = dat, model.type = "enet")
 
 # metabolic_syndrome
-LiSS_2016.metaphlan_bugs_list.stool() %>% 
-  experimentData()
-study_vars <- stool_samples %>% 
-  filter(dataset_name == "LiSS_2016") %>% 
-  select(study_condition)
-unique(study_vars$study_condition) # Trim FMT vars
-LiSS_2016.model.input <- prep.CMD.Species.ML(study = "LiSS_2016", metafilter = "FMT")
+# LiSS_2016.metaphlan_bugs_list.stool() %>% 
+#   experimentData()
+# study_vars <- stool_samples %>% 
+#   filter(dataset_name == "LiSS_2016") %>% 
+#   select(study_condition)
+# unique(study_vars$study_condition) # Trim FMT vars
+metabolic_syndrome <- subset_samples(physeq_adj, studyID == "LiSS_2016.metaphlan_bugs_list.stool")
+LiSS_2016.model.input <- prep.CMD.Species.ML(study = metabolic_syndrome, metafilter = "FMT")
 LiSS_2016.model <- ridge.lasso.enet.regression.model.DS(
   model.input = LiSS_2016.model.input, model.type = "enet")
 LiSS_2016.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
@@ -221,7 +240,8 @@ ml.heatmap <- function(ml.models.df){
     geom_tile() +
     scale_fill_distiller(palette = "BuPu", direction = 1,
                          limits = c(min(0.4), max(1)),
-                         breaks = c(0.4, 0.6, 0.8, 1)) +
+                         breaks = c(0.4, 0.6, 0.8, 1),
+                         guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +
     coord_flip() +
     geom_text(aes(label=value), color = "white") +
     theme(axis.title.x = element_blank(),
