@@ -90,12 +90,15 @@ To collate data tables into phlyoseq objects that are used downstream.
   * Run:__create_phyloseq_obj.R__ 
 
 ### Metadata-Explained-Variance
-This analysis sources PERMANOVA_Analysis.R which may take a few minutes to complete with permutations = 9,999. To complete in a timely manner you may reduce the number of permuations within the PERMANOVA_Analysis.R script; however, this will slightly alter some numbers downstream.
+This analysis sources PERMANOVA_Analysis.R which may take a few minutes to complete with permutations = 9,999.
 
   * Run: __PERMANOVA_Viz.R__
 
 ### Community-Composition
-  * Run: __Beta_Diversity.R__ & __Alpha_Diversity.R__
+Run the following scripts:
+  * __Community_Composition_Overview.R__ 
+  * __Beta_Diversity_Analysis_adaptable_input_script.R__ 
+  * __Alpha_Diversity_Analysis_adaptable_input_script.R__
 
 ### Multivariate-Statistical-Linear-Models
 To test for associations between our PD donors and the two controls groups we utilized [MaAsLin2](https://github.com/biobakery/Maaslin2) and employed general linear models accounting for age, sex, and bmi in one comparison between PD patients (n=48) and Healthy Population Controls (n=41), and a separate model for PD Patients and Spouse Controls (n=29 each) which accounts for the household effect. 
