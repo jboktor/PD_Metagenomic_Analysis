@@ -93,7 +93,7 @@ distribution_sanity2 <- function(df, binN = 30) {
     scale_size_area(limits = c(0, 1000), max_size = 10, guide = NULL)
     theme(legend.position ="none")
   
-  cowplot::plot_grid(histo_plot, ecdf_plot, ncol = 1, align="v")
+  cowplot::plot_grid(histo_plot, ecdf_plot, ncol = 1, align="v", axis = "lb")
 }
 
 
