@@ -8,330 +8,199 @@ source("src/Community_Composition_Funcs.R")
 
 # Load Read Counts
 func_reads <- read_tsv("files/humann2_read_and_species_count_table.tsv", col_names = T)
-reads <- dplyr::select(func_reads, c("# samples","total reads")) %>% 
+reads <- dplyr::select(func_reads, c("# samples", "total reads")) %>% 
   dplyr::rename( "id" = "# samples", "clean_total_reads" = "total reads")
 reads$id <- gsub("_", ".", reads$id)
 
-# Add prevalence threshold
-dat.DMM <- dat %>% 
-  core(detection = 0, prevalence = 0.1)
+#--------------------------------------------------------------------------------------------
+#                                  Species
+#--------------------------------------------------------------------------------------------
+DMM.species <- DMM_fit(dat, nmax = 6)
+fit.species <- DMM.species[["fit"]]
+DMM.species[["laplace"]]
+DMM.species[["plot"]]
 
-# Calculate Pseudocounts 
-count <- PseudoCounts(dat.DMM, reads) %>% 
-  t() %>% as.matrix()
-
-# Fit the DMM model. Set the maximum allowed number of community types to 6 to speed up the analysis
-set.seed(42)
-fit <- lapply(1:6, dmn, count = count, verbose=TRUE)
-
-# Check model fit with different number of mixture components using standard information criteria
-lplc <- sapply(fit, laplace)
-aic  <- sapply(fit, AIC) 
-bic  <- sapply(fit, BIC) 
-
-dmm.fit <- 
-  data.frame(cluster = 1:length(lplc), 
-             Laplace = lplc, AIC = aic, BIC = bic) %>% 
-  pivot_longer(-cluster, names_to = "model.metrics")
-
-dmm.fit.plot <- 
-  ggplot(data = dmm.fit, aes(x = cluster, y = value, color = model.metrics)) +
-  geom_point() +
-  geom_line() +
-  scale_color_d3() +
-  labs(x="Number of Dirichlet Components", y="Model Fit", 
-       color = "Model Metrics") +
-  theme_classic() +
-  theme(legend.position = c(0.2, 0.7))
-dmm.fit.plot
-
-ggsave(dmm.fit.plot,
-       filename = "data/Community_Composition/Dirichlet_Mutlinomial_Mixtures/DMM_cluster_fit.svg",
+ggsave(DMM.species[["plot"]],
+       filename = "data/Community_Composition/Dirichlet_Multinomial_Mixtures/Species/DMM_cluster_fit_species.svg",
        width = 6, height = 4)
 
-
 # Pick the optimal model
-best.species <- fit[[which.min(unlist(lplc))]]
+best.species <- fit.species[[which.min(unlist( DMM.species[["laplace"]] ))]]
 # Mixture parameters pi and theta
 mixturewt(best.species)
-# Sample-component assignments
-sas <- apply(mixture(best.species), 1, which.max) %>% 
-  as.data.frame() %>% dplyr::rename(cluster = ".")
-sas <- group_col_from_ids(sas, rownames(sas))
-
-# Summary Stats by group
-sas.stats <- sas %>% 
-  dplyr::group_by(cluster) %>% 
-  dplyr::count(group) %>% 
-  transmute(n, group, Percentage=n/sum(n)*100)
-sas.stats
-
-
-
-cluster_distribution <- 
-  ggplot(data = sas.stats, aes(x = as.factor(cluster), y = n, fill = group)) + 
-  geom_bar(stat = "identity") +
-  theme_bw() +
-  labs(x = "Cluster", y = "Number of Samples") +
-  scale_fill_manual(values = cols.pdpchc)
-cluster_distribution
-
-cluster_distribution2 <- 
-  ggplot(data = sas.stats, aes(x = as.factor(cluster), y = Percentage, fill = group)) + 
-  geom_bar(stat = "identity") +
-  theme_bw() +
-  labs(x = "Cluster", y = "Percentage of Cluster") +
-  scale_fill_manual(values = cols.pdpchc)
-cluster_distribution2
-
-legend <- cowplot::plot_grid(get_legend(cluster_distribution))
-cluster_distribution <- cluster_distribution + theme(legend.position = "none")
-cluster_distribution2 <- cluster_distribution2 + theme(legend.position = "none")
-cluster_distribution_final <- 
-  cowplot::plot_grid(cluster_distribution, cluster_distribution2, legend,
-                     ncol = 3, rel_widths = c(4,4,1))
-
-ggsave(cluster_distribution_final,
-       filename = "data/Community_Composition/Dirichlet_Mutlinomial_Mixtures/cluster_distribution.svg",
+# extract summary stats
+sas.stats <- DMM_stats(best.species)[["sas.stats"]]
+# SAVE cluster ID for each sample
+DMM_stats(best.species)[["sas"]] %>% 
+  write.csv(file = 'data/Community_Composition/Dirichlet_Multinomial_Mixtures/DMM_sample_cluster_mapping/species_cluster_IDs.csv')
+# Plot cluster distribution
+cluster_distribution_species <- DMM_cluster_plot(sas.stats)
+ggsave(cluster_distribution_species,
+       filename = "data/Community_Composition/Dirichlet_Multinomial_Mixtures/Species/cluster_distribution_species.svg",
        width = 5.5, height = 3.5)
 
-
-
-# Contribution of each taxonomic group to each component
-for (k in seq(ncol(fitted(best.species)))) {
-  # https://microbiome.github.io/tutorials/DMM.html
-  
-  d <- melt(fitted(best.species))
-  colnames(d) <- c("feature", "cluster", "value")
-  d <- subset(d, cluster == k) %>%
-    # Arrange features by assignment strength
-    arrange(value) %>%
-    mutate(feature = factor(feature, levels = unique(feature))) %>%
-    # Only show the most important drivers
-    filter(abs(value) > quantile(abs(value), 0.9))     
-  
-  d$feature <- gsub("s__", "", d$feature)
-  d$feature <- gsub("_", " ", d$feature)
-  
-  p <- ggplot(d, aes(x = reorder(feature, value), y = value)) +
-    geom_bar(stat = "identity") +
-    coord_flip() +
-    labs(title = paste("Top drivers: community type", k)) +
-    theme_bw() +
-    theme(axis.title.y = element_blank(),
-          axis.text.y = element_text(face = "italic"))
-  print(p)
-  ggsave(p,
-         filename = paste0("data/Community_Composition/Dirichlet_Mutlinomial_Mixtures/cluster_", k, "_drivers.svg"),
-         width = 5, height = 5)
-}
-
-
-#--------------------------------------------------------------------------------
-#           Features with greatest Change in Cluster occupancy probabilty 
-#--------------------------------------------------------------------------------
-
-d.k1 <- melt(fitted(best.species))
-colnames(d.k1) <- c("feature", "cluster", "value.k1")
-d.k1 <- subset(d.k1, cluster == "1") %>%
-  mutate(feature = factor(feature, levels = unique(feature))) %>% 
-  dplyr::select(-cluster)
-
-d.k2 <- melt(fitted(best.species))
-colnames(d.k2) <- c("feature", "cluster", "value.k2")
-d.k2 <- subset(d.k2, cluster == "2") %>%
-  mutate(feature = factor(feature, levels = unique(feature))) %>% 
-  dplyr::select(-cluster)
-
+#----------------------------------------------------------------
+# Features with greatest Change in Cluster occupancy probabilty 
+#----------------------------------------------------------------
+melt.species <- melt(fitted(best.species))
+d.k1 <- DMM_select_cluster(df = melt.species, cluster_n = 1)
+d.k2 <- DMM_select_cluster(df = melt.species, cluster_n = 2)
 dfm <- left_join(d.k1, d.k2, by = "feature")
-
-
-#-------------------------------------
 # Calculate Log2 Fold Change
 dfm$K2vK1 <- log2(dfm$value.k2/dfm$value.k1)
 
-#-------------------------------------
+#-----------------------------------------
 # Plot the top 20 most variable features
+#-----------------------------------------
+K2vK1.df <- 
+  dfm %>% 
+  arrange(desc(abs(K2vK1)))
+K2vK1.df <- K2vK1.df[1:20,]
+K2vK1.df$feature <- gsub("s__", "", K2vK1.df$feature)
+LFC.K2vK1.plot <- DMM_cluster_driver_plot(K2vK1.df, yval =  K2vK1.df$K2vK1, comparison = "2/1")
+ggsave(LFC.K2vK1.plot, 
+       filename = "data/Community_Composition/Dirichlet_Multinomial_Mixtures/Species/Species_LFC.K2vK1.plot.svg",
+       width = 6, height = 4)
 
+
+#--------------------------------------------------------------------------------------------
+#                                  Pathways
+#--------------------------------------------------------------------------------------------
+
+DMM.pathways <- DMM_fit(dat.path.slim, nmax = 6)
+fit.pathways <- DMM.pathways[["fit"]]
+DMM.pathways[["laplace"]]
+DMM.pathways[["plot"]]
+
+ggsave(DMM.pathways[["plot"]],
+       filename = "data/Community_Composition/Dirichlet_Multinomial_Mixtures/Pathways/Pathways_DMM_cluster_fit.svg",
+       width = 6, height = 4)
+
+# Pick the optimal model
+best.paths <- fit.pathways[[which.min(unlist(DMM.pathways[["laplace"]]))]]
+# Mixture parameters pi and theta
+mixturewt(best.paths)
+# extract summary stats
+sas.stats <- DMM_stats(best.paths)[["sas.stats"]]
+# SAVE cluster ID for each sample
+DMM_stats(best.paths)[["sas"]] %>% 
+  write.csv(file = 'data/Community_Composition/Dirichlet_Multinomial_Mixtures/DMM_sample_cluster_mapping/pathway_cluster_IDs.csv')
+# Plot cluster distribution
+cluster_distribution_paths <- DMM_cluster_plot(sas.stats)
+ggsave(cluster_distribution_paths,
+       filename = "data/Community_Composition/Dirichlet_Multinomial_Mixtures/Pathways/Pathways_cluster_distribution.svg",
+       width = 5.5, height = 3.5)
+
+
+#----------------------------------------------------------------
+# Features with greatest Change in Cluster occupancy probabilty 
+#----------------------------------------------------------------
+
+melt.paths <- melt(fitted(best.paths))
+d.k1 <- DMM_select_cluster(df = melt.paths, cluster_n = 1)
+d.k2 <- DMM_select_cluster(df = melt.paths, cluster_n = 2)
+d.k3 <- DMM_select_cluster(df = melt.paths, cluster_n = 3)
+d.k4 <- DMM_select_cluster(df = melt.paths, cluster_n = 4)
+d.k5 <- DMM_select_cluster(df = melt.paths, cluster_n = 5)
+
+dfm <- left_join(d.k1, d.k2, by = "feature") %>% 
+  left_join(d.k3, by = "feature") %>% 
+  left_join(d.k4, by = "feature") %>% 
+  left_join(d.k5, by = "feature")
+
+# Calculate Log2 Fold Change
+dfm$K2vK1 <- log2(dfm$value.k2/dfm$value.k1)
+dfm$K2vK3 <- log2(dfm$value.k2/dfm$value.k3)
+dfm$K2vK4 <- log2(dfm$value.k2/dfm$value.k4)
+dfm$K2vK5 <- log2(dfm$value.k2/dfm$value.k5)
+
+
+# Plot the top 20 most variable features
 K2vK1.df <- 
   dfm %>% 
   arrange(desc(abs(K2vK1)))
 K2vK1.df <- K2vK1.df[1:20,]
 
-K2vK1.df$feature <- gsub("s__", "", K2vK1.df$feature)
-# K2vK1.df$feature <- gsub("_", " ", K2vK1.df$feature)
+K2vK3.df <- 
+  dfm %>% 
+  arrange(desc(abs(K2vK3)))
+K2vK3.df <- K2vK3.df[1:20,]
+
+K2vK4.df <- 
+  dfm %>% 
+  arrange(desc(abs(K2vK4)))
+K2vK4.df <- K2vK4.df[1:20,]
+
+K2vK5.df <- 
+  dfm %>% 
+  arrange(desc(abs(K2vK5)))
+K2vK5.df <- K2vK5.df[1:20,]
 
 
-LFC.K2vK1.plot <- ggplot(K2vK1.df, aes(x = reorder(feature, K2vK1), y = K2vK1)) +
-  geom_bar(stat = "identity") +
-  ylim(-8,8)+
-  coord_flip() +
-  labs(title = paste("Distinguishing features: Clusters 2/1"), y = expression(log[2]*" fold change")) +
-  theme_bw() +
-  theme(axis.title.y = element_blank(),
-        axis.text.y = element_text(face = "italic"))
-LFC.K2vK1.plot 
+# PLOTS
+K2vK1.plot <- DMM_cluster_driver_plot(K2vK1.df, yval =  K2vK1.df$K2vK1, comparison = "2/1")
+K2vK3.plot <- DMM_cluster_driver_plot(K2vK3.df, yval =  K2vK1.df$K2vK1, comparison = "2/3")
+K2vK4.plot <- DMM_cluster_driver_plot(K2vK4.df, yval =  K2vK1.df$K2vK1, comparison = "2/4")
+K2vK5.plot <- DMM_cluster_driver_plot(K2vK5.df, yval =  K2vK1.df$K2vK1, comparison = "2/5")
 
-ggsave(LFC.K2vK1.plot, 
-       filename = "data/Community_Composition/Dirichlet_Mutlinomial_Mixtures/Species_LFC.K2vK1.plot.svg",
-       width = 6, height = 4)
+plts <- list(K2vK1.plot, K2vK3.plot, K2vK4.plot, K2vK5.plot)
+names(plts) <- c("K2vK1.plot", "K2vK3.plot", "K2vK4.plot", "K2vK5.plot")
+
+cnt <- 1
+for (i in plts){
+  ggsave(i,
+         filename = paste0("data/Community_Composition/Dirichlet_Multinomial_Mixtures/Pathways/Pathways_LFC.", names(plts[cnt]), ".svg"),
+         width = 9, height = 9)
+  cnt <- cnt + 1
+}
 
 
 #--------------------------------------------------------------------------------------------
 #                                  KO Data
 #--------------------------------------------------------------------------------------------
 
+DMM.kos <- DMM_fit(dat.KOs.slim, nmax = 6)
+fit.kos <- DMM.kos[["fit"]]
+DMM.kos[["laplace"]]
+DMM.kos[["plot"]]
 
-# Add prevalence threshold
-dat.DMM <- dat.KOs.slim %>% 
-  core(detection = 0, prevalence = 0.1)
-
-# Calculate Pseudocounts 
-count <- PseudoCounts(dat.DMM, reads) %>% 
-  t() %>% as.matrix()
-
-# Fit the DMM model. Set the maximum allowed number of community types to 6 to speed up the analysis
-set.seed(42)
-fit <- lapply(1:6, dmn, count = count, verbose=TRUE)
-
-# Check model fit with different number of mixture components using standard information criteria
-lplc <- sapply(fit, laplace)
-aic  <- sapply(fit, AIC) 
-bic  <- sapply(fit, BIC) 
-
-dmm.fit <- 
-  data.frame(cluster = 1:length(lplc), 
-             Laplace = lplc, AIC = aic, BIC = bic) %>% 
-  pivot_longer(-cluster, names_to = "model.metrics")
-
-dmm.fit.plot <- 
-  ggplot(data = dmm.fit, aes(x = cluster, y = value, color = model.metrics)) +
-  geom_point() +
-  geom_line() +
-  scale_color_d3() +
-  labs(x="Number of Dirichlet Components", y="Model Fit", 
-       color = "Model Metrics") +
-  theme_classic() +
-  theme(legend.position = c(0.2, 0.7))
-dmm.fit.plot
-
-ggsave(dmm.fit.plot,
-       filename = "data/Community_Composition/Dirichlet_Mutlinomial_Mixtures/KO_DMM_cluster_fit.svg",
+ggsave(DMM.kos[["plot"]],
+       filename = "data/Community_Composition/Dirichlet_Multinomial_Mixtures/KOs/KO_DMM_cluster_fit.svg",
        width = 6, height = 4)
 
-
 # Pick the optimal model
-best <- fit[[which.min(unlist(lplc))]]
+best.kos <- fit.kos[[which.min(unlist(DMM.kos[["laplace"]]))]]
 # Mixture parameters pi and theta
-mixturewt(best)
-# Sample-component assignments
-sas <- apply(mixture(best), 1, which.max) %>% 
-  as.data.frame() %>% dplyr::rename(cluster = ".")
-sas <- group_col_from_ids(sas, rownames(sas))
-
-# Summary Stats by group
-sas.stats <- sas %>% 
-  dplyr::group_by(cluster) %>% 
-  dplyr::count(group) %>% 
-  transmute(n, group, Percentage=n/sum(n)*100)
-sas.stats
-
-
-
-cluster_distribution <- 
-  ggplot(data = sas.stats, aes(x = as.factor(cluster), y = n, fill = group)) + 
-  geom_bar(stat = "identity") +
-  theme_bw() +
-  labs(x = "Cluster", y = "Number of Samples") +
-  scale_fill_manual(values = cols.pdpchc)
-cluster_distribution
-
-cluster_distribution2 <- 
-  ggplot(data = sas.stats, aes(x = as.factor(cluster), y = Percentage, fill = group)) + 
-  geom_bar(stat = "identity") +
-  theme_bw() +
-  labs(x = "Cluster", y = "Percentage of Cluster") +
-  scale_fill_manual(values = cols.pdpchc)
-cluster_distribution2
-
-legend <- cowplot::plot_grid(get_legend(cluster_distribution))
-cluster_distribution <- cluster_distribution + theme(legend.position = "none")
-cluster_distribution2 <- cluster_distribution2 + theme(legend.position = "none")
-cluster_distribution_final <- 
-  cowplot::plot_grid(cluster_distribution, cluster_distribution2, legend,
-                     ncol = 3, rel_widths = c(4,4,1))
-
-ggsave(cluster_distribution_final, 
-       filename = "data/Community_Composition/Dirichlet_Mutlinomial_Mixtures/KO_cluster_distribution.svg",
+mixturewt(best.kos)
+# extract summary stats
+sas.stats <- DMM_stats(best.kos)[["sas.stats"]]
+# SAVE cluster ID for each sample
+DMM_stats(best.kos)[["sas"]] %>% 
+  write.csv(file = 'data/Community_Composition/Dirichlet_Multinomial_Mixtures/DMM_sample_cluster_mapping/ko_cluster_IDs.csv')
+# Plot cluster distribution
+cluster_distribution_kos <- DMM_cluster_plot(sas.stats)
+ggsave(cluster_distribution_kos, 
+       filename = "data/Community_Composition/Dirichlet_Multinomial_Mixtures/KOs/KO_cluster_distribution.svg",
        width = 5.5, height = 3.5)
 
 
+#----------------------------------------------------------------
+# Features with greatest Change in Cluster occupancy probabilty 
+#----------------------------------------------------------------
+melt.kos <- melt(fitted(best.kos))
+d.k1 <- DMM_select_cluster(df = melt.kos, cluster_n = 1)
+d.k2 <- DMM_select_cluster(df = melt.kos, cluster_n = 2)
+d.k3 <- DMM_select_cluster(df = melt.kos, cluster_n = 3)
 
-# Contribution of each taxonomic group to each component
-for (k in seq(ncol(fitted(best)))) {
-  # https://microbiome.github.io/tutorials/DMM.html
-  
-  d <- melt(fitted(best))
-  colnames(d) <- c("feature", "cluster", "value")
-  d <- subset(d, cluster == k) %>%
-    # Arrange features by assignment strength
-    arrange(value) %>%
-    mutate(feature = factor(feature, levels = unique(feature))) %>%
-    # Only show the most important drivers
-    filter(abs(value) > quantile(abs(value), 0.995))     
-  
-  d$feature <- gsub("s__", "", d$feature)
-  d$feature <- gsub("_", " ", d$feature)
-  
-  p <- ggplot(d, aes(x = reorder(feature, value), y = value)) +
-    geom_bar(stat = "identity") +
-    coord_flip() +
-    labs(title = paste("Top drivers: community type", k)) +
-    theme_bw() +
-    theme(axis.title.y = element_blank(),
-          axis.text.y = element_text(face = "italic"))
-  print(p)
-  ggsave(p,
-         filename = paste0("data/Community_Composition/Dirichlet_Mutlinomial_Mixtures/KO_cluster_", k, "_drivers.svg"),
-         width = 5, height = 5)
-}
-
-
-#--------------------------------------------------------------------------------
-#           Features with greatest Change in Cluster occupancy probabilty 
-#--------------------------------------------------------------------------------
-
-d.k1 <- melt(fitted(best))
-colnames(d.k1) <- c("feature", "cluster", "value.k1")
-d.k1 <- subset(d.k1, cluster == "1") %>%
-  mutate(feature = factor(feature, levels = unique(feature))) %>% 
-  dplyr::select(-cluster)
-
-d.k2 <- melt(fitted(best))
-colnames(d.k2) <- c("feature", "cluster", "value.k2")
-d.k2 <- subset(d.k2, cluster == "2") %>%
-  mutate(feature = factor(feature, levels = unique(feature))) %>% 
-  dplyr::select(-cluster)
-
-d.k3 <- melt(fitted(best))
-colnames(d.k3) <- c("feature", "cluster", "value.k3")
-d.k3 <- subset(d.k3, cluster == "3") %>%
-  mutate(feature = factor(feature, levels = unique(feature)))  %>% 
-  dplyr::select(-cluster)
-
-dfm <- left_join(d.k1, d.k2, by = "feature") %>% 
+dfm <- left_join(d.k1, d.k2, by = "feature") %>%
   left_join(d.k3, by = "feature")
 
-#-------------------------------------
 # Calculate Log2 Fold Change
-
 dfm$K3vK1 <- log2(dfm$value.k3/dfm$value.k1)
 dfm$K3vK2 <- log2(dfm$value.k3/dfm$value.k2)
 dfm$K2vK1 <- log2(dfm$value.k2/dfm$value.k1)
 
-#-------------------------------------
 # Plot the top 20 most variable features
-
 K3vK1.df <- 
   dfm %>% 
   arrange(desc(abs(K3vK1)))
@@ -348,39 +217,53 @@ K2vK1.df <-
 K2vK1.df <- K2vK1.df[1:20,]
 
 
-LFC.K3vK1.plot <- ggplot(K3vK1.df, aes(x = reorder(feature, K3vK1), y = K3vK1)) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
-  labs(title = paste("Distinguishing features: Clusters 3/1"), y = expression(log[2]*" fold change")) +
-  theme_bw() +
-  theme(axis.title.y = element_blank(),
-        axis.text.y = element_text(face = "italic"))
-LFC.K3vK1.plot
-
-LFC.K3vK2.plot <- ggplot(K3vK2.df, aes(x = reorder(feature, K3vK2), y = K3vK2)) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
-  labs(title = paste("Distinguishing features: Clusters 3/2"), y = expression(log[2]*" fold change")) +
-  theme_bw() +
-  theme(axis.title.y = element_blank(),
-        axis.text.y = element_text(face = "italic"))
-LFC.K3vK2.plot
-
-LFC.K2vK1.plot <- ggplot(K2vK1.df, aes(x = reorder(feature, K2vK1), y = K2vK1)) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
-  labs(title = paste("Distinguishing features: Clusters 2/1"), y = expression(log[2]*" fold change")) +
-  theme_bw() +
-  theme(axis.title.y = element_blank(),
-        axis.text.y = element_text(face = "italic"))
-LFC.K2vK1.plot
+# PLOTS
+LFC.K3vK1.plot <- DMM_cluster_driver_plot(K3vK1.df, yval =  K3vK1.df$K3vK1, comparison = "3/1")
+LFC.K3vK2.plot <- DMM_cluster_driver_plot(K3vK2.df, yval =  K3vK2.df$K3vK2, comparison = "3/2")
+LFC.K2vK1.plot <- DMM_cluster_driver_plot(K2vK1.df, yval =  K2vK1.df$K2vK1, comparison = "2/1")
 
 ggsave(LFC.K3vK1.plot, 
-       filename = "data/Community_Composition/Dirichlet_Mutlinomial_Mixtures/KO_LFC.K3vK1.plot.svg",
+       filename = "data/Community_Composition/Dirichlet_Multinomial_Mixtures/KOs/KO_LFC.K3vK1.plot.svg",
        width = 4, height = 4)
 ggsave(LFC.K3vK2.plot, 
-       filename = "data/Community_Composition/Dirichlet_Mutlinomial_Mixtures/KO_LFC.K3vK2.plot.svg",
+       filename = "data/Community_Composition/Dirichlet_Multinomial_Mixtures/KOs/KO_LFC.K3vK2.plot.svg",
        width = 4, height = 4)
 ggsave(LFC.K2vK1.plot, 
-       filename = "data/Community_Composition/Dirichlet_Mutlinomial_Mixtures/KO_LFC.K2vK1.plot.svg",
+       filename = "data/Community_Composition/Dirichlet_Multinomial_Mixtures/KOs/KO_LFC.K2vK1.plot.svg",
        width = 4, height = 4)
+
+
+
+
+#---------------------------------------------------------------------------------------------
+# Scrap
+#---------------------------------------------------------------------------------------------
+
+# # Contribution of each taxonomic group to each component
+# for (k in seq(ncol(fitted(best.species)))) {
+#   # https://microbiome.github.io/tutorials/DMM.html
+#   
+#   d <- melt(fitted(best.species))
+#   colnames(d) <- c("feature", "cluster", "value")
+#   d <- subset(d, cluster == k) %>%
+#     # Arrange features by assignment strength
+#     arrange(value) %>%
+#     mutate(feature = factor(feature, levels = unique(feature))) %>%
+#     # Only show the most important drivers
+#     filter(abs(value) > quantile(abs(value), 0.9))     
+#   
+#   d$feature <- gsub("s__", "", d$feature)
+#   d$feature <- gsub("_", " ", d$feature)
+#   
+#   p <- ggplot(d, aes(x = reorder(feature, value), y = value)) +
+#     geom_bar(stat = "identity") +
+#     coord_flip() +
+#     labs(title = paste("Top drivers: community type", k)) +
+#     theme_bw() +
+#     theme(axis.title.y = element_blank(),
+#           axis.text.y = element_text(face = "italic"))
+#   print(p)
+#   ggsave(p,
+#          filename = paste0("data/Community_Composition/Dirichlet_Multinomial_Mixtures/cluster_", k, "_drivers.svg"),
+#          width = 5, height = 5)
+# }

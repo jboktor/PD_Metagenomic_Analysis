@@ -184,3 +184,152 @@ load_reads <- function(){
     dplyr::rename( "id" = "# samples", "clean_total_reads" = "total reads")
   return(reads)
 }
+
+#--------------------------------------------------------------------------------------------------
+# DMM Analysis - Determine Optimal Clusters
+#--------------------------------------------------------------------------------------------------
+
+
+DMM_fit <- function(datObj, nmax){
+  
+  #' Function fits a DMM model to a given phlyoseq Obj
+  #' Input Phyloseq Obj and the max number of clusters to fit
+  #' Outputs' Laplace value and Model Fit plot
+  
+  # Add prevalence threshold
+  dat.DMM <- datObj %>% 
+    core(detection = 0, prevalence = 0.1)
+  # Calculate Pseudocounts 
+  count <- PseudoCounts(dat.DMM, reads) %>% 
+    t() %>% as.matrix()
+  # Fit the DMM model. Set the maximum allowed number of community types to 6 to speed up the analysis
+  set.seed(42)
+  fit <- lapply(1:nmax, dmn, count = count, verbose=TRUE)
+  # Check model fit with different number of mixture components using standard information criteria
+  lplc <- sapply(fit, laplace)
+  aic  <- sapply(fit, AIC) 
+  bic  <- sapply(fit, BIC) 
+  
+  dmm.fit <- 
+    data.frame(cluster = 1:length(lplc), 
+               Laplace = lplc, AIC = aic, BIC = bic) %>% 
+    pivot_longer(-cluster, names_to = "model.metrics")
+  
+  dmm.fit.plot <- 
+    ggplot(data = dmm.fit, aes(x = cluster, y = value, color = model.metrics)) +
+    geom_point() +
+    geom_line() +
+    scale_color_d3() +
+    labs(x="Number of Dirichlet Components", y="Model Fit", 
+         color = "Model Metrics") +
+    theme_classic() +
+    theme(legend.position = c(0.2, 0.7))
+  dmm.fit.plot
+  
+  output <- list(fit, lplc, dmm.fit.plot)
+  names(output) <- c("fit", "laplace", "plot")
+  return(output)
+}
+
+#--------------------------------------------------------------------------------------------------
+# DMM Analysis - Samples per cluster DF 
+#--------------------------------------------------------------------------------------------------
+
+DMM_stats <- function(best.fit){
+  
+  # Sample-component assignments
+  sas <- apply(mixture(best.fit), 1, which.max) %>% 
+    as.data.frame() %>% dplyr::rename(cluster = ".")
+  sas <- group_col_from_ids(sas, rownames(sas))
+  # Summary Stats by group
+  sas.stats <- sas %>% 
+    dplyr::group_by(cluster) %>% 
+    dplyr::count(group) %>% 
+    transmute(n, group, Percentage=n/sum(n)*100)
+  
+  output <- list(sas, sas.stats)
+  names(output) <- c("sas", "sas.stats")
+  return(output)
+}
+
+#--------------------------------------------------------------------------------------------------
+# DMM Analysis - Sample Cluster Distribution
+#--------------------------------------------------------------------------------------------------
+
+DMM_cluster_plot <- function(sas.stats){
+  
+  #'Function plots sample count and percentage of group per cluster
+  #'Input df of group stats 
+  #'Output plots
+  
+  cluster_distribution <- 
+    ggplot(data = sas.stats, aes(x = as.factor(cluster), y = n, fill = group)) + 
+    geom_bar(stat = "identity", width = 0.75) +
+    theme_bw() +
+    labs(x = "Cluster", y = "Number of Samples") +
+    scale_fill_manual(values = cols.pdpchc) +
+    theme(panel.grid = element_blank())
+  cluster_distribution2 <- 
+    ggplot(data = sas.stats, aes(x = as.factor(cluster), y = Percentage, fill = group)) + 
+    geom_bar(stat = "identity", width = 0.75) +
+    theme_bw() +
+    labs(x = "Cluster", y = "Percentage of Cluster") +
+    scale_fill_manual(values = cols.pdpchc) +
+    theme(panel.grid = element_blank())
+  
+
+  legend <- cowplot::plot_grid(get_legend(cluster_distribution))
+  cluster_distribution <- cluster_distribution + theme(legend.position = "none")
+  cluster_distribution2 <- cluster_distribution2 + theme(legend.position = "none")
+  cluster_distribution_final <- 
+    cowplot::plot_grid(cluster_distribution, cluster_distribution2, legend,
+                       ncol = 3, rel_widths = c(4,4,1))
+  
+  return(cluster_distribution_final)
+  
+}
+
+#--------------------------------------------------------------------------------------------------
+# DMM Analysis - cluster filter
+#--------------------------------------------------------------------------------------------------
+
+DMM_select_cluster <- function(df, cluster_n){
+  
+  clust_label <- paste0("value.k", cluster_n)
+  colnames(df) <- c("feature", "cluster", clust_label)
+  df <- subset(df, cluster == cluster_n) %>%
+    mutate(feature = factor(feature, levels = unique(feature))) %>% 
+    dplyr::select(-cluster)
+  return(df)
+}
+
+
+DMM_cluster_driver_plot(K2vK1.df, yval =  K2vK1.df$K2vK1, comparison = "2/1")
+
+#--------------------------------------------------------------------------------------------------
+# DMM Analysis - distinguishing features plotting function
+#--------------------------------------------------------------------------------------------------
+
+DMM_cluster_driver_plot <- function(df, yval, comparison){
+  
+  # Troubleshoot
+  df = K2vK1.df
+  yval =  K2vK1.df$K2vK1
+  comparison = "2/1"
+  
+  LFC.KvK <- ggplot(df, aes(x = reorder(feature, yval), y = yval)) +
+    geom_bar(stat = "identity",  width = 0.75) +
+    labs(title = paste("Distinguishing features: Clusters ", comparison), y = expression(log[2]*" fold change")) +
+    geom_rangeframe() + 
+    theme_tufte() +
+    coord_flip() +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_text(face = "italic")) 
+    
+  
+  print(xrange)
+  
+  return(LFC.KvK)
+  
+}
+

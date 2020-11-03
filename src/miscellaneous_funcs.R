@@ -182,6 +182,30 @@ boxplot_all <- function(df, x, y, cols = group.cols, title = blank.title, ylabel
 
 #-----------------------------------------------------------------------------------------------------------
 
+boxplot_all_generic <- function(df, x, y, cols = group.cols, title = blank.title, ylabel = blank.ylabel){
+  
+  blank.title = " "; blank.ylabel = " "
+  ###' Basic all group boxplot function
+  
+  set.seed(123)
+  ggplot(data=df, aes(x=x, y=y)) +
+    geom_boxplot(aes(color = x), outlier.alpha = 0, width = 0.9) +
+    geom_point(aes(fill = x), position = position_jitterdodge(jitter.width = 1), 
+               shape=21, size=1.5, alpha = 0.8) +
+    theme_classic() +
+    ggtitle(title) +
+    labs(y = ylabel, color = "Group") +
+    guides(fill = FALSE) +
+    scale_color_d3()+
+    scale_fill_d3() +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.title.x = element_blank(),
+          panel.grid.major.y = element_blank())
+  
+}
+
+#-----------------------------------------------------------------------------------------------------------
+
 alpha_div_boxplots <- function(df, x, y, 
                                df.pairs, df.pairs.x, df.pairs.y, pairs.column, 
                                cols, cols.rim, ylabel,PDvPC.stat, PDvHC.stat){
@@ -414,7 +438,7 @@ tuneplot <- function(x, probs = .90) {
 
 
 # Plot feature of interest (foi)
-plot.foi <- function(datObj, foi){
+plot_foi <- function(datObj, foi){
   
   asin.input <- datObj %>%
     microbiome::transform("compositional") %>% 
@@ -435,3 +459,77 @@ plot.foi <- function(datObj, foi){
 
 #-----------------------------------------------------------------------------------------------------------
 
+# Plot feature of interest (foi) for any Dataset from CMG
+plot_foi_general <- function(datObj, foi, title="" ){
+  
+  asin.input <- datObj %>%
+    microbiome::transform("compositional") %>% 
+    microbiome::abundances()
+  df1 <- asin(sqrt(asin.input)) %>% 
+    as.data.frame() %>% 
+    rownames_to_column() 
+  met <- meta(df.spec) %>% 
+    dplyr::select(c(study_condition)) %>% 
+    rownames_to_column(var = "variable")
+  d <- df1 %>% 
+    filter(rowname == foi) %>% 
+    melt()
+  d2 <- left_join(d, met)
+  d2$study_condition <- factor(d2$study_condition)
+  boxplot_all_generic(d2, x=d2$study_condition, y=d2$value, 
+                      title="", 
+                      ylabel= paste(unique(d2$rowname), "Abundance"))
+}
+
+#-------------------------------------------------------------------
+
+
+# 2) CLR Log-odds ratio : facultative anaerobic / obligate anaerobic bacteria
+
+#' Function returns normalized values for feature(s) of interest
+#' 1) Adaptive to multiple types of normalization
+#' 2) Will sum values if a list of foi's are input
+
+fois <- function(datObj, foi) {
+  
+  if (length(foi) > 1) {
+    
+    # Init
+    cnt <- 1
+    
+    for (i in foi) {
+      cat("selecting feature: ", i, "\n")
+      d <- datObj %>%
+        microbiome::transform("compositional") %>%
+        microbiome::abundances() %>%
+        as.data.frame() %>%
+        rownames_to_column() %>%
+        filter(rowname == i) %>%
+        melt() %>%
+        dplyr::select(c(variable, value))
+      if (cnt == 1){
+        summed.vars <- d
+      } else {
+        summed.vars$value <- summed.vars$value + d$value
+      }
+      cnt <- cnt + 1
+    }
+    return(summed.vars)
+    
+  } else {
+    for (i in foi){
+      cat("selecting feature: ", i, "\n")
+      d <- datObj %>%
+        microbiome::transform("compositional") %>%
+        microbiome::abundances() %>%
+        as.data.frame() %>%
+        rownames_to_column() %>%
+        filter(rowname == i) %>%
+        melt() %>%
+        dplyr::select(c(variable, value))
+    }
+    return(d)
+  }
+}
+
+#-------------------------------------------------------------------
