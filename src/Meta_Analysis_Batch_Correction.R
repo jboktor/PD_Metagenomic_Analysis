@@ -6,15 +6,16 @@ source("src/load_phyloseq_obj.R")
 source("src/miscellaneous_funcs.R")
 source("src/Metadata_prep_funcs.R")
 source("src/Community_Composition_Funcs.R")
-# source("src/Meta_Analysis_Community_Composition.R")
 
+source("src/create_phlyoseq_obj_CMG.R")
+
+library(MMUPHin)
 
 abd <- physeq %>% 
   microbiome::abundances() %>% 
   microbiome::transform("compositional")
 meta_metadat <- microbiome::meta(physeq)
 meta_metadat$studyID <- factor(meta_metadat$studyID)
-# meta_metadat$study_condition
 
 # help(adjust_batch)
 # The function call indicates for adjust_batch to correct for the effect
@@ -24,7 +25,7 @@ meta_metadat$studyID <- factor(meta_metadat$studyID)
 # excessive messages, although they can often be helpful in practice!
 fit_adjust_batch <- adjust_batch(feature_abd = abd,
                                  batch = "studyID",
-                                 covariates = "study_condition",
+                                 # covariates = "study_condition",
                                  data = meta_metadat,
                                  control = list(verbose = T))
 
@@ -57,9 +58,54 @@ print(fit_adonis_before)
 print(fit_adonis_after)
 
 
+#--------------------------------------------
+# Continuous 
+#--------------------------------------------
+
+# Much like adjust_batch and lm_meta, continuous_discover also takes
+# as input feature-by-sample abundances. control offers many tuning parameters
+# and here we set one of them, var_perc_cutoff, to 0.5, which asks the method
+# to include top principal components within each batch that in total explain
+# at least 50% of the total variability in the batch. See 
+# help(continuosu_discover) for more details on the tuning parameters and 
+# their interpretations.
+
+# devtools::install_github("gaborcsardi/pkgconfig")
+# devtools::install_github("igraph/rigraph")
+# install.packages("igraph")
+
+fit_continuous <- continuous_discover(feature_abd = abd,
+                                      batch = "studyID",
+                                      data = meta_metadat,
+                                      control = list(var_perc_cutoff = 0.5,
+                                                     verbose = TRUE))
+
+install.packages("igraph")
 
 
+## Zachary's karate club
+g <- make_graph("Zachary")
 
+## We put everything into a big 'try' block, in case 
+## igraph was compiled without GLPK support
+
+try(
+  ## The calculation only takes a couple of seconds
+  oc <- cluster_optimal(g),
+  
+  ## Double check the result
+  print(modularity(oc)),
+  print(modularity(g, membership(oc))),
+  
+  ## Compare to the greedy optimizer
+  fc <- cluster_fast_greedy(g),
+  print(modularity(fc),
+  ))
+
+
+#----------------------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------------------
 
 
 
@@ -155,5 +201,4 @@ print(fit_adonis_after)
 #                 position = position_dodge(width = 0.5), width = 0.5) +
 #   ggtitle("Evaluation of discrete structure in control stool microbiome (ZellerG_2014)")
 # 
-
 

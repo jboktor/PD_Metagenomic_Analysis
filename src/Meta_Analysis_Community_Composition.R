@@ -7,64 +7,11 @@ source("src/load_phyloseq_obj.R")
 source("src/miscellaneous_funcs.R")
 source("src/Metadata_prep_funcs.R")
 source("src/Community_Composition_Funcs.R")
-# source("src/create_phlyoseq_obj_CMG.R")
-
-datasets <- curatedMetagenomicData(
-  c("YeZ_2018.metaphlan_bugs_list.stool",
-    "ChengpingW_2017.metaphlan_bugs_list.stool",
-    "VincentC_2016.metaphlan_bugs_list.stool",
-    "JieZ_2017.metaphlan_bugs_list.stool",
-    "KosticAD_2015.metaphlan_bugs_list.stool",
-    "QinJ_2012.metaphlan_bugs_list.stool",
-    "QinN_2014.metaphlan_bugs_list.stool",
-    "NielsenHB_2014.metaphlan_bugs_list.stool",
-    "LiJ_2017.metaphlan_bugs_list.stool",
-    "LiSS_2016.metaphlan_bugs_list.stool"),
-  dryrun = FALSE)
-
-# Construct phyloseq object from the five datasets
-physeq <-
-  # Aggregate the five studies into ExpressionSet
-  mergeData(datasets) %>%
-  # Convert to phyloseq object
-  ExpressionSet2phyloseq()
-
-# Select only disease and control
-physeq %>% 
-  meta() %>% 
-  select(study_condition) %>% 
-  unique()
-study_groups <- c("control", "ACVD", "BD", "AS", "CDI", "T1D", "hypertension", "metabolic_syndrome", 
-  "IBD", "T2D", "cirrhosis")
-
-physeq <- 
-  physeq %>%
-  # Subset samples to only CRC and controls
-  subset_samples(study_condition %in% study_groups) %>% 
-  # Subset features to species
-  subset_taxa(!is.na(Species) & is.na(Strain)) %>%
-  # Normalize abundances to relative abundance scale
-  microbiome::transform("compositional") 
-  # Filter features to be of at least 1e-5 relative abundance in five samples
-  # filter_taxa(kOverA(5, 1e-5), prune = TRUE)
+source("src/create_phlyoseq_obj_CMG.R")
 
 
-#------------------------------------------
-# PREP PD Metagenomics metadata for merge 
-#------------------------------------------
-# dat.CMG <- load_CMG_formatted_phylo()
-physeq <- merge_phyloseq(physeq, dat.CMG)
-disease_abd <- microbiome::abundances(physeq) #otu_table(physeq)@.Data
-disease_meta <- microbiome::meta(physeq) # data.frame(sample_data(physeq))
-disease_meta$studyID <- factor(disease_meta$studyID)
-
-disease_meta$dataset_name <- sub(".metaphlan_bugs_list.stool", "", disease_meta$studyID)
-disease_meta$study_condition <- factor(disease_meta$study_condition, 
-                                       levels = c("control", "parkinsons", "ACVD", "BD", "AS", "CDI", "T1D", "hypertension", 
-                                                "metabolic_syndrome","IBD", "T2D", "cirrhosis"))
+# Note First run create_phyloseq_obj_CMG
     
-# unique(disease_meta$study_condition)
-# unique(disease_meta$dataset_name)
 #------------------------------------------------------------------------------------------
 # SEQUENCING READS
 #------------------------------------------------------------------------------------------
@@ -91,8 +38,6 @@ meta_reads <- disease_meta %>%
         axis.title.x=element_blank(),
         panel.grid.major.x = element_blank(),
         panel.grid.minor.y = element_blank())
-# ggsave(meta_reads, filename = "data/Disease_Specificity_Meta_Analysis/Meta_Analysis_ReadDepth.svg",
-#        height = 5, width =7)
 
 #------------------------------------------------------------------------------------------
 # ALPHA-DIVERSITY
@@ -156,7 +101,7 @@ meta_alpha_simpsons <- ggplot(data = disease_meta, aes(x = dataset_name, y = Eve
 
 alp <- cowplot::plot_grid(meta_reads, meta_alpha_observed, meta_alpha_shannon, meta_alpha_simpsons, 
                           nrow=2, align = "v", axis = "tblr") 
-ggsave(alp, filename = "data/Disease_Specificity_Meta_Analysis/Meta_Analysis_Alpha.svg",
+ggsave(alp, filename = "data/Disease_Specificity_Meta_Analysis/Meta_Analysis_Alpha.png",
        height = 10, width =14)
 
 
@@ -177,7 +122,6 @@ df12$study_condition <- factor(df12$study_condition,
                                           "metabolic_syndrome","IBD", "T2D", "cirrhosis"))
 df12$dataset_name <- sub(".metaphlan_bugs_list.stool", "", df12$studyID) %>% factor()
 
-
 df12 <- df12 %>% mutate(disease_category = if_else(study_condition == "control", "Healthy",
                                                    if_else(study_condition == "parkinsons", "Neurodegenerative",
                                                            if_else(study_condition == "AS" | study_condition == "T1D" | 
@@ -187,8 +131,13 @@ df12 <- df12 %>% mutate(disease_category = if_else(study_condition == "control",
                                                                            if_else(study_condition == "CDI", "Infectious",
                                                                                    if_else(study_condition == "cirrhosis", "Alcohol related", "ERROR"
                                                                                            )))))))
-# unique(df12$disease_category)
-# unique(df12$study_condition)
+#---------------------------------------------------------
+# Adding metadata columns
+#---------------------------------------------------------
+sample_data(physeq)$dataset_name <- df12$dataset_name
+sample_data(physeq)$disease_category <- df12$disease_category
+#---------------------------------------------------------
+
 
 p1 <- 
   ggplot(df12, aes(Axis.1, Axis.2, fill = study_condition, color=study_condition)) + 
@@ -256,8 +205,133 @@ p4 <-
 
 
 ord <- cowplot::plot_grid(p1, p2, p3, p4, nrow=2, align = "hv") 
-ggsave(ord, filename = "data/Disease_Specificity_Meta_Analysis/Meta_Analysis_Beta_Diversity.svg",
+ggsave(ord, filename = "data/Disease_Specificity_Meta_Analysis/Meta_Analysis_Beta_Diversity.png",
        height = 9, width =14)
 
 
 
+
+
+#---------------------------------------------------------------
+
+p <- physeq
+m <- "euclidean"
+
+# Make Melted Distance Matrix 
+wu <- phyloseq::distance(obj_clr, method="euclidean")
+wu.m <- melt(as.matrix(wu))
+# Exclude intra-sample distances 
+wu.m <- wu.m %>% filter(as.character(Var1) != as.character(Var2)) %>% 
+  mutate_if(is.factor, as.character)
+# Pull metadata of interest
+meta_selected <- meta(p) %>%
+  rownames_to_column() %>% 
+  dplyr::select(c(rowname, dataset_name, study_condition, country, disease_category)) %>% 
+  mutate_if(is.factor, as.character)
+
+# Add group name for Var1 Column
+colnames(meta_selected)[1:2] <- c("Var1", "Type1")
+wu.meta_selected <- left_join(wu.m, meta_selected[1:2], by = "Var1")
+# Add group name for Var2 Column - add additional metadata for target group
+colnames(meta_selected)[1:2] <- c("Var2", "Type2")
+wu.meta_selected <- left_join(wu.meta_selected, meta_selected, by = "Var2")
+# Select only distances to Population control
+wu.meta_selected <- filter(wu.meta_selected, Type1 == "Boktor_Mazmanian")
+
+
+v.dataset <- 
+  wu.meta_selected %>%
+  mutate(Type2 = fct_reorder(Type2, value)) %>%
+  ggplot(aes(x = Type2, y = value)) + theme_minimal() + 
+  geom_violin(aes(fill = Type2), draw_quantiles = c(0.5), trim = T, alpha=0.2) +
+  theme_bw() + 
+  theme(axis.title.x=element_blank(),
+        legend.position = "none") +
+  ylab("Aitchisons Distance to Internal Dataset") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(fill="Group") +
+  scale_color_manual(values = col_vector) +
+  scale_fill_manual(values = col_vector) +
+  # scale_colour_tableau(palette = "Classic 20") +
+  # scale_fill_tableau(palette = "Classic 20") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle=45, hjust=1),
+        legend.position = "none",
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.y = element_blank())
+v.dataset
+
+
+v.study_condition <- 
+  wu.meta_selected %>%
+  mutate(study_condition = fct_reorder(study_condition, value)) %>%
+  ggplot(aes(x = study_condition, y = value)) + theme_minimal() + 
+  geom_violin(aes(color = study_condition, fill = study_condition), draw_quantiles = c(0.5), trim = T, alpha=0.2) +
+  theme_bw() + 
+  theme(axis.title.x=element_blank(),
+        legend.position = "none") +
+  ylab("Aitchisons Distance to Internal Dataset") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(fill="Group") +
+  scale_colour_tableau(palette = "Classic 20") +
+  scale_fill_tableau(palette = "Classic 20") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle=45, hjust=1),
+        legend.position = "none",
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.y = element_blank())
+v.study_condition
+
+v.disease_category <- 
+  wu.meta_selected %>%
+  dplyr::filter(disease_category != "Healthy") %>% 
+  mutate(disease_category = fct_reorder(disease_category, value)) %>%
+  ggplot(aes(x = disease_category, y = value)) + theme_minimal() + 
+  geom_violin(aes(color = disease_category, fill = disease_category), draw_quantiles = c(0.5), trim = T, alpha=0.2) +
+  theme_bw() + 
+  theme(axis.title.x=element_blank(),
+        legend.position = "none") +
+  ylab("Aitchisons Distance to Internal Dataset") +
+  labs(fill="Group") +
+  scale_colour_tableau(palette = "Classic 10") +
+  scale_fill_tableau(palette = "Classic 10") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle=45, hjust=1),
+        legend.position = "none",
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.y = element_blank())
+v.disease_category
+
+v.country <- 
+  wu.meta_selected %>%
+  mutate(country = fct_reorder(country, value)) %>%
+  ggplot(aes(x = country, y = value)) + theme_minimal() + 
+  geom_violin(aes(color = country, fill = country), draw_quantiles = c(0.5), trim = T, alpha=0.2) +
+  theme_bw() + 
+  theme(axis.title.x=element_blank(),
+        legend.position = "none") +
+  ylab("Aitchisons Distance to Internal Dataset") +
+  labs(fill="Group") +
+  # scale_color_manual(values = col_vector) +
+  # scale_fill_manual(values = col_vector) +
+  scale_colour_tableau(palette = "Classic 10") +
+  scale_fill_tableau(palette = "Classic 10") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle=45, hjust=1),
+        legend.position = "none",
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.y = element_blank())
+v.country
+
+distance_plots <- cowplot::plot_grid(v.dataset, v.study_condition,
+                                     v.disease_category, v.country, nrow=2, align = "hv") 
+ggsave(distance_plots, filename = "data/Disease_Specificity_Meta_Analysis/Meta_Analysis_Distance_Plots.png",
+       height = 9, width =12)
+
+
+
+# library(RColorBrewer)
+n <- 60
+qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+# pie(rep(1,n), col=sample(col_vector, n))
