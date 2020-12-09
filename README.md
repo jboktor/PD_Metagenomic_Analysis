@@ -10,6 +10,7 @@
 1. [Requirements]("#Requirements")
 1. [Workflow](#Workflow)
 1. [Setup/Installation](#Set-up/Installation)
+1. [Exploratory Data Visualization](#Exploratory-Data-Visualization)
 1. [Metadata Explained Variance](#Metadata-Explained-Variance)
 1. [Community Composition](#Community-Composition)
 1. [Multivariate Statistical Linear Models](#Multivariate-Statistical-Linear-Models)
@@ -22,7 +23,7 @@
 1. [Feature Specificity for Parkinson's Disease](#PD-Feature-Specificity)
 
 ## Background
-Add Abstract
+--
 
 
 ## Requirements
@@ -89,6 +90,9 @@ Various Object Types names and descriptions
 To collate data tables into phlyoseq objects that are used downstream. 
   * Run:__create_phyloseq_obj.R__ 
 
+### Exploratory-Data-Visualization
+A Shiny Web Application is made available to explore features of interest within this dataset. To use this application open the __app.R__ script and run using the green arrow in the top right-hand corner of R-studio.
+
 ### Metadata-Explained-Variance
 This analysis sources PERMANOVA_Analysis.R which may take a few minutes to complete with permutations = 9,999.
 
@@ -116,9 +120,7 @@ Run:
 
   * __Differential_Abundance_Viz_Functional.R__ 
 
-Note that this script requires some manual input: To vizualize a particular dataset of interest - replace name of Robj in section of script titled (SWAP FUNCTION LEVEL HERE) (see table above for options) 
-
-(NOTE TO SELF: May be best to run this analysis using the command line & instruct users to input a tag that fills in Robj.
+Note that this script requires some manual input: To visualize a particular dataset of interest - replace name of Robj in section of script titled (SWAP FUNCTION LEVEL HERE) (see table above for options) 
 
 ### Dirichlet-Multinomial-Mixtures
   * Run: __DMM_Analysis.R__
@@ -140,7 +142,6 @@ To build the interactive network open Jupyter Notebook (type `Jupter Notebook` i
 ### Gut-Metabolic-and-Gut-Brain-Modules-GMMs-GBMs
   * Run: __omixer-rmpR_setup.R__
   
-  
 ### Virulence-Analysis
   * Run: __Virulence_Analysis.R__
 
@@ -148,17 +149,15 @@ To build the interactive network open Jupyter Notebook (type `Jupter Notebook` i
   * Run: __Amyloidgenic_Protein_Analysis.R__
 
 ### Biomarker-Selection-and-Validation
-(On-going)
+  * Run: __Machine_Learning_Model_Comparison_Analysis.R__
 
 ### PD-Feature-Specificity
   * Run: __Disease_Specificity.R__
-(On-going)
 
 ## Acknowledgements
 
 
 ## License
-A short snippet describing the license (MIT, Apache etc)
 MIT License 2020 jboktor
 
 Any questions contact: jboktor@caltech.edu
