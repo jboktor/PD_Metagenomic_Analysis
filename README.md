@@ -93,6 +93,10 @@ To collate data tables into phlyoseq objects that are used downstream.
 ### Exploratory-Data-Visualization
 A Shiny Web Application is made available to explore features of interest within this dataset. To use this application open the __app.R__ script and run using the green arrow in the top right-hand corner of R-studio.
 
+<img src="EDA_App/instructions.png" width="600">
+<img src="EDA_App/sample.png" width="600">
+
+
 ### Metadata-Explained-Variance
 This analysis sources PERMANOVA_Analysis.R which may take a few minutes to complete with permutations = 9,999.
 
