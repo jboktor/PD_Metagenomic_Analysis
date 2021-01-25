@@ -1,224 +1,771 @@
-## Phyloseq Obj Creation
+# Create phyloseq objects
 
-
-library(ggplot2); library(tidyverse); library(readxl);library(dplyr); library(ggrepel);library(grid);
-library(gridExtra);library(reshape2);library(plyr);library(grid);library(devtools);library(RColorBrewer);
-library(ggfortify);library(vegan);library(MASS);library(compositions);library(zCompositions);library(phyloseq);
-library(Biobase);library(viridis);library("foreach");library("doParallel");library(ggbeeswarm);
-library(FSA);library(ggpubr);library(ggsci);library(microbiome);library(ggridges);library(future);library(cowplot);
-library(EnvStats)
-
-
-
-##### New Method
-# reads in data from merged metaphlan2_taxonomic_profiles output - contains all species
-
-# Prep Metadata
-metadata <- read_xlsx('files/metadata_phyloseq.xlsx', sheet = 'Sheet1')
-trans1 <- gsub("_taxonomic_profile.tsv", "", metadata$metaphlan2_ID)
-rownames(metadata) <- gsub("_", ".", trans1)
-metadata <- as.data.frame(metadata)
-metadata[is.na(metadata)] <- "not provided"
-
-# Get NEW (trimmed) metaphlanToPhyloseq.R function 
-# source("https://raw.githubusercontent.com/waldronlab/presentations/master/Waldron_2016-06-07_EPIC/metaphlanToPhyloseq.R")
+source("src/load_packages.R")
+source("src/miscellaneous_funcs.R")
 source("src/metaphlanToPhyloseq_Waldron.R")
-# Load merged metaphlan2 taxonomic data
-met.table <-read.csv(file = "files/metaphlan2_taxonomic_profiles.csv", row.names = 1,  header= TRUE)
+
+negative_controls <- c("S00A4-ATCC_MSA_1003_S96", 
+                       "S00A4-neg2_S119", 
+                       "S00A4-neg3_S125",
+                       "S00A4-neg_S118", 
+                       "S00A4NegExt_P00A4_S94", 
+                       "S00A4NegH2O_P00A4_S95",
+                       "S00A4_stagPos_S117", 
+                       "BLANK")
+
+#---------------------------------------------------------- 
+#-                 Metadata Prep - TBC   
+#---------------------------------------------------------- 
+metadata_TBC <- read.csv(file = "files/metadata_phyloseq_TBC.csv", header= TRUE) 
+rownames(metadata_TBC) <- metadata_TBC$donor_id
+metadata_TBC <- as.data.frame(metadata_TBC)
+metadata_TBC[is.na(metadata_TBC)] <- "not provided"
+
+TBC_keys <- read.csv(file = "files/metadata_keys.csv", header= TRUE) %>% 
+  dplyr::select(c(MBI_Sample_ID, id)) %>% 
+  mutate(id = gsub("_", ".", id)) %>% 
+  mutate(MBI_Sample_ID = as.character(MBI_Sample_ID)) %>% 
+  mutate(id = as.character(id))
+
+TBC_keymap <- TBC_keys$MBI_Sample_ID
+names(TBC_keymap) <- TBC_keys$id
+
+
+#---------------------------------------------------------- 
+#-                TBC -  Taxonomy 
+#---------------------------------------------------------- 
+met.table <-read_tsv(
+  file = "files/TBC_biobakery_output_slim/metaphlan/merged/metaphlan_taxonomic_profiles.tsv",
+  col_names = T)
+
 # Select only species rows from 
-met.table$temp <- rownames(met.table)
-t <- filter(met.table, grepl("s__", met.table$temp))
-t2 <- filter(t, !grepl("t__", t$temp))
-rownames(t2) <- t2$temp
-t2 <- t2[1:118]
+bugs.species <- met.table %>% 
+  dplyr::rename("taxonomy" = `# taxonomy`) %>% 
+  filter(grepl("s__", taxonomy)) %>% 
+  filter(!grepl("t__", taxonomy)) %>% 
+  column_to_rownames(var = "taxonomy") %>% 
+  clean.cols.tax() %>%
+  dplyr::select(-contains(negative_controls)) %>%
+  trim_cols("TBC") %>%
+  dplyr::rename(all_of(TBC_keymap))
 
-# Run metaphlanToPhyloseq.R function
-dat <- metaphlanToPhyloseq_Waldron(tax = t2, metadat = metadata)
-print(dat)
+dat.species <- metaphlanToPhyloseq_Waldron(
+  tax = bugs.species, metadat = metadata_TBC)
+dat.species
 
-######### Species Level Object ######### 
-# Save Phyloseq obj as .RData file 
-save(dat, file = "files/Species_PhyloseqObj.RData")
-
-######### Genus Level Object ######### 
-dat.genus = tax_glom(dat, taxrank = "Genus", NArm = F)
+#-------- Species Level Object --------
+save(dat.species, file = "files/Phyloseq_TBC/Species_PhyloseqObj.RData")
+#-------- Genus Level Object --------
+dat.genus = tax_glom(dat.species, taxrank = "Genus", NArm = F)
 taxa_names(dat.genus) <- tax_table(dat.genus)[,6]
-# Save Phylum level Phyloseq obj as .RData file 
-save(dat.genus, file = "files/Genus_PhyloseqObj.RData")
-
-######### Family Level Object ######### 
-dat.family = tax_glom(dat, taxrank = "Family", NArm = F)
+save(dat.genus, file = "files/Phyloseq_TBC/Genus_PhyloseqObj.RData")
+#-------- Family Level Object --------
+dat.family = tax_glom(dat.species, taxrank = "Family", NArm = F)
 taxa_names(dat.family) <- tax_table(dat.family)[,5]
-# Save Phylum level Phyloseq obj as .RData file 
-save(dat.family, file = "files/Family_PhyloseqObj.RData")
-
-######### Order Level Object ######### 
-dat.order = tax_glom(dat, taxrank = "Order", NArm = F)
+save(dat.family, file = "files/Phyloseq_TBC/Family_PhyloseqObj.RData")
+#-------- Order Level Object --------
+dat.order = tax_glom(dat.species, taxrank = "Order", NArm = F)
 taxa_names(dat.order) <- tax_table(dat.order)[,4]
-# Save Phylum level Phyloseq obj as .RData file 
-save(dat.order, file = "files/Order_PhyloseqObj.RData")
-
-######### Class Level Object ######### 
-dat.class = tax_glom(dat, taxrank = "Class", NArm = F)
+save(dat.order, file = "files/Phyloseq_TBC/Order_PhyloseqObj.RData")
+#-------- Class Level Object --------
+dat.class = tax_glom(dat.species, taxrank = "Class", NArm = F)
 taxa_names(dat.class) <- tax_table(dat.class)[,3]
-# Save Phylum level Phyloseq obj as .RData file 
-save(dat.class, file = "files/Class_PhyloseqObj.RData")
-
-######### Phylum Level Object ######### 
-dat.phylum = tax_glom(dat, taxrank = "Phylum", NArm = F)
+save(dat.class, file = "files/Phyloseq_TBC/Class_PhyloseqObj.RData")
+#-------- Phylum Level Object --------
+dat.phylum = tax_glom(dat.species, taxrank = "Phylum", NArm = F)
 taxa_names(dat.phylum) <- tax_table(dat.phylum)[,2]
-# Save Phylum level Phyloseq obj as .RData file 
-save(dat.phylum, file = "files/Phylum_PhyloseqObj.RData")
-
-######### Kingdom Level Object ######### 
-dat.kingdom = tax_glom(dat, taxrank = "Kingdom", NArm = F)
+save(dat.phylum, file = "files/Phyloseq_TBC/Phylum_PhyloseqObj.RData")
+#-------- Kingdom Level Object --------
+dat.kingdom = tax_glom(dat.species, taxrank = "Kingdom", NArm = F)
 taxa_names(dat.kingdom) <- tax_table(dat.kingdom)[,1]
-# Save Phylum level Phyloseq obj as .RData file 
-save(dat.kingdom, file = "files/Kingdom_PhyloseqObj.RData")
+save(dat.kingdom, file = "files/Phyloseq_TBC/Kingdom_PhyloseqObj.RData")
 
+#---------------------------------------------------------- 
+#                   TBC -  Pathways 
+#---------------------------------------------------------- 
 
-
-
-############# Phyloseq Obj for Pathways -  ############# 
-
-path.abund <- read_tsv("files/pathabundance_relab.tsv", col_names = T) 
-colnames(path.abund) <- gsub("_Abundance", "", colnames(path.abund))
-colnames(path.abund) <- gsub("_", ".", colnames(path.abund))
-path.abund.slim <- path.abund %>%  filter(!grepl("g__", `# Pathway`))  %>%  filter(!grepl("unclassified", `# Pathway`))
-
-path.abund <- path.abund %>% column_to_rownames(var = "# Pathway") %>% as.data.frame.matrix()
-path.abund.slim <- path.abund.slim %>% column_to_rownames(var = "# Pathway") %>% as.data.frame.matrix()
-
+path.abund <- 
+  read_tsv(file = "files/TBC_biobakery_output_slim/humann/merged/pathabundance_relab.tsv", col_names = T) 
+path.abund <- 
+  path.abund %>% 
+  dplyr::select(-contains(negative_controls)) %>%
+  clean.cols.abund() %>% 
+  filter(!grepl("UNMAPPED", `# Pathway`)) %>% 
+  filter(!grepl("UNINTEGRATED", `# Pathway`))
+path.abund.slim <- path.abund %>% 
+  filter(!grepl("g__", `# Pathway`)) %>% 
+  filter(!grepl("unclassified", `# Pathway`)) %>%
+  make_rfriendly_rows(passed_column = "# Pathway") %>% 
+  trim_cols("TBC") %>%
+  dplyr::rename(all_of(TBC_keymap))
+path.abund <- path.abund %>% 
+  make_rfriendly_rows(passed_column = "# Pathway") %>% 
+  trim_cols("TBC") %>%
+  dplyr::rename(all_of(TBC_keymap))
 # All Pathway Data
 my_pathab_table <- otu_table(path.abund, taxa_are_rows=T)
-my_sample_data <- meta(dat) %>% sample_data()
+my_sample_data <- meta(dat.species) %>% sample_data()
 dat.path <- phyloseq(my_pathab_table, my_sample_data)
-print(dat.path)
-# Save Phyloseq obj as .RData file 
-save(dat.path, file = "files/Pathways_PhyloseqObj.RData")
-
-
+dat.path
+save(dat.path, file = "files/Phyloseq_TBC/Pathways_PhyloseqObj.RData")
 # Slim Pathway Data
 my_pathab_table <- otu_table(path.abund.slim, taxa_are_rows=T)
-my_sample_data <- meta(dat) %>% sample_data()
+my_sample_data <- meta(dat.species) %>% sample_data()
 dat.path.slim <- phyloseq(my_pathab_table, my_sample_data)
-print(dat.path.slim)
-# Save Phyloseq obj as .RData file 
-save(dat.path.slim, file = "files/Pathways.slim_PhyloseqObj.RData")
+dat.path.slim
+save(dat.path.slim, file = "files/Phyloseq_TBC/Pathways.slim_PhyloseqObj.RData")
 
 
 
+#---------------------------------------------------------- 
+#                   TBC -  Enzymes 
+#---------------------------------------------------------- 
 
-
-############# Phyloseq Obj for Enzymes -#############
-
-ec.abund <- read_tsv("files/ecs_relab.tsv", col_names = T)
-colnames(ec.abund) <- gsub("_Abundance-RPKs", "", colnames(ec.abund))
-colnames(ec.abund) <- gsub("_", ".", colnames(ec.abund))
-ec.abund.slim <- ec.abund %>%  filter(!grepl("g__", `# Gene Family`))  %>%  filter(!grepl("unclassified", `# Gene Family`))
-
-ec.abund <- ec.abund %>% column_to_rownames(var = "# Gene Family") %>% as.data.frame.matrix()
-ec.abund.slim <- ec.abund.slim %>% column_to_rownames(var = "# Gene Family") %>% as.data.frame.matrix()
-
+ec.abund <- 
+  read_tsv(
+    "files/TBC_biobakery_output_slim/humann/merged/ecs_relab.tsv", 
+    col_names = T)
+ec.abund <- 
+  ec.abund %>% 
+  dplyr::select(-contains(negative_controls)) %>%
+  clean.cols.abund_RPK()
+ec.abund.slim <- 
+  ec.abund %>%  
+  filter(!grepl("g__", `# Gene Family`)) %>% 
+  filter(!grepl("unclassified", `# Gene Family`)) %>%
+  make_rfriendly_rows(passed_column = "# Gene Family") %>% 
+  trim_cols("TBC") %>%
+  dplyr::rename(all_of(TBC_keymap))
+ec.abund <- 
+  ec.abund %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>% 
+  trim_cols("TBC") %>%
+  dplyr::rename(all_of(TBC_keymap))
 # All Enzyme Data
 my_EC.ab_table <- otu_table(ec.abund, taxa_are_rows=T)
-my_sample_data <- meta(dat) %>% sample_data()
+my_sample_data <- meta(dat.species) %>% sample_data()
 dat.ec <- phyloseq(my_EC.ab_table, my_sample_data)
-print(dat.ec)
-# Save Phyloseq obj as .RData file 
-save(dat.ec, file = "files/Enzymes_PhyloseqObj.RData")
-
+dat.ec
+save(dat.ec, file = "files/Phyloseq_TBC/Enzymes_PhyloseqObj.RData")
 # Slim Enzyme Data - no stratification
 my_EC.ab_table <- otu_table(ec.abund.slim, taxa_are_rows=T)
-my_sample_data <- meta(dat) %>% sample_data()
+my_sample_data <- meta(dat.species) %>% sample_data()
 dat.ec.slim <- phyloseq(my_EC.ab_table, my_sample_data)
-print(dat.ec.slim)
+dat.ec.slim
 # Save Phyloseq obj as .RData file 
-save(dat.ec.slim, file = "files/Enzymes.slim_PhyloseqObj.RData")
+save(dat.ec.slim, file = "files/Phyloseq_TBC/Enzymes.slim_PhyloseqObj.RData")
 
+#---------------------------------------------------------- 
+#                   TBC -  Kegg Orthology
+#---------------------------------------------------------- 
 
-
-############# Phyloseq Obj for KOs - Humann2 regroupped #############
-### NOTE: gene abundance (relab) was multiplied by 1,000,000 to avoid rounding bug in humann2_regroup function
-# Setting up groups - All genes (KO and ungrouped), all genes with no stratification, just KOs, and just KOs with no stratification
-milli <- 1000000 # descale by a million
-
-KOs.abund.all <- read_tsv("files/genefamilies_relab_rescaled_KO.tsv", col_names = T)            #All genes (KO and ungrouped)
-KOs.abund.all[2:119] <- KOs.abund.all[2:119]/milli
-KOs.abund.all.slim <- filter(KOs.abund.all, !grepl("g__", `# Gene Family`))
-KOs.abund.all.slim <- filter(KOs.abund.all.slim, !grepl("unclassified", `# Gene Family`))  #All genes (KO and ungrouped) with no stratification
-KOs.abund <- filter(KOs.abund.all, !grepl("UNGROUPED", `# Gene Family`))                   #Only KOs 
-KOs.abund.slim <- filter(KOs.abund, !grepl("g__", `# Gene Family`))      
-KOs.abund.slim <- filter(KOs.abund.slim, !grepl("unclassified", `# Gene Family`))          #Only KOs with no stratification
-
-
-#All genes (KO and ungrouped)
-colnames(KOs.abund.all) <- gsub("_Abundance-RPKs", "", colnames(KOs.abund.all))
-colnames(KOs.abund.all) <- gsub("_", ".", colnames(KOs.abund.all))
-KOs.abund.all <- KOs.abund.all %>% column_to_rownames(var = "# Gene Family") %>% as.data.frame.matrix()
-
-my_KOs.ab_table <- otu_table(KOs.abund.all, taxa_are_rows=T)
-my_sample_data <- meta(dat) %>% sample_data()
-
-dat.KOs.all <- phyloseq(my_KOs.ab_table, my_sample_data)
-print(dat.KOs.all)
-save(dat.KOs.all, file = "files/KOs.all_PhyloseqObj.RData")
-
-
-#All genes (KO and ungrouped) with no stratification
-colnames(KOs.abund.all.slim) <- gsub("_Abundance-RPKs", "", colnames(KOs.abund.all.slim))
-colnames(KOs.abund.all.slim) <- gsub("_", ".", colnames(KOs.abund.all.slim))
-KOs.abund.all.slim <- KOs.abund.all.slim %>% column_to_rownames(var = "# Gene Family") %>% as.data.frame.matrix()
-
-my_KOs.ab_table <- otu_table(KOs.abund.all.slim, taxa_are_rows=T)
-my_sample_data <- meta(dat) %>% sample_data()
-
-dat.KOs.all.slim <- phyloseq(my_KOs.ab_table, my_sample_data)
-print(dat.KOs.all.slim)
-save(dat.KOs.all.slim, file = "files/KOs.all.slim_PhyloseqObj.RData")
-
-
-#Only KOs 
-colnames(KOs.abund) <- gsub("_Abundance-RPKs", "", colnames(KOs.abund))
-colnames(KOs.abund) <- gsub("_", ".", colnames(KOs.abund))
-KOs.abund <- KOs.abund %>% column_to_rownames(var = "# Gene Family") %>% as.data.frame.matrix()
-
+KOs.abund <- 
+  read_tsv(
+    "files/TBC_biobakery_output_slim/humann/merged/ko-cpm-named.tsv", 
+    col_names = T)
+KOs.abund <- 
+  KOs.abund %>% 
+  dplyr::select(-contains(negative_controls)) %>%
+  clean.cols.abund_CPM() %>% 
+  filter(!grepl("UNMAPPED", `# Gene Family`)) %>% 
+  filter(!grepl("UNGROUPED", `# Gene Family`))
+KOs.abund.slim <- 
+  KOs.abund %>%  
+  filter(!grepl("g__", `# Gene Family`)) %>% 
+  filter(!grepl("unclassified", `# Gene Family`)) %>%
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>% 
+  trim_cols("TBC") %>%
+  dplyr::rename(all_of(TBC_keymap))
+KOs.abund <- 
+  KOs.abund %>% 
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("TBC") %>%
+  dplyr::rename(all_of(TBC_keymap))
+# All KOs 
 my_KOs.ab_table <- otu_table(KOs.abund, taxa_are_rows=T)
-my_sample_data <- meta(dat) %>% sample_data()
-
+my_sample_data <- meta(dat.species) %>% sample_data()
 dat.KOs <- phyloseq(my_KOs.ab_table, my_sample_data)
-print(dat.KOs)
-save(dat.KOs, file = "files/KOs_PhyloseqObj.RData")
+dat.KOs
+save(dat.KOs, file = "files/Phyloseq_TBC/KOs_PhyloseqObj.RData")
+# Slim KOs - no stratification
+my_KOs.ab_table.slim <- otu_table(KOs.abund.slim, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.KOs.slim <- phyloseq(my_KOs.ab_table.slim, my_sample_data)
+dat.KOs.slim
+# Save Phyloseq obj as .RData file 
+save(dat.KOs.slim, file = "files/Phyloseq_TBC/KOs.slim_PhyloseqObj.RData")
 
 
-#Only KOs with no stratification
-colnames(KOs.abund.slim) <- gsub("_Abundance-RPKs", "", colnames(KOs.abund.slim))
-colnames(KOs.abund.slim) <- gsub("_", ".", colnames(KOs.abund.slim))
-KOs.abund.slim <- KOs.abund.slim %>% column_to_rownames(var = "# Gene Family") %>% as.data.frame.matrix()
+#---------------------------------------------------------- 
+#                   TBC -  Gene Ontology
+#---------------------------------------------------------- 
 
-my_KOs.ab_table <- otu_table(KOs.abund.slim, taxa_are_rows=T)
-my_sample_data <- meta(dat) %>% sample_data()
+GOs.abund <- 
+  read_tsv(
+    "files/TBC_biobakery_output_slim/humann/merged/go-cpm-named.tsv", 
+    col_names = T)
+GOs.abund <- 
+  GOs.abund %>% 
+  dplyr::select(-contains(negative_controls)) %>% 
+  clean.cols.abund_CPM() %>% 
+  filter(!grepl("UNMAPPED", `# Gene Family`)) %>% 
+  filter(!grepl("UNGROUPED", `# Gene Family`))
+GOs.abund.slim <- GOs.abund %>%  
+  filter(!grepl("g__", `# Gene Family`)) %>% 
+  filter(!grepl("unclassified", `# Gene Family`)) %>%
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("TBC") %>%
+  dplyr::rename(all_of(TBC_keymap)) %>% 
+  as.data.frame.matrix()
+GOs.abund <- 
+  GOs.abund %>% 
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("TBC") %>%
+  dplyr::rename(all_of(TBC_keymap)) %>% 
+  as.data.frame.matrix()
+# All GOs 
+my_GOs.ab_table <- otu_table(GOs.abund, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.GOs <- phyloseq(my_GOs.ab_table, my_sample_data)
+dat.GOs
+save(dat.GOs, file = "files/Phyloseq_TBC/GOs_PhyloseqObj.RData")
+# Slim GOs - no stratification
+my_GOs.ab_table.slim <- otu_table(GOs.abund.slim, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.GOs.slim <- phyloseq(my_GOs.ab_table.slim, my_sample_data)
+dat.GOs.slim
+# Save Phyloseq obj as .RData file 
+save(dat.GOs.slim, file = "files/Phyloseq_TBC/GOs.slim_PhyloseqObj.RData")
 
-dat.KOs.slim <- phyloseq(my_KOs.ab_table, my_sample_data)
-print(dat.KOs.slim)
-save(dat.KOs.slim, file = "files/KOs.slim_PhyloseqObj.RData")
+#---------------------------------------------------------- 
+#                   TBC -  Pfam
+#---------------------------------------------------------- 
+
+PFAMs.abund <- 
+  read_tsv(
+    "files/TBC_biobakery_output_slim/humann/merged/pfam-cpm-named.tsv", 
+    col_names = T)
+PFAMs.abund <- 
+  PFAMs.abund %>% 
+  dplyr::select(-contains(negative_controls)) %>%
+  clean.cols.abund_CPM() %>% 
+  filter(!grepl("UNMAPPED", `# Gene Family`)) %>% 
+  filter(!grepl("UNGROUPED", `# Gene Family`))
+PFAMs.abund.slim <- PFAMs.abund %>%  
+  filter(!grepl("g__", `# Gene Family`)) %>% 
+  filter(!grepl("unclassified", `# Gene Family`)) %>%
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("TBC") %>%
+  dplyr::rename(all_of(TBC_keymap)) %>% 
+  as.data.frame.matrix()
+PFAMs.abund <- 
+  PFAMs.abund %>% 
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("TBC") %>%
+  dplyr::rename(all_of(TBC_keymap)) %>% 
+  as.data.frame.matrix()
+# All PFAMs 
+my_PFAMs.ab_table <- otu_table(PFAMs.abund, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.PFAMs <- phyloseq(my_PFAMs.ab_table, my_sample_data)
+dat.PFAMs
+save(dat.PFAMs, file = "files/Phyloseq_TBC/PFAMs_PhyloseqObj.RData")
+# Slim PFAMs - no stratification
+my_PFAMs.ab_table.slim <- otu_table(PFAMs.abund.slim, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.PFAMs.slim <- phyloseq(my_PFAMs.ab_table.slim, my_sample_data)
+dat.PFAMs.slim
+# Save Phyloseq obj as .RData file 
+save(dat.PFAMs.slim, file = "files/Phyloseq_TBC/PFAMs.slim_PhyloseqObj.RData")
+
+#---------------------------------------------------------- 
+#                   TBC -  Eggnog
+#---------------------------------------------------------- 
+
+EGGNOGs.abund <- 
+  read_tsv(
+    "files/TBC_biobakery_output_slim/humann/merged/eggnog-cpm.tsv", 
+    col_names = T)
+EGGNOGs.abund <- 
+  EGGNOGs.abund %>% 
+  dplyr::select(-contains(negative_controls)) %>%
+  clean.cols.abund_CPM() %>% 
+  filter(!grepl("UNMAPPED", `# Gene Family`)) %>% 
+  filter(!grepl("UNGROUPED", `# Gene Family`))
+EGGNOGs.abund.slim <- EGGNOGs.abund %>%  
+  filter(!grepl("g__", `# Gene Family`)) %>% 
+  filter(!grepl("unclassified", `# Gene Family`)) %>%
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("TBC") %>%
+  dplyr::rename(all_of(TBC_keymap))
+EGGNOGs.abund <- 
+  EGGNOGs.abund %>% 
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("TBC") %>%
+  dplyr::rename(all_of(TBC_keymap))
+# All EGGNOGs 
+my_EGGNOGs.ab_table <- otu_table(EGGNOGs.abund, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.EGGNOGs <- phyloseq(my_EGGNOGs.ab_table, my_sample_data)
+dat.EGGNOGs
+save(dat.EGGNOGs, file = "files/Phyloseq_TBC/EGGNOGs_PhyloseqObj.RData")
+# Slim EGGNOGs - no stratification
+my_EGGNOGs.ab_table.slim <- otu_table(EGGNOGs.abund.slim, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.EGGNOGs.slim <- phyloseq(my_EGGNOGs.ab_table.slim, my_sample_data)
+dat.EGGNOGs.slim
+# Save Phyloseq obj as .RData file 
+save(dat.EGGNOGs.slim, file = "files/Phyloseq_TBC/EGGNOGs.slim_PhyloseqObj.RData")
+
+
+# temporary rename
+dat.kingdom.TBC <- dat.kingdom
+dat.phylum.TBC <- dat.phylum
+dat.class.TBC <- dat.class
+dat.order.TBC <- dat.order
+dat.family.TBC <- dat.family
+dat.genus.TBC <- dat.genus
+dat.species.TBC <- dat.species
+dat.path.TBC <- dat.path
+dat.path.slim.TBC <- dat.path.slim
+dat.ec.TBC <- dat.ec
+dat.ec.slim.TBC <- dat.ec.slim
+dat.KOs.TBC <- dat.KOs
+dat.KOs.slim.TBC <- dat.KOs.slim
+dat.GOs.TBC <- dat.GOs
+dat.GOs.slim.TBC <- dat.GOs.slim
+dat.PFAMs.TBC <- dat.PFAMs
+dat.PFAMs.slim.TBC <- dat.PFAMs.slim
+dat.EGGNOGs.TBC <- dat.EGGNOGs
+dat.EGGNOGs.slim.TBC <- dat.EGGNOGs.slim
+
+
+#---------------------------------------------------------------------------------------
+##---------------------------------   RUSH - Cohort  -----------------------------------
+#---------------------------------------------------------------------------------------
+
+#---------------------------------------------------------- 
+#-                 Metadata Prep - RUSH   
+#---------------------------------------------------------- 
+
+metadata_RUSH <- read.csv(file = "files/metadata_phyloseq_RUSH.csv", header= TRUE) 
+rownames(metadata_RUSH) <- metadata_RUSH$donor_id
+metadata_RUSH <- as.data.frame(metadata_RUSH)
+metadata_RUSH[is.na(metadata_RUSH)] <- "not provided"
+
+RUSH_keys <- 
+  metadata_RUSH %>% 
+  select(donor_id, host_subject_id) %>% 
+  mutate(donor_id = as.character(donor_id)) %>% 
+  mutate(host_subject_id = as.character(host_subject_id))
+
+RUSH_keymap <- RUSH_keys$host_subject_id
+names(RUSH_keymap) <- RUSH_keys$donor_id
+
+
+#---------------------------------------------------------- 
+#-                RUSH -  Taxonomy 
+#---------------------------------------------------------- 
+met.table <-read_tsv(
+  file = "files/RUSH_biobakery_output_slim/metaphlan/merged/metaphlan_taxonomic_profiles.tsv",
+  col_names = T)
+
+# Select only species rows from 
+bugs.species <- met.table %>% 
+  dplyr::rename("taxonomy" = `# taxonomy`) %>% 
+  filter(grepl("s__", taxonomy)) %>% 
+  filter(!grepl("t__", taxonomy)) %>% 
+  column_to_rownames(var = "taxonomy") %>% 
+  clean.cols.tax() %>%
+  dplyr::select(-contains(negative_controls)) %>%
+  trim_cols("RUSH") %>%
+  dplyr::rename(RUSH_keymap)
+
+dat.species <- metaphlanToPhyloseq_Waldron(
+  tax = bugs.species, metadat = metadata_RUSH) %>% 
+  subset_samples(study_group != "MSA")
+
+#-------- Species Level Object --------
+save(dat.species, file = "files/Phyloseq_RUSH/Species_PhyloseqObj.RData")
+#-------- Genus Level Object --------
+dat.genus = tax_glom(dat.species, taxrank = "Genus", NArm = F)
+taxa_names(dat.genus) <- tax_table(dat.genus)[,6]
+save(dat.genus, file = "files/Phyloseq_RUSH/Genus_PhyloseqObj.RData")
+#-------- Family Level Object --------
+dat.family = tax_glom(dat.species, taxrank = "Family", NArm = F)
+taxa_names(dat.family) <- tax_table(dat.family)[,5]
+save(dat.family, file = "files/Phyloseq_RUSH/Family_PhyloseqObj.RData")
+#-------- Order Level Object --------
+dat.order = tax_glom(dat.species, taxrank = "Order", NArm = F)
+taxa_names(dat.order) <- tax_table(dat.order)[,4]
+save(dat.order, file = "files/Phyloseq_RUSH/Order_PhyloseqObj.RData")
+#-------- Class Level Object --------
+dat.class = tax_glom(dat.species, taxrank = "Class", NArm = F)
+taxa_names(dat.class) <- tax_table(dat.class)[,3]
+save(dat.class, file = "files/Phyloseq_RUSH/Class_PhyloseqObj.RData")
+#-------- Phylum Level Object --------
+dat.phylum = tax_glom(dat.species, taxrank = "Phylum", NArm = F)
+taxa_names(dat.phylum) <- tax_table(dat.phylum)[,2]
+save(dat.phylum, file = "files/Phyloseq_RUSH/Phylum_PhyloseqObj.RData")
+#-------- Kingdom Level Object --------
+dat.kingdom = tax_glom(dat.species, taxrank = "Kingdom", NArm = F)
+taxa_names(dat.kingdom) <- tax_table(dat.kingdom)[,1]
+save(dat.kingdom, file = "files/Phyloseq_RUSH/Kingdom_PhyloseqObj.RData")
+
+#---------------------------------------------------------- 
+#                   RUSH -  Pathways 
+#---------------------------------------------------------- 
+
+path.abund <- 
+  read_tsv(file = "files/RUSH_biobakery_output_slim/humann/merged/pathabundance_relab.tsv", col_names = T) 
+path.abund <- 
+  path.abund %>% 
+  dplyr::select(-contains(negative_controls)) %>%
+  clean.cols.abund() %>% 
+  filter(!grepl("UNMAPPED", `# Pathway`)) %>% 
+  filter(!grepl("UNINTEGRATED", `# Pathway`))
+path.abund.slim <- path.abund %>% 
+  filter(!grepl("g__", `# Pathway`)) %>% 
+  filter(!grepl("unclassified", `# Pathway`)) %>%
+  make_rfriendly_rows(passed_column = "# Pathway") %>% 
+  trim_cols("RUSH") %>%
+  dplyr::rename(RUSH_keymap)
+path.abund <- path.abund %>% 
+  make_rfriendly_rows(passed_column = "# Pathway") %>% 
+  trim_cols("RUSH") %>%
+  dplyr::rename(RUSH_keymap)
+# All Pathway Data
+my_pathab_table <- otu_table(path.abund, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.path <- phyloseq(my_pathab_table, my_sample_data)
+dat.path
+save(dat.path, file = "files/Phyloseq_RUSH/Pathways_PhyloseqObj.RData")
+# Slim Pathway Data
+my_pathab_table <- otu_table(path.abund.slim, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.path.slim <- phyloseq(my_pathab_table, my_sample_data) %>% 
+  subset_samples(study_group != "MSA")
+dat.path.slim
+save(dat.path.slim, file = "files/Phyloseq_RUSH/Pathways.slim_PhyloseqObj.RData")
+
+#---------------------------------------------------------- 
+#                   RUSH -  Enzymes 
+#---------------------------------------------------------- 
+
+ec.abund <- 
+  read_tsv(
+    "files/RUSH_biobakery_output_slim/humann/merged/ecs_relab.tsv", 
+    col_names = T)
+ec.abund <- 
+  ec.abund %>% 
+  dplyr::select(-contains(negative_controls)) %>%
+  clean.cols.abund_RPK()
+ec.abund.slim <- 
+  ec.abund %>%  
+  filter(!grepl("g__", `# Gene Family`)) %>% 
+  filter(!grepl("unclassified", `# Gene Family`)) %>%
+  make_rfriendly_rows(passed_column = "# Gene Family") %>% 
+  trim_cols("RUSH") %>%
+  dplyr::rename(RUSH_keymap)
+ec.abund <- 
+  ec.abund %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>% 
+  trim_cols("RUSH") %>%
+  dplyr::rename(RUSH_keymap)
+# All Enzyme Data
+my_EC.ab_table <- otu_table(ec.abund, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.ec <- phyloseq(my_EC.ab_table, my_sample_data)
+dat.ec
+save(dat.ec, file = "files/Phyloseq_RUSH/Enzymes_PhyloseqObj.RData")
+# Slim Enzyme Data - no stratification
+my_EC.ab_table <- otu_table(ec.abund.slim, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.ec.slim <- phyloseq(my_EC.ab_table, my_sample_data) %>% 
+  subset_samples(study_group != "MSA")
+dat.ec.slim
+# Save Phyloseq obj as .RData file 
+save(dat.ec.slim, file = "files/Phyloseq_RUSH/Enzymes.slim_PhyloseqObj.RData")
+
+#---------------------------------------------------------- 
+#                   RUSH -  Kegg Orthology
+#---------------------------------------------------------- 
+
+KOs.abund <- 
+  read_tsv(
+    "files/RUSH_biobakery_output_slim/humann/merged/ko-cpm-named.tsv", 
+    col_names = T)
+KOs.abund <- 
+  KOs.abund %>% 
+  dplyr::select(-contains(negative_controls)) %>%
+  clean.cols.abund_CPM() %>% 
+  filter(!grepl("UNMAPPED", `# Gene Family`)) %>% 
+  filter(!grepl("UNGROUPED", `# Gene Family`))
+KOs.abund.slim <- 
+  KOs.abund %>%  
+  filter(!grepl("g__", `# Gene Family`)) %>% 
+  filter(!grepl("unclassified", `# Gene Family`)) %>%
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("RUSH") %>%
+  dplyr::rename(RUSH_keymap)
+KOs.abund <- 
+  KOs.abund %>% 
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("RUSH") %>%
+  dplyr::rename(RUSH_keymap)
+# All KOs 
+my_KOs.ab_table <- otu_table(KOs.abund, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.KOs <- phyloseq(my_KOs.ab_table, my_sample_data)
+dat.KOs
+save(dat.KOs, file = "files/Phyloseq_RUSH/KOs_PhyloseqObj.RData")
+# Slim KOs - no stratification
+my_KOs.ab_table.slim <- otu_table(KOs.abund.slim, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.KOs.slim <- phyloseq(my_KOs.ab_table.slim, my_sample_data) %>% 
+  subset_samples(study_group != "MSA")
+dat.KOs.slim
+# Save Phyloseq obj as .RData file 
+save(dat.KOs.slim, file = "files/Phyloseq_RUSH/KOs.slim_PhyloseqObj.RData")
+
+#---------------------------------------------------------- 
+#                   RUSH -  Gene Ontology
+#---------------------------------------------------------- 
+
+GOs.abund <- 
+  read_tsv(
+    "files/RUSH_biobakery_output_slim/humann/merged/go-cpm-named.tsv", 
+    col_names = T)
+GOs.abund <- 
+  GOs.abund %>% 
+  dplyr::select(-contains(negative_controls)) %>%
+  clean.cols.abund_CPM() %>% 
+  filter(!grepl("UNMAPPED", `# Gene Family`)) %>% 
+  filter(!grepl("UNGROUPED", `# Gene Family`))
+GOs.abund.slim <- GOs.abund %>%  
+  filter(!grepl("g__", `# Gene Family`)) %>% 
+  filter(!grepl("unclassified", `# Gene Family`)) %>%
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("RUSH") %>%
+  dplyr::rename(RUSH_keymap) %>% 
+  as.data.frame.matrix()
+GOs.abund <- 
+  GOs.abund %>% 
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("RUSH") %>%
+  dplyr::rename(RUSH_keymap) %>% 
+  as.data.frame.matrix()
+# All GOs 
+my_GOs.ab_table <- otu_table(GOs.abund, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.GOs <- phyloseq(my_GOs.ab_table, my_sample_data)
+dat.GOs
+save(dat.GOs, file = "files/Phyloseq_RUSH/GOs_PhyloseqObj.RData")
+# Slim GOs - no stratification
+my_GOs.ab_table.slim <- otu_table(GOs.abund.slim, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.GOs.slim <- phyloseq(my_GOs.ab_table.slim, my_sample_data) %>% 
+  subset_samples(study_group != "MSA")
+dat.GOs.slim
+# Save Phyloseq obj as .RData file 
+save(dat.GOs.slim, file = "files/Phyloseq_RUSH/GOs.slim_PhyloseqObj.RData")
+
+#---------------------------------------------------------- 
+#                   RUSH -  Pfam
+#---------------------------------------------------------- 
+
+PFAMs.abund <- 
+  read_tsv(
+    "files/RUSH_biobakery_output_slim/humann/merged/pfam-cpm-named.tsv", 
+    col_names = T)
+PFAMs.abund <- 
+  PFAMs.abund %>% 
+  dplyr::select(-contains(negative_controls)) %>%
+  clean.cols.abund_CPM() %>% 
+  filter(!grepl("UNMAPPED", `# Gene Family`)) %>% 
+  filter(!grepl("UNGROUPED", `# Gene Family`))
+PFAMs.abund.slim <- PFAMs.abund %>%  
+  filter(!grepl("g__", `# Gene Family`)) %>% 
+  filter(!grepl("unclassified", `# Gene Family`)) %>%
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("RUSH") %>%
+  dplyr::rename(RUSH_keymap) %>% 
+  as.data.frame.matrix()
+PFAMs.abund <- 
+  PFAMs.abund %>% 
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("RUSH") %>%
+  dplyr::rename(RUSH_keymap) %>% 
+  as.data.frame.matrix()
+# All PFAMs 
+my_PFAMs.ab_table <- otu_table(PFAMs.abund, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.PFAMs <- phyloseq(my_PFAMs.ab_table, my_sample_data)
+dat.PFAMs
+save(dat.PFAMs, file = "files/Phyloseq_RUSH/PFAMs_PhyloseqObj.RData")
+# Slim PFAMs - no stratification
+my_PFAMs.ab_table.slim <- otu_table(PFAMs.abund.slim, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.PFAMs.slim <- phyloseq(my_PFAMs.ab_table.slim, my_sample_data) %>% 
+  subset_samples(study_group != "MSA")
+dat.PFAMs.slim
+# Save Phyloseq obj as .RData file 
+save(dat.PFAMs.slim, file = "files/Phyloseq_RUSH/PFAMs.slim_PhyloseqObj.RData")
+
+#---------------------------------------------------------- 
+#                   RUSH -  Eggnog
+#---------------------------------------------------------- 
+
+EGGNOGs.abund <- 
+  read_tsv(
+    "files/RUSH_biobakery_output_slim/humann/merged/eggnog-cpm.tsv", 
+    col_names = T)
+EGGNOGs.abund <- 
+  EGGNOGs.abund %>% 
+  dplyr::select(-contains(negative_controls)) %>%
+  clean.cols.abund_CPM() %>% 
+  filter(!grepl("UNMAPPED", `# Gene Family`)) %>% 
+  filter(!grepl("UNGROUPED", `# Gene Family`))
+EGGNOGs.abund.slim <- EGGNOGs.abund %>%  
+  filter(!grepl("g__", `# Gene Family`)) %>% 
+  filter(!grepl("unclassified", `# Gene Family`)) %>%
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("RUSH") %>%
+  dplyr::rename(RUSH_keymap)
+EGGNOGs.abund <- 
+  EGGNOGs.abund %>% 
+  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>% 
+  make_rfriendly_rows(passed_column = "# Gene Family") %>%
+  trim_cols("RUSH") %>%
+  dplyr::rename(RUSH_keymap)
+# All EGGNOGs 
+my_EGGNOGs.ab_table <- otu_table(EGGNOGs.abund, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.EGGNOGs <- phyloseq(my_EGGNOGs.ab_table, my_sample_data)
+dat.EGGNOGs
+save(dat.EGGNOGs, file = "files/Phyloseq_RUSH/EGGNOGs_PhyloseqObj.RData")
+# Slim EGGNOGs - no stratification
+my_EGGNOGs.ab_table.slim <- otu_table(EGGNOGs.abund.slim, taxa_are_rows=T)
+my_sample_data <- meta(dat.species) %>% sample_data()
+dat.EGGNOGs.slim <- phyloseq(my_EGGNOGs.ab_table.slim, my_sample_data) %>% 
+  subset_samples(study_group != "MSA")
+dat.EGGNOGs.slim
+# Save Phyloseq obj as .RData file 
+save(dat.EGGNOGs.slim, file = "files/Phyloseq_RUSH/EGGNOGs.slim_PhyloseqObj.RData")
+
+
+# temporary rename
+dat.kingdom.RUSH <- dat.kingdom
+dat.phylum.RUSH <- dat.phylum
+dat.class.RUSH <- dat.class
+dat.order.RUSH <- dat.order
+dat.family.RUSH <- dat.family
+dat.genus.RUSH <- dat.genus
+dat.species.RUSH <- dat.species
+dat.path.RUSH <- dat.path
+dat.path.slim.RUSH <- dat.path.slim
+dat.ec.RUSH <- dat.ec
+dat.ec.slim.RUSH <- dat.ec.slim
+dat.KOs.RUSH <- dat.KOs
+dat.KOs.slim.RUSH <- dat.KOs.slim
+dat.GOs.RUSH <- dat.GOs
+dat.GOs.slim.RUSH <- dat.GOs.slim
+dat.PFAMs.RUSH <- dat.PFAMs
+dat.PFAMs.slim.RUSH <- dat.PFAMs.slim
+dat.EGGNOGs.RUSH <- dat.EGGNOGs
+dat.EGGNOGs.slim.RUSH <- dat.EGGNOGs.slim
+
+
+
+#---------------------------------------------------------------------------------------
+##--------------------------------   Merge - Cohorts  ----------------------------------
+#---------------------------------------------------------------------------------------
+
+
+
+dat.kingdom <- merge_phyloseq(dat.kingdom.TBC, dat.kingdom.RUSH)
+dat.phylum <- merge_phyloseq(dat.phylum.TBC, dat.phylum.RUSH)
+dat.class <- merge_phyloseq(dat.class.TBC, dat.class.RUSH)
+dat.order <- merge_phyloseq(dat.order.TBC, dat.order.RUSH)
+dat.family <- merge_phyloseq(dat.family.TBC, dat.family.RUSH)
+dat.genus <- merge_phyloseq(dat.genus.TBC, dat.genus.RUSH)
+dat.species <- merge_phyloseq(dat.species.TBC, dat.species.RUSH)
+dat.path <- merge_phyloseq(dat.path.TBC, dat.path.RUSH)
+dat.path.slim <- merge_phyloseq(dat.path.slim.TBC, dat.path.slim.RUSH)
+dat.ec <- merge_phyloseq(dat.ec.TBC, dat.ec.RUSH)
+dat.ec.slim <- merge_phyloseq(dat.ec.slim.TBC, dat.ec.slim.RUSH)
+dat.KOs <- merge_phyloseq(dat.KOs.TBC, dat.KOs.RUSH)
+dat.KOs.slim <- merge_phyloseq(dat.KOs.slim.TBC, dat.KOs.slim.RUSH)
+dat.GOs <- merge_phyloseq(dat.GOs.TBC, dat.GOs.RUSH)
+dat.GOs.slim <- merge_phyloseq(dat.GOs.slim.TBC, dat.GOs.slim.RUSH)
+dat.PFAMs <- merge_phyloseq(dat.PFAMs.TBC, dat.PFAMs.RUSH)
+dat.PFAMs.slim <- merge_phyloseq(dat.PFAMs.slim.TBC, dat.PFAMs.slim.RUSH)
+dat.EGGNOGs <- merge_phyloseq(dat.EGGNOGs.TBC, dat.EGGNOGs.RUSH)
+dat.EGGNOGs.slim <- merge_phyloseq(dat.EGGNOGs.slim.TBC, dat.EGGNOGs.slim.RUSH)
+
+
+
+
+save(dat.species, file = "files/Phyloseq_Merged/Species_PhyloseqObj.RData")
+save(dat.genus, file = "files/Phyloseq_Merged/Genus_PhyloseqObj.RData")
+save(dat.family, file = "files/Phyloseq_Merged/Family_PhyloseqObj.RData")
+save(dat.order, file = "files/Phyloseq_Merged/Order_PhyloseqObj.RData")
+save(dat.class, file = "files/Phyloseq_Merged/Class_PhyloseqObj.RData")
+save(dat.phylum, file = "files/Phyloseq_Merged/Phylum_PhyloseqObj.RData")
+save(dat.kingdom, file = "files/Phyloseq_Merged/Kingdom_PhyloseqObj.RData")
+save(dat.path, file = "files/Phyloseq_Merged/Pathways_PhyloseqObj.RData")
+save(dat.path.slim, file = "files/Phyloseq_Merged/Pathways.slim_PhyloseqObj.RData")
+save(dat.ec, file = "files/Phyloseq_Merged/Enzymes_PhyloseqObj.RData")
+save(dat.ec.slim, file = "files/Phyloseq_Merged/Enzymes.slim_PhyloseqObj.RData")
+save(dat.KOs, file = "files/Phyloseq_Merged/KOs_PhyloseqObj.RData")
+save(dat.KOs.slim, file = "files/Phyloseq_Merged/KOs.slim_PhyloseqObj.RData")
+save(dat.GOs, file = "files/Phyloseq_Merged/GOs_PhyloseqObj.RData")
+save(dat.GOs.slim, file = "files/Phyloseq_Merged/GOs.slim_PhyloseqObj.RData")
+save(dat.PFAMs, file = "files/Phyloseq_Merged/PFAMs_PhyloseqObj.RData")
+save(dat.PFAMs.slim, file = "files/Phyloseq_Merged/PFAMs.slim_PhyloseqObj.RData")
+save(dat.EGGNOGs, file = "files/Phyloseq_Merged/EGGNOGs_PhyloseqObj.RData")
+save(dat.EGGNOGs.slim, file = "files/Phyloseq_Merged/EGGNOGs.slim_PhyloseqObj.RData")
 
 
 
 
 
 
+#-------------------------------------------------------------------------------------------
+### Create list for objects
+Phylo_Objects <- vector(mode="list", length=19)
+names(Phylo_Objects) <- c("Species", "Genus", "Family", "Order", "Class", "Phylum", "Kingdom",
+                          "Pathways", "Pathways.slim",
+                          "Enzymes", "Enzymes.slim",
+                          "KOs", "KOs.slim", 
+                          "dat.GOs", "dat.GOs.slim",
+                          "dat.PFAMs", "dat.PFAMs.slim",
+                          "dat.EGGNOGs", "dat.EGGNOGs.slim")
 
-##### Old Method 
-# Reads data directly from Metaphlan output folder - creates tree but filters features not matching in Rxml database (unclassified species)
-
-#  Run local version of :  metaphlanToPhyloseq.R
-
-# metadata <- read_xlsx('metadata_phyloseq.xlsx', sheet = 'Sheet1')
-# rownames(metadata) <- metadata$metaphlan2_ID
-# metadata <- as.data.frame(metadata)
-# metadata[is.na(metadata)] <- "not provided"
-# dat <- metaphlanToPhyloseq("/Users/joeboktor/Documents/PD_Metagenomic_Analysis/FA_neph/metaphlan2/main", metadat = metadata)
-
-
+Phylo_Objects$Species <- dat.species; Phylo_Objects$Genus <- dat.genus;
+Phylo_Objects$Family <- dat.family; Phylo_Objects$Order <- dat.order; Phylo_Objects$Class <- dat.class;
+Phylo_Objects$Phylum <- print(dat.phylum); Phylo_Objects$Kingdom <- dat.kingdom
+Phylo_Objects$Pathways <- dat.path; Phylo_Objects$Pathways.slim <- dat.path.slim;
+Phylo_Objects$Enzymes <- dat.ec; Phylo_Objects$Enzymes.slim <- dat.ec.slim;
+Phylo_Objects$KOs <- dat.KOs; Phylo_Objects$KOs.slim <- dat.KOs.slim
+Phylo_Objects$GOs <- dat.GOs; Phylo_Objects$GOs.slim <- dat.GOs.slim
+Phylo_Objects$PFAMs <- dat.PFAMs; Phylo_Objects$PFAMs.slim <- dat.PFAMs.slim
+Phylo_Objects$EGGNOGs <- dat.EGGNOGs; Phylo_Objects$EGGNOGs.slim <- dat.EGGNOGs.slim
+save(Phylo_Objects, file = "files/Phyloseq_Merged/PhyloseqObj.RData")
+#-------------------------------------------------------------------------------------------
 

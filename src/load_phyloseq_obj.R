@@ -1,55 +1,137 @@
 # Load Phyloseq Objects
 
-#### Compilation of All Objects
-#### Taxa
-load("files/Species_PhyloseqObj.RData")
-dat
-load("files/Genus_PhyloseqObj.RData")
-dat.genus
-load("files/Family_PhyloseqObj.RData")
-dat.family
-load("files/Order_PhyloseqObj.RData")
-dat.order
-load("files/Class_PhyloseqObj.RData")
-dat.class
-load("files/Phylum_PhyloseqObj.RData")
-dat.phylum
-load("files/Kingdom_PhyloseqObj.RData")
-dat.kingdom
-## Function - Pathways/Enzymes/Genes
-load("files/Pathways_PhyloseqObj.RData")
-dat.path
-load("files/Pathways.slim_PhyloseqObj.RData")
-dat.path.slim
-load("files/Enzymes_PhyloseqObj.RData")
-dat.ec
-load("files/Enzymes.slim_PhyloseqObj.RData")
-dat.ec.slim
-# All Kegg Ortholog Objects
-load("files/KOs.all_PhyloseqObj.RData")
-dat.KOs.all
-load("files/KOs.all.slim_PhyloseqObj.RData")
-dat.KOs.all.slim
-load("files/KOs_PhyloseqObj.RData")
-dat.KOs
-load("files/KOs.slim_PhyloseqObj.RData")
-dat.KOs.slim
+load_tbc <- function(){
+  #### Taxa
+  load("files/Phyloseq_TBC/Species_PhyloseqObj.RData")
+  print(dat.species); assign("dat.species", dat.species, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/Genus_PhyloseqObj.RData")
+  print(dat.genus); assign("dat.genus", dat.genus, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/Family_PhyloseqObj.RData")
+  print(dat.family); assign("dat.family", dat.family, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/Order_PhyloseqObj.RData")
+  print(dat.order); assign("dat.order", dat.order, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/Class_PhyloseqObj.RData")
+  print(dat.class); assign("dat.class", dat.class, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/Phylum_PhyloseqObj.RData")
+  print(dat.phylum); assign("dat.phylum", dat.phylum, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/Kingdom_PhyloseqObj.RData")
+  print(dat.kingdom); assign("dat.kingdom", dat.kingdom, envir = .GlobalEnv)
+  ## Function - Pathways/Enzymes/Genes
+  load("files/Phyloseq_TBC/Pathways_PhyloseqObj.RData")
+  print(dat.path); assign("dat.path", dat.path, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/Pathways.slim_PhyloseqObj.RData")
+  print(dat.path.slim); assign("dat.path.slim", dat.path.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/Enzymes_PhyloseqObj.RData")
+  print(dat.ec); assign("dat.ec", dat.ec, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/Enzymes.slim_PhyloseqObj.RData")
+  print(dat.ec.slim); assign("dat.ec.slim", dat.ec.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/KOs_PhyloseqObj.RData")
+  print(dat.KOs); assign("dat.KOs", dat.KOs, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/KOs.slim_PhyloseqObj.RData")
+  print(dat.KOs.slim); assign("dat.KOs.slim", dat.KOs.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/GOs_PhyloseqObj.RData")
+  print(dat.GOs); assign("dat.GOs", dat.GOs, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/GOs.slim_PhyloseqObj.RData")
+  print(dat.GOs.slim); assign("dat.GOs.slim", dat.GOs.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/PFAMs_PhyloseqObj.RData")
+  print(dat.PFAMs); assign("dat.PFAMs", dat.PFAMs, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/PFAMs.slim_PhyloseqObj.RData")
+  print(dat.PFAMs.slim); assign("dat.PFAMs.slim", dat.PFAMs.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/EGGNOGs_PhyloseqObj.RData")
+  print(dat.EGGNOGs); assign("dat.EGGNOGs", dat.EGGNOGs, envir = .GlobalEnv)
+  load("files/Phyloseq_TBC/EGGNOGs.slim_PhyloseqObj.RData")
+  print(dat.EGGNOGs.slim); assign("dat.EGGNOGs.slim", dat.EGGNOGs.slim, envir = .GlobalEnv)
+}
 
-### Create list for objects
-Phylo_Objects <- vector(mode="list", length=15)
-names(Phylo_Objects) <- c("Species", "Genus", "Family", "Order", "Class", "Phylum", "Kingdom",
-                          "Pathways", "Pathways.slim", 
-                          "Enzymes", "Enzymes.slim", 
-                          "KOs.all", "KOs.all.slim", "KOs", "KOs.slim")
 
-Phylo_Objects$Species <- dat; Phylo_Objects$Genus <- dat.genus; 
-Phylo_Objects$Family <- dat.family; Phylo_Objects$Order <- dat.order; Phylo_Objects$Class <- dat.class;
-Phylo_Objects$Phylum <- dat.phylum; Phylo_Objects$Kingdom <- dat.kingdom
+load_rush <- function(){
+  #### Taxa
+  load("files/Phyloseq_RUSH/Species_PhyloseqObj.RData")
+  print(dat.species); assign("dat.species", dat.species, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/Genus_PhyloseqObj.RData")
+  print(dat.genus); assign("dat.genus", dat.genus, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/Family_PhyloseqObj.RData")
+  print(dat.family); assign("dat.family", dat.family, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/Order_PhyloseqObj.RData")
+  print(dat.order); assign("dat.order", dat.order, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/Class_PhyloseqObj.RData")
+  print(dat.class); assign("dat.class", dat.class, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/Phylum_PhyloseqObj.RData")
+  print(dat.phylum); assign("dat.phylum", dat.phylum, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/Kingdom_PhyloseqObj.RData")
+  print(dat.kingdom); assign("dat.kingdom", dat.kingdom, envir = .GlobalEnv)
+  ## Function - Pathways/Enzymes/Genes
+  load("files/Phyloseq_RUSH/Pathways_PhyloseqObj.RData")
+  print(dat.path); assign("dat.path", dat.path, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/Pathways.slim_PhyloseqObj.RData")
+  print(dat.path.slim); assign("dat.path.slim", dat.path.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/Enzymes_PhyloseqObj.RData")
+  print(dat.ec); assign("dat.ec", dat.ec, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/Enzymes.slim_PhyloseqObj.RData")
+  print(dat.ec.slim); assign("dat.ec.slim", dat.ec.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/KOs_PhyloseqObj.RData")
+  print(dat.KOs); assign("dat.KOs", dat.KOs, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/KOs.slim_PhyloseqObj.RData")
+  print(dat.KOs.slim); assign("dat.KOs.slim", dat.KOs.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/GOs_PhyloseqObj.RData")
+  print(dat.GOs); assign("dat.GOs", dat.GOs, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/GOs.slim_PhyloseqObj.RData")
+  print(dat.GOs.slim); assign("dat.GOs.slim", dat.GOs.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/PFAMs_PhyloseqObj.RData")
+  print(dat.PFAMs); assign("dat.PFAMs", dat.PFAMs, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/PFAMs.slim_PhyloseqObj.RData")
+  print(dat.PFAMs.slim); assign("dat.PFAMs.slim", dat.PFAMs.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/EGGNOGs_PhyloseqObj.RData")
+  print(dat.EGGNOGs); assign("dat.EGGNOGs", dat.EGGNOGs, envir = .GlobalEnv)
+  load("files/Phyloseq_RUSH/EGGNOGs.slim_PhyloseqObj.RData")
+  print(dat.EGGNOGs.slim); assign("dat.EGGNOGs.slim", dat.EGGNOGs.slim, envir = .GlobalEnv)
+}
 
-Phylo_Objects$Pathways <- dat.path; Phylo_Objects$Pathways.slim <- dat.path.slim;
-Phylo_Objects$Enzymes <- dat.ec; Phylo_Objects$Enzymes.slim <- dat.ec.slim;
-Phylo_Objects$KOs.all <- dat.KOs.all; Phylo_Objects$KOs.all.slim <- dat.KOs.all.slim; 
-Phylo_Objects$KOs <- dat.KOs; Phylo_Objects$KOs.slim <- dat.KOs.slim
 
-save(Phylo_Objects, file = "files/PhyloseqObj.RData")
+
+load_all_cohorts <- function(){
+  #### Taxa
+  load("files/Phyloseq_Merged/Species_PhyloseqObj.RData")
+  print(dat.species); assign("dat.species", dat.species, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/Genus_PhyloseqObj.RData")
+  print(dat.genus); assign("dat.genus", dat.genus, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/Family_PhyloseqObj.RData")
+  print(dat.family); assign("dat.family", dat.family, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/Order_PhyloseqObj.RData")
+  print(dat.order); assign("dat.order", dat.order, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/Class_PhyloseqObj.RData")
+  print(dat.class); assign("dat.class", dat.class, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/Phylum_PhyloseqObj.RData")
+  print(dat.phylum); assign("dat.phylum", dat.phylum, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/Kingdom_PhyloseqObj.RData")
+  print(dat.kingdom); assign("dat.kingdom", dat.kingdom, envir = .GlobalEnv)
+  ## Function - Pathways/Enzymes/Genes
+  load("files/Phyloseq_Merged/Pathways_PhyloseqObj.RData")
+  print(dat.path); assign("dat.path", dat.path, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/Pathways.slim_PhyloseqObj.RData")
+  print(dat.path.slim); assign("dat.path.slim", dat.path.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/Enzymes_PhyloseqObj.RData")
+  print(dat.ec); assign("dat.ec", dat.ec, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/Enzymes.slim_PhyloseqObj.RData")
+  print(dat.ec.slim); assign("dat.ec.slim", dat.ec.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/KOs_PhyloseqObj.RData")
+  print(dat.KOs); assign("dat.KOs", dat.KOs, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/KOs.slim_PhyloseqObj.RData")
+  print(dat.KOs.slim); assign("dat.KOs.slim", dat.KOs.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/GOs_PhyloseqObj.RData")
+  print(dat.GOs); assign("dat.GOs", dat.GOs, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/GOs.slim_PhyloseqObj.RData")
+  print(dat.GOs.slim); assign("dat.GOs.slim", dat.GOs.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/PFAMs_PhyloseqObj.RData")
+  print(dat.PFAMs); assign("dat.PFAMs", dat.PFAMs, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/PFAMs.slim_PhyloseqObj.RData")
+  print(dat.PFAMs.slim); assign("dat.PFAMs.slim", dat.PFAMs.slim, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/EGGNOGs_PhyloseqObj.RData")
+  print(dat.EGGNOGs); assign("dat.EGGNOGs", dat.EGGNOGs, envir = .GlobalEnv)
+  load("files/Phyloseq_Merged/EGGNOGs.slim_PhyloseqObj.RData")
+  print(dat.EGGNOGs.slim); assign("dat.EGGNOGs.slim", dat.EGGNOGs.slim, envir = .GlobalEnv)
+}
+
+
+
 
