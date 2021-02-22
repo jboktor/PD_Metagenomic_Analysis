@@ -1,32 +1,48 @@
 # Gut-Brain Module (GBM) and Gut-Metabolic Module (GMM) Analysis
 
-############  Prep Metadata  ############
-library(microbiome); library(phyloseq); library(Maaslin2); library(dplyr); library(tidyr); 
-library(reshape2); library(lattice);library(EnvStats);
-library(omixerRpm)
-
 rm(list = ls())
-
-######## Load Data & functions
+source("src/load_packages.R")
 source("src/load_phyloseq_obj.R")
 source("src/miscellaneous_funcs.R")
-source("src/Metadata_prep_funcs.R")
+source("src/metadata_prep_funcs.R")
+source("src/community_composition_funcs.R")
+source("src/daf_functions.R")
+load("files/low_quality_samples.RData")
+wkd <- getwd()
 
-input_kos <- microbiome::abundances(dat.KOs.slim) %>% 
+#------------------------------------------------------------------------------
+#                              Setup
+#------------------------------------------------------------------------------
+# Download Binary from: https://github.com/omixer/omixer-rpmR
+# Install using R CMD INSTALL omixeRpm_x.y.z.tar.gz (with appropriate version)
+# VERSION USED: 0.3.2
+# A Java Development Kit (JDK) is also required
+library(omixerRpm)
+
+#------------------------------------------------------------------------------
+#             Generate Gut-Brain / Gut-Metabolic Modules
+#------------------------------------------------------------------------------
+load_all_cohorts()
+
+# Filter only KO number from new annotated IDs
+input_kos <- 
+  dat.KOs.slim %>% 
+  subset_samples(donor_id %ni% low_qc[[1]]) %>% 
+  microbiome::abundances() %>% 
   data.frame() %>% 
-  rownames_to_column(var = "entry")
-# listDB()
+  rownames_to_column(var = "entry") %>% 
+  dplyr::mutate(entry = substr(entry, 6, 11))
 
 # Run the module mapping on the loaded table.
 gmm <- rpm(input_kos, minimum.coverage=0.3, annotation = 1, 
            module.db	= loadDB("GMMs.v1.07"))
-gmm.abundnace <- gmm@abundance
+gmm.abundance <- gmm@abundance
 gmm.annotation <- gmm@annotation
 gmm.coverage <- gmm@coverage
 
 gbm <- rpm(input_kos, minimum.coverage=0.3, annotation = 1, 
             module.db	= loadDB("GBMs.v1.0"))
-gbm.abundnace <- gbm@abundance
+gbm.abundance <- gbm@abundance
 gbm.annotation <- gbm@annotation
 gbm.coverage <- gbm@coverage
 
@@ -35,7 +51,7 @@ db_gmm <- loadDB("GMMs.v1.07")
 db_gbm <- loadDB("GBMs.v1.0")
 
 
-# Create dataframes with abundnces and modules along with translated name
+# Create data frames with abundances and modules along with translated name
 ####### GBM ####### 
 translated_annotations_gbm <- c()
 modname_list_gbm <- c()
@@ -49,12 +65,7 @@ for (mod in gbm@annotation){
 }
 df.gbm <- data.frame(row.names = translated_annotations_gbm,
                      "module"=modname_list_gbm,
-                     gbm.abundnace)
-
-# Distribtution Sanity Check
-source("src/miscellaneous_funcs.R")
-distribution_sanity(df.gbm)
-distribution_sanity(asin(sqrt(df.gbm[-1])) )
+                     gbm.abundance)
 
 ####### GMM ####### 
 translated_annotations_gmm <- c()
@@ -69,14 +80,14 @@ for (mod in gmm@annotation){
 }
 df.gmm <- data.frame(row.names=translated_annotations_gmm,
                      "module"=modname_list_gmm,
-                     gmm.abundnace)
+                     gmm.abundance)
 
 #---------------------------------------------------------------------------------
 #                            Create GM Phyloseq Objects
 #---------------------------------------------------------------------------------
 
 ### Metadata 
-my_sample_data <- meta(dat) %>% sample_data()
+my_sample_data <- meta(dat.species) %>% sample_data()
 
 #------------------ Gut Brain Modules ------------------ 
 
@@ -85,7 +96,7 @@ my_GBM.ab_table <- df.gbm[-1] %>%
   otu_table(taxa_are_rows=F)
 dat.GBMs <- phyloseq(my_GBM.ab_table, my_sample_data)
 print(dat.GBMs)
-save(dat.GBMs, file = "files/GBMs_PhyloseqObj.RData")
+save(dat.GBMs, file = "files/Phyloseq_Merged/GBMs_PhyloseqObj.RData")
 
 #------------------ Gut Metabolic Modules ------------------ 
 
@@ -94,112 +105,75 @@ my_GMM.ab_table <- df.gmm[-1] %>%
   otu_table(taxa_are_rows=F)
 dat.GMMs <- phyloseq(my_GMM.ab_table, my_sample_data)
 print(dat.GMMs)
-save(dat.GMMs, file = "files/GMMs_PhyloseqObj.RData")
+save(dat.GMMs, file = "files/Phyloseq_Merged/GMMs_PhyloseqObj.RData")
 
-#---------------------------------------------------------------------------------
+# Distribtution Sanity Checks
+# distribution_sanity(df.gmm)
+# distribution_sanity(df.gbm)
+
+#-------------------------------------------------------------------------------
+####                             GBM MaAsLin2                                #### 
+#-------------------------------------------------------------------------------
+
+dat.object <- maaslin_prep(dat.GBMs)
+dat_pdpc = subset_samples(dat.object, donor_group !="HC")
+variance_plot(dat_pdpc)
+df_input_data_pdpc <- dat_pdpc %>% 
+  microbiome::transform("compositional") %>% 
+  variance_filter(0)
+dat_pdhc = subset_samples(dat.object, paired !="No")
+variance_plot(dat_pdhc)
+df_input_data_pdhc <- dat_pdhc %>% 
+  microbiome::transform("compositional") %>% 
+  variance_filter(0)
+fit_models(dat = dat.object, 
+           obj.name = "GBMs", 
+           dat_pdpc = dat_pdpc, 
+           dat_pdhc = dat_pdhc,
+           df_input_data_pdhc = df_input_data_pdhc, 
+           df_input_data_pdpc = df_input_data_pdpc,
+           cores = 6,
+           plot_scatter = T)
+
+#-------------------------------------------------------------------------------
+####                             GMM MaAsLin2                                #### 
+#-------------------------------------------------------------------------------
+
+dat.object <- maaslin_prep(dat.GMMs)
+dat_pdpc = subset_samples(dat.object, donor_group !="HC")
+variance_plot(dat_pdpc)
+df_input_data_pdpc <- dat_pdpc %>% 
+  microbiome::transform("compositional") %>% 
+  variance_filter(0)
+dat_pdhc = subset_samples(dat.object, paired !="No")
+variance_plot(dat_pdhc)
+df_input_data_pdhc <- dat_pdhc %>% 
+  microbiome::transform("compositional") %>% 
+  variance_filter(0)
+fit_models(dat = dat.object, 
+           obj.name = "GMMs", 
+           dat_pdpc = dat_pdpc, 
+           dat_pdhc = dat_pdhc,
+           df_input_data_pdhc = df_input_data_pdhc, 
+           df_input_data_pdpc = df_input_data_pdpc,
+           cores = 6,
+           plot_scatter = T)
 
 
+#-------------------------------------------------------------------------------
+####                             Plotting                                #### 
+#-------------------------------------------------------------------------------
 
-# Distribtution Sanity Check
-distribution_sanity(df.gmm)
+load("files/Phyloseq_Merged/GBMs_PhyloseqObj.RData")
+load("files/Phyloseq_Merged/GMMs_PhyloseqObj.RData")
 
+plot_dafs(obj.name = "GBMs", obj = dat.GBMs, cohort = "Merged")
+plot_daf_summary(obj.name = "GBMs", obj = dat.GBMs, cohort = "Merged", 
+                 repelyup = 0.002, repelydn = 0.002)
 
-# Split R objects for metadata
-dat_pdhc = subset_samples(dat, Paired !="No")
-dat_pdpc = subset_samples(dat, donor_group !="HC")
-
-# GMM abundance tables
-df.gmm_pdpc <- df.gmm[, which(!grepl("HC", colnames(df.gmm)))]
-df.gmm_pdhc <- df.gmm[, which(!grepl("PC", colnames(df.gmm)))]
-
-# GBM abundance tables
-df.gbm_pdpc <- df.gbm[, which(!grepl("HC", colnames(df.gbm)))]
-df.gbm_pdhc <- df.gbm[, which(!grepl("PC", colnames(df.gbm)))]
-
-
-######## Format Metadata 
-# Run Metadata pre-processing function
-process_meta(dat)
-df_input_metadata <- env %>% column_to_rownames(var = "donor_id")
-
-process_meta(dat_pdpc)
-df_input_metadata_pdpc <- env %>% column_to_rownames(var = "donor_id")
-df_input_metadata_pdpc$description <- factor(df_input_metadata_pdpc$description, 
-                                             levels = c("PD Patient", "Population Control"))
-
-process_meta(dat_pdhc)
-df_input_metadata_pdhc <- env %>% column_to_rownames(var = "donor_id")
-df_input_metadata_pdhc$description <- factor(df_input_metadata_pdhc$description, 
-                                             levels = c("PD Patient", "Household Control"))
-
-
-#---------------------------------------------------------------------------------
-#                                GMM MODELS                
-#---------------------------------------------------------------------------------
-#set file path 
-wkd <- getwd()
-
-#----------- PD v PC - GMMs ----------- 
-
-fit_data = Maaslin2(
-  input_data = df.gmm_pdpc[,-1],
-  input_metadata = df_input_metadata_pdpc,
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/GMMs_PDvPC_maaslin2_output"), 
-  fixed_effects = c("description", "host_age_factor", "sex", "host_body_mass_index"),
-  min_prevalence = 0,
-  analysis_method = "LM",
-  normalization = "NONE",
-    transform = "AST",
-  cores = 1
-)
-
-#----------- PD v HC Paired - GMMs ----------- 
-
-fit_data = Maaslin2(
-  input_data = df.gmm_pdhc[,-1], 
-  input_metadata = df_input_metadata_pdhc, 
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/GMMs_PDvHC_maaslin2_output"), 
-  min_prevalence = 0,
-  random_effects = c("Paired"),
-  fixed_effects = c("description"),
-  analysis_method = "LM",
-  normalization = "NONE",
-  transform = "AST",
-  cores = 1
-)
-
-#---------------------------------------------------------------------------------
-#                                GBM MODELS                
-#---------------------------------------------------------------------------------
-
-#----------- PD v PC - GBMs ----------
-
-fit_data = Maaslin2(
-  input_data = df.gbm_pdpc[,-1],
-  input_metadata = df_input_metadata_pdpc,
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/GBMs_PDvPC_maaslin2_output"), 
-  fixed_effects = c("description", "host_age_factor", "sex", "host_body_mass_index"),
-  min_prevalence = 0,
-  analysis_method = "LM",
-  normalization = "NONE",
-  transform = "AST",
-  cores = 1
-)
-#---------- PD v HC Paired - GBMs ----------
-
-fit_data = Maaslin2(
-  input_data = df.gbm_pdhc[,-1],
-  input_metadata = df_input_metadata_pdhc, 
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/GBMs_PDvHC_maaslin2_output"), 
-  min_prevalence = 0,
-  random_effects = c("Paired"),
-  fixed_effects = c("description"),
-  analysis_method = "LM",
-  normalization = "NONE",
-  transform = "AST",
-  cores = 1
-)
+plot_dafs(obj.name = "GMMs", obj = dat.GMMs, cohort = "Merged")
+plot_daf_summary(obj.name = "GMMs", obj = dat.GMMs, cohort = "Merged", 
+                 repelyup = 0.001, repelydn = 0.001)
 
 
 
-#################

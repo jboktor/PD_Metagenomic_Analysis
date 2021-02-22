@@ -1,24 +1,21 @@
 # GMMxGBM Figures : 
 
 source("src/load_packages.R")
-source("src/omixer-rmpR_setup.R")
-source("src/DAF_Functions.R")
-# load("files/GBMs_PhyloseqObj.RData")
-load("files/GMMs_PhyloseqObj.RData")
-
-# distribution_sanity(df.gbm)
-# distribution_sanity(asin(sqrt(df.gbm[-1])) )
-# 
-# distribution_sanity(df.gmm)
-# distribution_sanity(asin(sqrt(df.gmm[-1])) )
+source("src/miscellaneous_funcs.R")
+source("src/load_phyloseq_obj.R")
+source("src/metadata_prep_funcs.R")
+source("src/community_composition_funcs.R")
+source("src/daf_functions.R")
+# source("src/omixer-rmpR_setup.R")
+load("files/low_quality_samples.RData")
+load("files/Phyloseq_Merged/GMMs_PhyloseqObj.RData")
+wkd <- getwd()
 
 
 # ArcSinSqrt - Transformation
 df.gmm[-1] <- asin(sqrt(df.gmm[-1]))
 
 module.levels <- read_tsv('files/GMM/GMM.hierarchy.v1.07.tsv', col_names = T)
-
-
 
 H1.list <- c()
 cnt <- 1
@@ -68,94 +65,120 @@ metabolism_df <- metabolism_df %>%
 #---------------------------------------------------------------------------------
 
 ### Metadata 
-my_sample_data <- meta(dat) %>% sample_data()
-
-#------------------ Gut Metabolic Modules ------------------ 
-
+my_sample_data <- meta(dat.species) %>% sample_data()
 my_GMM.HL1.ab_table <- metabolism_df %>% 
   dplyr::select(-group) %>% 
   otu_table(taxa_are_rows=F)
 dat.GMMs.HL1 <- phyloseq(my_GMM.HL1.ab_table, my_sample_data)
 print(dat.GMMs.HL1)
-save(dat.GMMs.HL1, file = "files/GMMs.HL1_PhyloseqObj.RData")
+save(dat.GMMs.HL1, file = "files/Phyloseq_Merged/GMMs.HL1_PhyloseqObj.RData")
 
 
-#------------------ 
-# PD v PC abundance data
-dat_pdpc <- NULL
-dat_pdpc = subset_samples(dat.GMMs.HL1, donor_group !="HC")
-df_input_data_pdpc <- dat_pdpc %>% transform("compositional")
-PlotVariance(dat_pdpc)
+#-------------------------------------------------------------------------------
+####                             GMM HL1 MaAsLin2                                #### 
+#-------------------------------------------------------------------------------
+
+dat.object <- maaslin_prep(dat.GMMs.HL1)
+dat_pdpc = subset_samples(dat.object, donor_group !="HC")
+variance_plot(dat_pdpc)
 df_input_data_pdpc <- dat_pdpc %>% 
-  LowVarianceFilter(filter.percent = 0)
-
-#------------------
-# PD v HC PAIRED abundance data
-dat_pdhc <- NULL
-dat_pdhc = subset_samples(dat.GMMs.HL1, Paired !="No")
+  microbiome::transform("compositional") %>% 
+  variance_filter(0)
+dat_pdhc = subset_samples(dat.object, paired !="No")
+variance_plot(dat_pdhc)
 df_input_data_pdhc <- dat_pdhc %>% 
-  LowVarianceFilter(filter.percent = 0)
+  microbiome::transform("compositional") %>% 
+  variance_filter(0)
+fit_models(dat = dat.object, 
+           obj.name = "GMMs.HL1", 
+           dat_pdpc = dat_pdpc, 
+           dat_pdhc = dat_pdhc,
+           df_input_data_pdhc = df_input_data_pdhc, 
+           df_input_data_pdpc = df_input_data_pdpc,
+           cores = 6,
+           plot_scatter = T)
 
 
-#------------------Format Metadata 
-# Run Metadata pre-processing function
-
-process_meta(dat_pdpc)
-df_input_metadata_pdpc <- env %>% column_to_rownames(var = "donor_id")
-df_input_metadata_pdpc$description <- factor(df_input_metadata_pdpc$description, 
-                                             levels = c("PD Patient", "Population Control"))
-
-process_meta(dat_pdhc)
-df_input_metadata_pdhc <- env %>% column_to_rownames(var = "donor_id")
-df_input_metadata_pdhc$description <- factor(df_input_metadata_pdhc$description, 
-                                             levels = c("PD Patient", "Household Control"))
-
-#-------------------------------------------------------------------------
-# MaAsLin2 Models 
-#--------------------------------------------------------------------------
-
-############  PD v PC - GMMs HL1  ############
-
-fit_data = Maaslin2(
-  input_data = df_input_data_pdpc,
-  input_metadata = df_input_metadata_pdpc,
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/GMMs.HL1_PDvPC_maaslin2_output"), 
-  fixed_effects = c("description", "host_age_factor", "sex", "host_body_mass_index"),
-  min_prevalence = 0,
-  analysis_method = "LM",
-  normalization = "NONE",
-  transform = "NONE",
-  cores = 1
-)
-
-############  PD v HC Paired  - GMMs HL1  ############
-
-fit_data = Maaslin2(
-  input_data = df_input_data_pdhc, 
-  input_metadata = df_input_metadata_pdhc, 
-  output = paste0(wkd, "/data/MaAsLin2_Analysis/GMMs.HL1_PDvHC_maaslin2_output"), 
-  min_prevalence = 0,
-  random_effects = c("Paired"),
-  fixed_effects = c("description"),
-  analysis_method = "LM",
-  normalization = "NONE",
-  transform = "NONE",
-  cores = 1 
-)
+# 
+# #------------------ 
+# # PD v PC abundance data
+# dat_pdpc <- NULL
+# dat_pdpc = subset_samples(dat.GMMs.HL1, donor_group !="HC")
+# df_input_data_pdpc <- dat_pdpc %>% 
+#   microbiome::transform("compositional")
+# PlotVariance(dat_pdpc)
+# df_input_data_pdpc <- dat_pdpc %>% 
+#   LowVarianceFilter(filter.percent = 0)
+# 
+# #------------------
+# # PD v HC PAIRED abundance data
+# dat_pdhc <- NULL
+# dat_pdhc = subset_samples(dat.GMMs.HL1, Paired !="No")
+# df_input_data_pdhc <- dat_pdhc %>% 
+#   LowVarianceFilter(filter.percent = 0)
+# 
+# 
+# #------------------Format Metadata 
+# # Run Metadata pre-processing function
+# 
+# process_meta(dat_pdpc)
+# df_input_metadata_pdpc <- env %>% column_to_rownames(var = "donor_id")
+# df_input_metadata_pdpc$description <- factor(df_input_metadata_pdpc$description, 
+#                                              levels = c("PD Patient", "Population Control"))
+# 
+# process_meta(dat_pdhc)
+# df_input_metadata_pdhc <- env %>% column_to_rownames(var = "donor_id")
+# df_input_metadata_pdhc$description <- factor(df_input_metadata_pdhc$description, 
+#                                              levels = c("PD Patient", "Household Control"))
+# 
+# #-------------------------------------------------------------------------
+# # MaAsLin2 Models 
+# #--------------------------------------------------------------------------
+# 
+# ############  PD v PC - GMMs HL1  ############
+# 
+# fit_data = Maaslin2(
+#   input_data = df_input_data_pdpc,
+#   input_metadata = df_input_metadata_pdpc,
+#   output = paste0(wkd, "/data/MaAsLin2_Analysis/GMMs.HL1_PDvPC_maaslin2_output"), 
+#   fixed_effects = c("description", "host_age_factor", "sex", "host_body_mass_index"),
+#   min_prevalence = 0,
+#   analysis_method = "LM",
+#   normalization = "NONE",
+#   transform = "NONE",
+#   cores = 1
+# )
+# 
+# ############  PD v HC Paired  - GMMs HL1  ############
+# 
+# fit_data = Maaslin2(
+#   input_data = df_input_data_pdhc, 
+#   input_metadata = df_input_metadata_pdhc, 
+#   output = paste0(wkd, "/data/MaAsLin2_Analysis/GMMs.HL1_PDvHC_maaslin2_output"), 
+#   min_prevalence = 0,
+#   random_effects = c("Paired"),
+#   fixed_effects = c("description"),
+#   analysis_method = "LM",
+#   normalization = "NONE",
+#   transform = "NONE",
+#   cores = 1 
+# )
 
 lev = "GMMs.HL1"
 ### Read-in Maaslin Files - all features used in significance testing
-Maas.pd.pc <- read_tsv(paste0("data/MaAsLin2_Analysis/", lev, "_PDvPC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
+Maas.pd.pc <- read_tsv(paste0("data/MaAsLin2_Analysis/", 
+                              lev, "_PDvPC_maaslin2_output/all_results.tsv"), 
+                       col_names = T) %>% 
   filter(value == "Population Control")
 
-Maas.pd.hc <- read_tsv(paste0("data/MaAsLin2_Analysis/", lev, "_PDvHC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
+Maas.pd.hc <- read_tsv(paste0("data/MaAsLin2_Analysis/", 
+                              lev, "_PDvHC_maaslin2_output/all_results.tsv"), 
+                       col_names = T) %>% 
   filter(value == "Household Control")
 
 #--------------------------------------------------------------------------
 #                         Plot Metabolic Overview
 #--------------------------------------------------------------------------
-
-
 
 metabolism_df2 <- metabolism_df %>%
   pivot_longer(-group, names_to = "feature", values_to = "Total_Abundance")
@@ -171,11 +194,8 @@ Maas.pd.hc.stats$group <- "HC"
 Maas.stats <- rbind(Maas.pd.pc.stats, Maas.pd.hc.stats)
 Maas.stats$qval <- round(Maas.stats$qval, digits = 3)
 metabolism_df3 <- left_join(metabolism_df2, Maas.stats, by = c("feature", "group")) 
-metabolism_df3$qval.print <- sig_mapper(pval = metabolism_df3$qval, 
-                                        shh = F, porq = "q", symbols = T)
-
-
-
+metabolism_df3$qval.print <- sig.symbol.generator(Column = metabolism_df3$qval, 
+                                                  porq = "q", shh = F)
 
 ## Add Max values of each group as a column 
 feats <- c()
@@ -235,24 +255,18 @@ metabolism_overview <-
 metabolism_overview
 
 
-g <- ggplot_gtable(ggplot_build(metabolism_overview))
-stripr <- which(grepl('strip-t', g$layout$name))
-# fills <- brewer.pal(10,"Set3")
-# fills <- tableau_color_pal("Miller Stone")(10)
-# fills <- tableau_color_pal("Superfishel Stone")(10)
-fills <- c("#c3bc3f", "#bb7693", "#baa094", "#a9b5ae", "#767676",
-  "#6388b4", "#ffae34", "#ef6f6a", "#8cc2ca", "#55ad89")
-k <- 1
-for (i in stripr) {
-  j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
-  g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
-  k <- k+1
-}
-metabolism_overview2 <- gridExtra::arrangeGrob(g)
+# g <- ggplot_gtable(ggplot_build(metabolism_overview))
+# stripr <- which(grepl('strip-t', g$layout$name))
+# fills <- c("#c3bc3f", "#bb7693", "#baa094", "#a9b5ae", "#767676",
+#   "#6388b4", "#ffae34", "#ef6f6a", "#8cc2ca", "#55ad89")
+# k <- 1
+# for (i in stripr) {
+#   j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+#   g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+#   k <- k+1
+# }
+# metabolism_overview2 <- gridExtra::arrangeGrob(g)
 
-
-ggsave(metabolism_overview2, filename = "figures/Figure_4/Metabolism_Overview_Boxplot_colored.svg",
+ggsave(metabolism_overview, filename = "figures/Figure_4/Metabolism_Overview_Boxplot_colored.svg",
        width = 10, height = 5)
 
-
-# DAF_Analysis(obj.name = "GMMs", obj = dat.GMMs)
