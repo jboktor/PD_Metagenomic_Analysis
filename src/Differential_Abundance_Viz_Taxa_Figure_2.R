@@ -1,16 +1,19 @@
 ### Figure 2) Differentially Abundant Taxa
-# Differential Abundance of Features Script
 
 rm(list = ls())
-
-######## Load Data & functions
-source("src/load_phyloseq_obj.R")
+source("src/load_packages.R")
 source("src/miscellaneous_funcs.R")
-source("src/DAF_Functions.R")
+source("src/load_phyloseq_obj.R")
+source("src/metadata_prep_funcs.R")
+source("src/community_composition_funcs.R")
+source("src/daf_functions.R")
+load("files/low_quality_samples.RData")
+wkd <- getwd()
 
 ######### INPUT SPECIES 
-
-LEV <- Phylo_Objects$Species
+load_all_cohorts()
+LEV <- dat.species %>% 
+  subset_samples(donor_id %ni% low_qc[[1]])
 lev <- "Species"
 
 ############# Visualization Transformations ############# 
@@ -30,18 +33,18 @@ cols.pdhc.rim <- c("PD"= "#494949", "HC" = "#2e75b5")
 dat_pdpc = subset_samples(dat_obj, donor_group !="HC")
 abun.pdpc <- as.data.frame.matrix(abundances(dat_pdpc))
 # PD v HC PAIRED
-dat_pdhc = subset_samples(dat_obj, Paired !="No")
+dat_pdhc = subset_samples(dat_obj, paired !="No")
 abun.pdhc <- as.data.frame.matrix(abundances(dat_pdhc))
 
 
 ############# Read-in Maaslin Files - all features used in significance testing ############# 
  
-Maas.pd.pc <- read_tsv(paste0("data/MaAsLin2_Analysis/", lev, "_PDvPC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
+Maas.pd.pc <- read_tsv(paste0("data/MaAsLin2_Analysis/Merged/", lev, "_PDvPC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
   filter(value == "Population Control")
 Maas.pd.pc$feature <- gsub("s__", "", Maas.pd.pc$feature)
 Maas.pd.pc.sig <- Maas.pd.pc %>% filter(qval < 0.25)
 
-Maas.pd.hc <- read_tsv(paste0("data/MaAsLin2_Analysis/", lev, "_PDvHC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
+Maas.pd.hc <- read_tsv(paste0("data/MaAsLin2_Analysis/Merged/", lev, "_PDvHC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
   filter(value == "Household Control")
 Maas.pd.hc$feature <- gsub("s__", "", Maas.pd.hc$feature)
 Maas.pd.hc.sig <- Maas.pd.hc %>% filter(qval < 0.25) 
@@ -56,7 +59,7 @@ abun.pdpc.inpt <- abun.pdpc.filtered %>% column_to_rownames(var="rowname") %>%
   t() %>% melt() %>% mutate(group = if_else(grepl(".PC", Var1), "PC", "PD"))
 ## Geom Tile data - Genus and Phylum levels
 abun.pdpc.filtered$speciesname <- paste0("s__", abun.pdpc.filtered$rowname)
-abun.pdpc.inpt.phylo <- taxa_genus_phlyum_annotation(dat, abun.pdpc.filtered$speciesname) 
+abun.pdpc.inpt.phylo <- taxa_genus_phlyum_annotation(dat.species, abun.pdpc.filtered$speciesname) 
 
 
 ####### PD v HC PAIRED
@@ -66,13 +69,20 @@ abun.pdhc.inpt <- abun.pdhc.filtered %>% column_to_rownames(var="rowname")  %>%
   t() %>% melt() %>% mutate(group = if_else(grepl(".HC", Var1), "HC", "PD"))
 ## Geom Tile data - Genus and Phylum levels
 abun.pdhc.filtered$speciesname <- paste0("s__", abun.pdhc.filtered$rowname)
-abun.pdhc.inpt.phylo <- taxa_genus_phlyum_annotation(dat, abun.pdhc.filtered$speciesname) 
+abun.pdhc.inpt.phylo <- taxa_genus_phlyum_annotation(dat.species, abun.pdhc.filtered$speciesname) 
 
 
 ## Create BarTile Color Palette - Manual process 
 all.phylo <- rbind(abun.pdpc.inpt.phylo, abun.pdhc.inpt.phylo)
 unique(all.phylo$Phylum)
-phylum.cols <- c("Actinobacteria" = "#d62728", "Firmicutes" = "#a6cee3",  "Bacteroidetes" = "#2CA02C", "Proteobacteria" = "#6a3d9a")
+phylum.cols <-
+  c(
+    "Actinobacteria" = "#d62728",
+    "Firmicutes" = "#a6cee3",
+    "Bacteroidetes" = "#2CA02C",
+    "Proteobacteria" = "#6a3d9a",
+    "Verrucomicrobia" = "#6a3d1a"
+  )
 tile.cols <- phylum.cols
 
 ######################################################################## 
@@ -111,7 +121,14 @@ g2 <- significance_barplot(sigplot.df.pdpc)
 ## Prepping Significance labels
 abun.pdpc.inpt <- daf_boxplot_sigvalues(sigplot.df.pdpc, abun.pdpc.inpt)
 abun.pdpc.inpt$Var2 <- factor(abun.pdpc.inpt$Var2, levels = rev(phylo.pc$Axis.order)) 
-g1 <- daf_boxplots(abun.pdpc.inpt, fill_cols = cols.pdpc, rim_cols = cols.pdpc.rim, alfa = 0.2)
+g1 <-
+  daf_boxplots(
+    abun.pdpc.inpt,
+    fill_cols = cols.pdpc,
+    rim_cols = cols.pdpc.rim,
+    alfa = 0.2,
+    obj.name = lev
+  )
 
 ###### Prevalence Plot ######
 # Subset of phlyoseq obj subset to get samples of interest
@@ -164,7 +181,14 @@ h2 <- significance_barplot(sigplot.df.pdhc)
 ## Prepping Significance labels
 abun.pdhc.inpt <- daf_boxplot_sigvalues(sigplot.df.pdhc, abun.pdhc.inpt)
 abun.pdhc.inpt$Var2 <- factor(abun.pdhc.inpt$Var2, levels = rev(phylo.hc$Axis.order)) 
-h1 <- daf_boxplots(abun.pdhc.inpt, fill_cols = cols.pdhc, rim_cols = cols.pdhc.rim, alfa = 0.2)
+h1 <-
+  daf_boxplots(
+    abun.pdhc.inpt,
+    fill_cols = cols.pdhc,
+    rim_cols = cols.pdhc.rim,
+    alfa = 0.2,
+    obj.name = lev
+  )
 
 ###### Prevalence Plot ######
 # Subset of phlyoseq obj subset to get samples of interest
@@ -183,7 +207,7 @@ h3 <- prevalence_barplot(dat_pdhc.PREV, cols.pdhc, alfa = 0.8)
 g.bars <- phylo.pc$Bars + theme(axis.text.x = element_blank()) + ggtitle(" ")
 g.legend <- phylo.pc$Legends
 g0a <- g0 + theme(axis.title.x = element_blank(), 
-                  axis.text.y = element_blank(), legend.position = c(.20, .90))
+                  axis.text.y = element_blank())
 g1a <- g1 + theme(axis.title.x = element_blank(), 
                   legend.position = "none", axis.text.y = element_blank())
 g3a <- g3 + theme(axis.title.x = element_blank(), 
@@ -191,7 +215,7 @@ g3a <- g3 + theme(axis.title.x = element_blank(),
 
 h.bars <- phylo.hc$Bars + ggtitle(" ")
 h.legend <- phylo.hc$Legends
-h0a <- h0 + theme(axis.text.y = element_blank(), legend.position = c(.20, .85))
+h0a <- h0 + theme(axis.text.y = element_blank())
 h1a <- h1 + theme(legend.position = "none", axis.text.y = element_blank())
 h3a <- h3 + theme(axis.text.y = element_blank(), legend.position = "none")
 
@@ -208,20 +232,20 @@ DAF_part2 <- cowplot::plot_grid(g1a, g3a, g0a,
                                 h1a, h3a, h0a, 
                                 nrow = 2, ncol=3, align = "h", 
                                 rel_heights = c(top_len, bottom_len),
-                                rel_widths = c(3, 1, 1))
+                                rel_widths = c(3, 1, 1.5))
 
 
 DAF_final <- cowplot::plot_grid(DAF_part1, DAF_part2, ncol = 2, align = "hv", 
-                                rel_widths = c(1, 3.75))
-# DAF_final
+                                rel_widths = c(1, 5.25))
+DAF_final
 
-ggsave(DAF_final, filename = paste0("figures/Figure_2/DAF_Figure_2.svg"),
-       width = 14, height = 7)
-
-# Legends
-ggsave(phylo.pc$Legends, filename = paste0("figures/Figure_2/DAF_Figure_2_PC.legend.svg"),
-       width = 7, height = 7)
-ggsave(phylo.hc$Legends, filename = paste0("figures/Figure_2/DAF_Figure_2_HC.legend.svg"),
-       width = 7, height = 7)
-
+# ggsave(DAF_final, filename = paste0("figures/Figure_2/DAF_Figure_2_new.svg"),
+#        width = 14, height = 7)
+# 
+# # Legends
+# ggsave(phylo.pc$Legends, filename = paste0("figures/Figure_2/DAF_Figure_2_PC.legend_new.svg"),
+#        width = 7, height = 7)
+# ggsave(phylo.hc$Legends, filename = paste0("figures/Figure_2/DAF_Figure_2_HC.legend_new.svg"),
+#        width = 7, height = 7)
+# 
 

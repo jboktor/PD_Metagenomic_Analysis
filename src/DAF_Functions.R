@@ -1,7 +1,73 @@
 # Differentially Abundant Features (DAF) Functions
 
 
-############################################################################################################
+#-------------------------------------------------------------------------------
+
+
+fit_models <- function(dat, dat_pdpc, dat_pdhc, obj.name = "Species", 
+                       df_input_data_pdhc, df_input_data_pdpc, cores, plot_scatter = F, 
+                       cohort = "Merged"){
+  
+  #' function to run MaAsLin2 mixed models
+  #' Input variance and qc trimmed abundance data tables
+  #' Outputs MaAsLin2 analysis in a specific feature folder
+  
+  # Run Metadata pre-processing function
+  # df_input_metadata <- 
+  #   process_meta(dat, cohort = cohort) %>% 
+  #   column_to_rownames(var = "donor_id")
+  
+  df_input_metadata_pdpc <- 
+    process_meta(dat_pdpc, cohort = cohort) %>% 
+    dplyr::mutate(description = factor(description, levels = c("PD Patient", "Population Control"))) %>% 
+    column_to_rownames(var = "donor_id")
+  
+  df_input_metadata_pdhc <- 
+    process_meta(dat_pdhc, cohort = cohort) %>% 
+    dplyr::mutate(description = factor(description, levels = c("PD Patient", "Household Control"))) %>% 
+    column_to_rownames(var = "donor_id")
+  
+  if (cohort == "Merged"){
+    random_effects_pdpc <- "cohort"
+    random_effects_pdhc <- c("paired", "cohort")
+  } else {
+    random_effects_pdpc <- ""
+    random_effects_pdhc <- "paired"
+  }
+  
+  # PD v PC  
+  fit_data = Maaslin2(
+    input_data = df_input_data_pdpc,
+    input_metadata = df_input_metadata_pdpc,
+    output = paste0(wkd, "/data/MaAsLin2_Analysis/", cohort, "/", obj.name, "_PDvPC_maaslin2_output"), 
+    random_effects = random_effects_pdpc,
+    fixed_effects = c("description", "host_age_factor", "sex", "host_body_mass_index"),
+    min_prevalence = 0,
+    analysis_method = "LM",
+    normalization = "NONE",
+    transform = "AST",
+    cores = cores,
+    plot_scatter = plot_scatter
+  )
+  
+  # PD v HC  
+  fit_data = Maaslin2(
+    input_data = df_input_data_pdhc, 
+    input_metadata = df_input_metadata_pdhc, 
+    output = paste0(wkd, "/data/MaAsLin2_Analysis/", cohort, "/", obj.name, "_PDvHC_maaslin2_output"), 
+    min_prevalence = 0,
+    random_effects = random_effects_pdhc,
+    fixed_effects = c("description"),
+    analysis_method = "LM",
+    normalization = "NONE",
+    transform = "AST",
+    cores = cores,
+    plot_scatter = plot_scatter
+  )
+}
+
+
+#-------------------------------------------------------------------------------
 
 VennPlot <- function(Maaslin_PDvPC, Maaslin_PDvHC, qval_threshold = 0.25){
   
@@ -75,12 +141,12 @@ VennPlot <- function(Maaslin_PDvPC, Maaslin_PDvHC, qval_threshold = 0.25){
   
 }
 
-############################################################################################################
+#---------------------------------------------------------------------------------------------------------------------
 
 taxa_genus_phlyum_annotation = function(physeq, selectedTaxa){
   
   ###'  Returns Phylum level of a selected list 
-  ###'  of species from Phlyoseq Object
+  ###'  of species from phyloseq Object
   
   allTaxa = taxa_names(physeq)
   allTaxa <- allTaxa[(allTaxa %in% selectedTaxa)]
@@ -91,7 +157,7 @@ taxa_genus_phlyum_annotation = function(physeq, selectedTaxa){
 }
 
 
-############################################################################################################
+#---------------------------------------------------------------------------------------------------------------------
 
 pull.phylo.sig <- function(comparison, phylo.names){
   
@@ -124,7 +190,7 @@ pull.phylo.sig <- function(comparison, phylo.names){
   
 }
 
-############################################################################################################
+#---------------------------------------------------------------------------------------------------------------------
 
 boxplot_phylobars <- function(inpt.phylo, sigvals, tile.cols){
   
@@ -175,7 +241,7 @@ boxplot_phylobars <- function(inpt.phylo, sigvals, tile.cols){
   
 }
 
-############################################################################################################
+#---------------------------------------------------------------------------------------------------------------------
 
 
 boxplot_hl1.bars <- function(inpt.hl1, tile.cols){
@@ -224,23 +290,29 @@ boxplot_hl1.bars <- function(inpt.hl1, tile.cols){
 }
 
 
-############################################################################################################
+#---------------------------------------------------------------------------------------------------------------------
 ## Adapted from: https://github.com/zellerlab/crc_meta
 
 
-generalized_fold_change <- function(pd_abundance, ctrl_abundances){
-  # Initalize counts
+generalized_fold_change <- function(pd_abundance, ctrl_abundances) {
+  # Initialize counts
   i = 1
   probs.fc <- seq(.1, .9, .05)
   gfc_data <- c()
   
-  for (feature in 1:nrow(ctrl_abundances)){
-    # Loops through each species row and calculates 
+  for (feature in 1:nrow(ctrl_abundances)) {
+    # Loops through each feature row and calculates
     # the Generalized fold change for each feature
     cat("Feature number: ", feature, "\n")
-    cat("Testing PD: ", rownames(pd_abundance)[feature], "feature vs ", rownames(ctrl_abundances)[feature], "\n")
-    q.pd <- quantile(pd_abundance[feature,], probs = probs.fc)
-    q.ctl <- quantile(ctrl_abundances[feature,], probs = probs.fc)
+    cat(
+      "Testing PD: ",
+      rownames(pd_abundance)[feature],
+      "feature vs ",
+      rownames(ctrl_abundances)[feature],
+      "\n"
+    )
+    q.pd <- quantile(pd_abundance[feature, ], probs = probs.fc)
+    q.ctl <- quantile(ctrl_abundances[feature, ], probs = probs.fc)
     
     gfc <- sum(q.pd - q.ctl) / length(q.ctl)
     print(gfc)
@@ -252,7 +324,7 @@ generalized_fold_change <- function(pd_abundance, ctrl_abundances){
 
 
 
-############################################################################################################
+#---------------------------------------------------------------------------------------------------------------------
 
 gfc_plot <- function(df, manual_colors, alfa = 0.5){
   ######' Generalized Fold Change (gFC) BarPlot ######
@@ -272,7 +344,7 @@ gfc_plot <- function(df, manual_colors, alfa = 0.5){
   return(p)
 }
 
-############################################################################################################
+#---------------------------------------------------------------------------------------------------------------------
 
 significance_barplot <- function(df){
   ######' Significance BarPlot ######
@@ -289,7 +361,7 @@ significance_barplot <- function(df){
   return(p)
 }
 
-############################################################################################################
+#---------------------------------------------------------------------------------------------------------------------
 
 daf_boxplot_sigvalues <- function(sigplot.df, abund.input){
   
@@ -309,16 +381,16 @@ daf_boxplot_sigvalues <- function(sigplot.df, abund.input){
   
 }
 
-############################################################################################################
+#---------------------------------------------------------------------------------------------------------------------
 
-daf_boxplots <- function(df, fill_cols, rim_cols, alfa = 0.5){
+daf_boxplots <- function(df, fill_cols, rim_cols, alfa = 0.5, obj.name){
   
   set.seed(123)
   p <- ggplot(data=df, aes(x=value, y= Var2)) +
     geom_boxplot(aes(fill = group), alpha = alfa, outlier.alpha = 0, width = 0.8) +
     geom_point(aes(fill=group, color=group), position = position_jitterdodge(jitter.width = .2), shape=21, size=1, alpha = 0.9) +
     theme_minimal() +
-    ggtitle(paste0("Differential Abundance: ", lev)) +
+    ggtitle(paste0("Differential Abundance: ", obj.name)) +
     geom_text(aes(x= max(value) + max(value)*0.15, 
                   y=Var2, label = sig.labels), size = 4, check_overlap = TRUE) +
     labs(x = "Abundance") +
@@ -331,7 +403,7 @@ daf_boxplots <- function(df, fill_cols, rim_cols, alfa = 0.5){
   return(p)
 }
 
-############################################################################################################
+#---------------------------------------------------------------------------------------------------------------------
 
 prevalence_barplot <- function(df, manual_colors, alfa = 0.5){
   p <- ggplot(data=df, aes(x=value*100, y= feature, fill=variable, color=variable)) +
@@ -349,21 +421,65 @@ prevalence_barplot <- function(df, manual_colors, alfa = 0.5){
   return(p)
 }
 
-############################################################################################################
-# Top and Bottom Row Mods for Cowplot
-# remove x-axis labels from top row and titles from bottom row
+
+#-----------------------------------------------------------------------------------------------------------
+# Inspired by MicrobiomeAnalystR: https://github.com/xia-lab/MicrobiomeAnalystR
+# Plot (0.1 - 0.9) features by rank : to help decide on percentage cutoff 
+
+variance_plot <- function(dat) {
+  
+  int.mat <- abundances(dat) %>% as.data.frame()
+  filter.val <- apply(int.mat, 1, function (x) {
+    diff(quantile(as.numeric(x), c(0.1, 0.9), na.rm = TRUE, names = FALSE, 
+                  type = 7)) })
+  
+  var.df <- as.data.frame(filter.val) %>% 
+    rownames_to_column(var = "features")
+  
+  rk <- rank(-filter.val, ties.method='random')
+  rws <-  nrow(var.df)
+  
+  p <- ggplot(var.df, aes(x= reorder(features, -filter.val), y= log10(filter.val + .000000001))) +
+    geom_point(color="#1170aa") + 
+    ggthemes::theme_clean() +
+    labs(x = "Ranked Features", y = " log10([0.1 - 0.9] Quantile Range)") +
+    geom_vline(xintercept = c(rk[rk == round(rws*.9)], rk[rk == round(rws*.8)], rk[rk == round(rws*.7)], 
+                              rk[rk == round(rws*.6)], rk[rk == round(rws*.5)], rk[rk == round(rws*.4)],
+                              rk[rk == round(rws*.3)], rk[rk == round(rws*.2)]), linetype = "dashed", alpha = 0.7 ) +
+    theme(axis.text.x = element_blank())
+  return(p)
+}
 
 
+#-----------------------------------------------------------------------------------------------------------
 
-############################################################################################################
+variance_filter <- function(dat, filter.percent = 0.1) {
+  
+  #' This function filters features by their
+  #' Inter-quartile range - larger values indicate larger spread
+  #' features are ranked by IQR and a specified percentage is trimmed
+  
+  int.mat <- abundances(dat) %>% as.data.frame()
+  filter.val <- apply(int.mat, 1, function (x) {
+    diff(quantile(as.numeric(x), c(0.1, 0.9), na.rm = TRUE, names = FALSE, 
+                  type = 7)) })
+  
+  rk <- rank(-filter.val, ties.method='random')
+  var.num <- nrow(int.mat);
+  remain <- rk <= var.num*(1-filter.percent);
+  int.mat <- int.mat[remain,];
+  
+  cat("A total of", sum(!remain), "low variance features were removed based on the Quantile Range between [0.1 - 0.9]. \n")
+  cat("The number of features remaining after filtering is:", nrow(int.mat), "\n")
+  
+  return(int.mat)
+  
+}
 
 
+#---------------------------------------------------------------------------------------------------------------------
 
 
-
-
-
-############################################################################################################
 ## FUNCTION TO ADD GROUP COLUMNS FOR D3 FlashWeave NETWORK
 
 flashweave_group_colors <- function(features, metadata_added, Maas.pd.pc.sig, Maas.pd.hc.sig){
@@ -384,7 +500,7 @@ flashweave_group_colors <- function(features, metadata_added, Maas.pd.pc.sig, Ma
   group2 <- c()
   for (node in features$Node){
     if (features$group[n] == "BOTH") {
-      if (filter(Maas.pd.pc.sig, feature == node)$coef  < 0 | 
+      if (filter(Maas.pd.pc.sig, feature == node)$coef  < 0 & 
           filter(Maas.pd.hc.sig, feature == node)$coef  < 0) {
         group2  = c(group2, "Up_PDvBoth")
       }  else if (filter(Maas.pd.pc.sig, feature == node)$coef > 0 & 
@@ -430,123 +546,157 @@ flashweave_group_colors <- function(features, metadata_added, Maas.pd.pc.sig, Ma
   
 }
 
-############################################################################################################
 
+#---------------------------------------------------------------------------------------------------------------------
+## FUNCTION TO ADD GROUP COLUMNS FOR DAF Fold Change Summary Plot
 
-DAF_Analysis <- function(obj.name, obj){
+daf_group_colors <- function(features, Maas.pd.pc.sig, Maas.pd.hc.sig){
   
-  source("src/miscellaneous_funcs.R")
-  
-  # ## Color Schemes
-  cols.pdpc <- c("PD"= "#ed7d31", "PC" = "#bfbfbf")
-  cols.pdhc <- c("PD"= "#ed7d31", "HC" = "#5b9bd5")
-  # Rims
-  cols.pdpc.rim <- c("PD"= "#ed4e31", "PC" = "#999999")
-  cols.pdhc.rim <- c("PD"= "#ed4e31", "HC" = "#5b7dd5")
+  ##' Loop for identifying significant features and stratifying them
+  ##' by enrichment or depletion in PC, HC, or both groups in reference 
+  ##' to PD groups 
+  ##' Note: a negative coefficient in Maaslin model indicates higher levels in PD
   
   
-  # To protect against row/colname errors 
-  if (obj.name == "Pathways"| obj.name == "Pathways.slim") {
-    features <- paste0("PATHWAY_", taxa_names(obj)) 
-    features <- gsub(":", ".", features)
-    features <- gsub("\\|", ".", features)
-    features <- gsub(" ", "_", features)
-    features <- gsub("-", "_", features)
-    taxa_names(obj) <- features
-  } else if (obj.name == "Enzymes" | obj.name == "Enzymes.slim") {
-    features <- paste0("ENZYME_", taxa_names(obj)) 
-    features <- gsub(":", ".", features)
-    features <- gsub("\\|", ".", features)
-    features <- gsub(" ", "_", features)
-    features <- gsub("-", "_", features)
-    taxa_names(obj) <- features
-  } else if (obj.name == "Species") {
-    taxa_names(obj) <- gsub("s__", "", taxa_names(obj))
-  } else if (obj.name == "GMMs" | obj.name == "GBMs" ) {
-    taxa_names(obj) <- gsub(" ", ".", taxa_names(obj))
-  } else {
-    features <- taxa_names(obj)
-    features <- gsub(":", ".", features)
-    features <- gsub("\\|", ".", features)
-    features <- gsub(" ", "_", features)
-    features <- gsub("-", "_", features)
-    taxa_names(obj) <- features
+  # ## TROUBLE
+  # features <- taxa_names(dat.GOs.slim)
+  # features <- tibble("Node" = features)
+  # 
+
+  features <- features %>% 
+    mutate(group = if_else(Node %in% Maas.pd.pc.sig$feature & 
+                             Node %in% Maas.pd.hc.sig$feature, "BOTH",
+                           if_else(Node %in% Maas.pd.pc.sig$feature, "PC", 
+                                   if_else(Node %in% Maas.pd.hc.sig$feature, "HC",
+                                                   "None"))))
+  # Initiate vars for loop
+  n = 1
+  group2 <- c()
+  for (node in features$Node){
+    if (features$group[n] == "BOTH") {
+      if (filter(Maas.pd.pc.sig, feature == node)$coef  < 0 & 
+          filter(Maas.pd.hc.sig, feature == node)$coef  < 0) {
+        group2  = c(group2, "PD Enriched /PC & HC")
+      }  else if (filter(Maas.pd.pc.sig, feature == node)$coef > 0 & 
+                  filter(Maas.pd.hc.sig, feature == node)$coef  > 0) {
+        group2  = c(group2, "PD Depleted /PC & HC")
+      }
+    } else if (features$group[n] == "PC") {
+      if (filter(Maas.pd.pc.sig, feature == node)$coef < 0) {
+        group2  = c(group2, "PD Enriched /PC")
+      } else if (filter(Maas.pd.pc.sig, feature == node)$coef > 0) {
+        group2  = c(group2, "PD Depleted /PC")
+      }
+    } else if (features$group[n] == "HC") {
+      if (filter(Maas.pd.hc.sig, feature == node)$coef < 0) {
+        group2  = c(group2, "PD Enriched /HC")
+      }  else if (filter(Maas.pd.hc.sig, feature == node)$coef > 0) {
+        group2  = c(group2, "PD Depleted /HC")
+      }
+    } else if (features$group[n] == "Donor_Group") {
+      group2  = c(group2, "Donor_Group")
+    } else if (features$group[n] == "None") {
+      group2  = c(group2, "None")
+    } else {
+      group2 = c(group2, "error")
+    }
+    n = n + 1
   }
+  features$group_directional <- group2
+  return(features)
   
-  # Check process above
-  # taxa_names(obj)
+}
+
+#-------------------------------------------------------------------------------
+#                   DAF Summary Panel
+#-------------------------------------------------------------------------------
+
+plot_dafs <- function(obj.name, obj, cohort = "TBC", tag = ""){
   
-  ################################################################################# 
+  load("files/low_quality_samples.RData")
+
+  # # TROUBLE
+  # obj.name = "GOs.slim"
+  # obj = dat.object
+  # cohort = "Merged"
   
-  ### Visualization Transformations
-  # taxa_names(obj) <- gsub("s__", "", taxa_names(obj))
+  obj <- obj %>% 
+    subset_samples(donor_id %ni% low_qc[[1]])
+  
+  abund_rename <-
+    obj %>% 
+    abundances() %>% 
+    as.data.frame() %>% 
+    rownames_to_column() %>% 
+    decode_rfriendly_rows(passed_column = "rowname") %>% 
+    column_to_rownames(var = "fullnames") %>%
+    select(-rowname) %>% 
+    otu_table(taxa_are_rows=T)
+  my_sample_data <- meta(obj) %>% sample_data()
+  obj <- phyloseq(abund_rename, my_sample_data)
+  
+  
+  ## Color Schemes
+  cols.pdpc <- c("PD"= "#bfbfbf", "PC" = "#ed7d31")
+  cols.pdhc <- c("PD"= "#bfbfbf", "HC" = "#5b9bd5")
+  # Rims
+  cols.pdpc.rim <- c("PD"= "#494949", "PC" = "#c15811")
+  cols.pdhc.rim <- c("PD"= "#494949", "HC" = "#2e75b5")
+
+  # Normalization and Transformation
   dat_obj <- microbiome::transform(obj, "compositional")
-  ## ArcSinSqrt() Transformation
   otu_table(dat_obj) <- asin(sqrt(otu_table(dat_obj)))
   
-  
-  # # Distribution sanity check
-  # histogram(melt(abundances(dat_obj))$value)
-  # # ECDF plot slows analysis down 
-  # abund.melt <- melt(abundances(dat_obj))
-  # abund.melt <- mutate(abund.melt, group = if_else(grepl("HC", Var2), "HC", if_else(grepl("PC", Var2), "PC", "PD")))
-  # ggplot(abund.melt, aes(x=value, colour = group)) + stat_ecdf(geom = "step", pad = FALSE) +
-  #   labs(y = "ECDF")
-  
-  
-  
-  ############# data prep ############# 
   # PD v PC
   dat_pdpc = subset_samples(dat_obj, donor_group !="HC")
   abun.pdpc <- as.data.frame.matrix(abundances(dat_pdpc))
-  # PD v HC PAIRED
-  dat_pdhc = subset_samples(dat_obj, Paired !="No")
+  # PD v HC 
+  dat_pdhc = subset_samples(dat_obj, paired !="No")
   abun.pdhc <- as.data.frame.matrix(abundances(dat_pdhc))
   
-  
-  ### Read-in Maaslin Files - all features used in significance testing
-  Maas.pd.pc <- read_tsv(paste0("data/MaAsLin2_Analysis/", obj.name, "_PDvPC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
+  ### Read-in MaAsLin2 output
+  Maas.pd.pc <- read_tsv(paste0("data/MaAsLin2_Analysis/", cohort, "/", obj.name, "_PDvPC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
     filter(value == "Population Control")
-  Maas.pd.pc.sig <- Maas.pd.pc %>% filter(qval < 0.25)
+  Maas.pd.pc.sig <- Maas.pd.pc %>% filter(qval < 0.25) %>% 
+    decode_rfriendly_rows(passed_column = "feature") %>% 
+    select(-feature) %>%
+    dplyr::rename("feature"="fullnames")
   
-  Maas.pd.hc <- read_tsv(paste0("data/MaAsLin2_Analysis/", obj.name, "_PDvHC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
+  Maas.pd.hc <- read_tsv(paste0("data/MaAsLin2_Analysis/",  cohort, "/", obj.name, "_PDvHC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
     filter(value == "Household Control")
-  Maas.pd.hc.sig <- Maas.pd.hc %>% filter(qval < 0.25) 
+  Maas.pd.hc.sig <- Maas.pd.hc %>% filter(qval < 0.25) %>% 
+    decode_rfriendly_rows(passed_column = "feature") %>% 
+    select(-feature) %>%
+    dplyr::rename("feature"="fullnames")
   
-  if (obj.name == "Species") {
-    Maas.pd.pc.sig$feature <- gsub("s__", "", Maas.pd.pc.sig$feature)
-    Maas.pd.hc.sig$feature <- gsub("s__", "", Maas.pd.hc.sig$feature)
-  }
-  
-  ########################## Venn Diagram Plots ##########################
-  
-  v <- VennPlot(Maas.pd.pc.sig, Maas.pd.hc.sig, qval_threshold = 0.1)
+  #--------------------------------------
+  #           Venn Diagrams
+  #--------------------------------------
+
+  v <- VennPlot(Maas.pd.pc.sig, Maas.pd.hc.sig, qval_threshold = 0.25)
   
   # Save Venn Diagrams
   if (!is.null(v$venn_depleted)){
-    pdf(file = paste0("data/DAF_Analysis/DAF_", obj.name, "_VennDiagram_PD_depleted.pdf"),
+    pdf(file = paste0("data/DAF_Analysis/", cohort, "/DAF_", obj.name, "_VennDiagram_PD_depleted.pdf"),
         width = 7, 
         height = 5,
         pointsize = 12)
-    # units = "in", pointsize = 12, res=300)
     plot(v$venn_depleted)
     dev.off()
   }
   
   if (!is.null(v$venn_enriched)){
-    pdf(file = paste0("data/DAF_Analysis/DAF_", obj.name, "_VennDiagram_PD_enriched.pdf"),
+    pdf(file = paste0("data/DAF_Analysis/", cohort, "/DAF_", obj.name, "_VennDiagram_PD_enriched.pdf"),
         width = 7, 
         height = 5,
         pointsize = 12)
-    # units = "in", pointsize = 12, res=300)
     plot(v$venn_enriched)
     dev.off()
   }
   
-  #############################################################################
+  #--------------------------------------
   
-  ## For plotting select top 50 features by qval rank
-  
+  # Select top 50 features by q-value
   if (nrow(Maas.pd.pc.sig) > 25){
     Maas.pd.pc.sig <- Maas.pd.pc.sig[1:25,]
   }
@@ -554,22 +704,29 @@ DAF_Analysis <- function(obj.name, obj){
     Maas.pd.hc.sig <- Maas.pd.hc.sig[1:25,]
   }
   
-  ### select significant features from abundance tables 
+  # Pull significant features from abundance tables 
   # PD v PC
-  abun.pdpc <- rownames_to_column(abun.pdpc)
-  abun.pdpc.inpt <- filter(abun.pdpc, rowname %in% Maas.pd.pc.sig$feature) %>% column_to_rownames(var="rowname") %>% 
-    t() %>% melt() %>% mutate(group = if_else(grepl(".PC", Var1), "PC", "PD"))
+  abun.pdpc.inpt <-
+    abun.pdpc %>% 
+    rownames_to_column() %>% 
+    filter(rowname %in% Maas.pd.pc.sig$feature) %>%
+    column_to_rownames(var = "rowname") %>%
+    t() %>% melt() %>% 
+    mutate(group = if_else(grepl("PC", Var1), "PC", "PD"))
   # PD v HC PAIRED
-  abun.pdhc <- rownames_to_column(abun.pdhc)
-  abun.pdhc.inpt <- filter(abun.pdhc, rowname %in% Maas.pd.hc.sig$feature) %>% column_to_rownames(var="rowname")  %>% 
-    t() %>% melt() %>% mutate(group = if_else(grepl(".HC", Var1), "HC", "PD"))
+  abun.pdhc.inpt <- 
+    abun.pdhc %>% 
+    rownames_to_column() %>% 
+    filter(rowname %in% Maas.pd.hc.sig$feature) %>%
+    column_to_rownames(var = "rowname") %>%
+    t() %>% melt() %>% 
+    mutate(group = if_else(grepl("HC", Var1), "HC", "PD"))
   
+  #--------------------------------------------------------------------------
+  #                              PD v PC Plots 
+  #--------------------------------------------------------------------------
   
-  #############################################################################
-  ##########################     PD v PC Plots       ##########################
-  #############################################################################
-  
-  # Subset of phlyoseq obj subset to get samples of interest
+  # Subset of phyloseq obj subset to get samples of interest
   dat_pdpc.PD = subset_samples(dat_pdpc, donor_group =="PD")
   dat_pdpc.PDabun <- as.data.frame.matrix(abundances(dat_pdpc.PD)) %>% 
     rownames_to_column() %>%  filter(rowname %in% Maas.pd.pc.sig$feature) %>% column_to_rownames()
@@ -608,11 +765,11 @@ DAF_Analysis <- function(obj.name, obj){
   ## Prepping Significance labels
   abun.pdpc.inpt <- daf_boxplot_sigvalues(sigplot.df.pdpc, abun.pdpc.inpt)
   abun.pdpc.inpt$Var2 <- factor(abun.pdpc.inpt$Var2, levels = PDovrPC.order$feature) 
-  g1 <- daf_boxplots(abun.pdpc.inpt, cols.pdpc, alfa = 0.2)
+  g1 <- daf_boxplots(abun.pdpc.inpt, fill_cols = cols.pdpc, rim_cols = cols.pdpc.rim, alfa = 0.2, obj.name = obj.name)
   
   
   ###### Prevalence Plot ######
-  # Subset of phlyoseq obj subset to get samples of interest
+  # Subset of phyloseq obj subset to get samples of interest
   dat_pdpc.PD = subset_samples(dat_pdpc, donor_group =="PD")
   dat_pdpc.PDprev <- tibble::enframe(prevalence(dat_pdpc.PD)) %>% filter(name %in% Maas.pd.pc.sig$feature) 
   colnames(dat_pdpc.PDprev) <- c("feature", "PD")
@@ -625,13 +782,11 @@ DAF_Analysis <- function(obj.name, obj){
   g3 <- prevalence_barplot(dat_pdpc.PREV, cols.pdpc, alfa = 0.2)
   
   
+  #--------------------------------------------------------------------------
+  #                              PD v HC Plots 
+  #--------------------------------------------------------------------------
   
-  #############################################################################
-  ##########################     PD v HC Plots       ##########################
-  #############################################################################
-  
-  
-  # Subset of phlyoseq obj subset to get samples of interest
+  # Subset of phyloseq obj subset to get samples of interest
   dat_pdhc.PD = subset_samples(dat_pdhc, donor_group =="PD")
   dat_pdhc.PDabun <- as.data.frame.matrix(abundances(dat_pdhc.PD))  %>% 
     rownames_to_column() %>%  filter(rowname %in% Maas.pd.hc.sig$feature) %>% column_to_rownames()
@@ -664,7 +819,7 @@ DAF_Analysis <- function(obj.name, obj){
   
   
   ###### Significance Plot ###### 
-  sigplot.df.pdhc <- dplyr::select(Maas.pd.hc.sig, c("feature", "pval", "qval")) %>%  melt()
+  sigplot.df.pdhc <- dplyr::select(Maas.pd.hc.sig, c("feature", "pval", "qval")) %>% melt()
   sigplot.df.pdhc$feature <- factor(sigplot.df.pdhc$feature, levels = PDovrHC.order$feature) 
   h2 <- significance_barplot(sigplot.df.pdhc)
   
@@ -673,11 +828,11 @@ DAF_Analysis <- function(obj.name, obj){
   ## Prepping Significance labels
   abun.pdhc.inpt <- daf_boxplot_sigvalues(sigplot.df.pdhc, abun.pdhc.inpt)
   abun.pdhc.inpt$Var2 <- factor(abun.pdhc.inpt$Var2, levels = PDovrHC.order$feature)
-  h1 <- daf_boxplots(abun.pdhc.inpt, cols.pdhc, alfa = 0.2)
+  h1 <- daf_boxplots(abun.pdhc.inpt, fill_cols = cols.pdhc, rim_cols = cols.pdhc.rim, alfa = 0.2, obj.name = obj.name)
   
   
   ###### Prevalence Plot ######
-  # Subset of phlyoseq obj subset to get samples of interest
+  # Subset of phyloseq obj subset to get samples of interest
   dat_pdhc.PDprev <- tibble::enframe(prevalence(dat_pdhc.PD)) %>% filter(name %in% Maas.pd.hc.sig$feature) 
   colnames(dat_pdhc.PDprev) <- c("feature", "PD")
   dat_pdhc.HCprev <- tibble::enframe(prevalence(dat_pdhc.HC)) %>% filter(name %in% Maas.pd.hc.sig$feature)
@@ -687,18 +842,16 @@ DAF_Analysis <- function(obj.name, obj){
   dat_pdhc.PREV$variable <- factor(dat_pdhc.PREV$variable, levels = c("HC", "PD"))
   h3 <- prevalence_barplot(dat_pdhc.PREV, cols.pdhc, alfa = 0.2)
   
+  #--------------------------------------------------------------------------
+  #                            Merge figures
+  #--------------------------------------------------------------------------
   
-  #############################################################################
-  #############################################################################
-  
-  
-  ###### Merge Panels ###### 
-  h0a <- h0 + theme(axis.text.y = element_blank(), legend.position = c(.80, .85))
+  h0a <- h0 + theme(axis.text.y = element_blank())
   h1a <- h1 + theme(legend.position = "none", axis.text.y = element_text(face = "italic"))
   h2a <- h2 + theme(axis.text.y = element_blank(), legend.position = c(.90, .85))
   h3a <- h3 + theme(axis.text.y = element_blank(), legend.position = "none")
   
-  g0a <- g0 + theme(axis.text.y = element_blank(), legend.position = c(.80, .80))
+  g0a <- g0 + theme(axis.text.y = element_blank())
   g1a <- g1 + theme(legend.position = "none", axis.text.y = element_text(face = "italic"))
   g2a <- g2 + theme(axis.text.y = element_blank(), legend.position = c(.90, .35))
   g3a <- g3 + theme(axis.text.y = element_blank(), legend.position = "none")
@@ -711,20 +864,202 @@ DAF_Analysis <- function(obj.name, obj){
   # Setting plot length variables - 
   top_len <- length(unique(PDovrPC.BP$feature)) + 2
   bottom_len <- length(unique(PDovrHC.BP$feature)) + 2.5
-  
-  
   DAF_part1 <- cowplot::plot_grid(g1a, h1a, nrow = 2, align = "hv", labels = "AUTO",
                                   rel_heights = c(top_len, bottom_len))
-  # DAF_part1
-  
   DAF_part2 <- cowplot::plot_grid(g2a, g3a, g0a, h2a, h3a, h0a, nrow = 2, ncol=3, align = "h", 
-                                  rel_heights = c(top_len, bottom_len) )
-  # DAF_part2
-  
+                                  rel_heights = c(top_len, bottom_len),
+                                  rel_widths = c(1, 1, 1.5))
   DAF_final <- cowplot::plot_grid(DAF_part1, DAF_part2, ncol = 2, rel_widths = c(1.5, 1))
   print(DAF_final)
   
-  ggsave(DAF_final, filename = paste0("data/DAF_Analysis/DAF_", obj.name, "_PDvHC_MaaslinSig.svg"),
+  ggsave(DAF_final, filename = paste0("data/DAF_Analysis/", cohort, "/DAF_", obj.name, tag, ".svg"),
          width = 20, height = (top_len+bottom_len)/3)
 }
+
+
+#-------------------------------------------------------------------------------
+#                   DAF fold change summary plot
+#-------------------------------------------------------------------------------
+
+plot_daf_summary <- function(obj.name, obj, cohort = "TBC", tag = "", 
+                             repelyup = 0, repelydn = 0){
+  
+  # # TROUBLESHOOTING
+  # obj.name = "KOs.slim"
+  # obj = dat.KOs.slim 
+  # cohort = "Merged"
+  # repelyup = 0.0025
+  # repelydn = 0.005
+  
+  
+  # Normalization and Transformation
+  dat_obj <- obj %>% 
+    subset_samples(donor_id %ni% low_qc[[1]]) %>% 
+    microbiome::transform("compositional")
+  otu_table(dat_obj) <- asin(sqrt(otu_table(dat_obj)))
+  
+  # PD v PC
+  dat_pdpc = subset_samples(dat_obj, donor_group !="HC")
+  abun.pdpc <- as.data.frame.matrix(abundances(dat_pdpc))
+  # PD v HC
+  dat_pdhc = subset_samples(dat_obj, paired !="No")
+  abun.pdhc <- as.data.frame.matrix(abundances(dat_pdhc))
+  
+  ### Read-in MaAsLin2 output
+  Maas.pd.pc <- read_tsv(paste0("data/MaAsLin2_Analysis/", cohort, "/", 
+                                obj.name, "_PDvPC_maaslin2_output/all_results.tsv"), col_names = T) %>%
+    filter(value == "Population Control")
+  Maas.pd.pc.sig <- Maas.pd.pc %>%
+    filter(qval < 0.25)
+  
+  Maas.pd.hc <- read_tsv(paste0("data/MaAsLin2_Analysis/",  cohort, "/", 
+                                obj.name, "_PDvHC_maaslin2_output/all_results.tsv"), col_names = T) %>%
+    filter(value == "Household Control")
+  Maas.pd.hc.sig <- Maas.pd.hc %>%
+    filter(qval < 0.25)
+  
+  # Join MaAsLin stats to select most significant features
+  q.stats <- left_join(Maas.pd.pc, Maas.pd.hc, by = "feature") %>% 
+    dplyr::mutate(q.average = (qval.x + qval.y)/2 ) %>% 
+    select(feature, q.average)
+  
+  #--------------------------------------------------------------------------
+  #                              PD v PC gFC
+  #--------------------------------------------------------------------------
+  
+  # # Subset of phyloseq obj subset to get samples of interest
+  # dat_pdpc.PD = subset_samples(dat_pdpc, donor_group =="PD")
+  # dat_pdpc.PDabun <- as.data.frame.matrix(abundances(dat_pdpc.PD))
+  # dat_pdpc.PC = subset_samples(dat_pdpc, donor_group =="PC")
+  # dat_pdpc.PCabun <- as.data.frame.matrix(abundances(dat_pdpc.PC))
+  # 
+  # ######  Generalized or pseudo-fold calculation  ######
+  # gfc_data <- generalized_fold_change(dat_pdpc.PDabun, dat_pdpc.PCabun)
+  # PDovrPC <- tibble("feature" = rownames(dat_pdpc.PCabun), "gFC_PDvsPC" = gfc_data)
+  # 
+  pdpc.stats1 <- 
+    dat_pdpc %>% 
+    abundances() %>% 
+    t() %>% 
+    as.data.frame() %>% 
+    rownames_to_column(var = "id")
+  PDovrPC <- 
+    pdpc.stats1 %>% 
+    group_col_from_ids(ids = pdpc.stats1$id) %>% 
+    gather(-c(id, group), key=feature, value=Abundance) %>% 
+    dplyr::group_by(group, feature) %>% 
+    dplyr::summarise(mean = mean(Abundance), median = median(Abundance)) %>% 
+    pivot_wider(names_from = group, values_from = c(mean, median)) %>% 
+    mutate(pc_median_l2fc = log2( (median_PD + 1) / (median_PC + 1) )) %>% 
+    mutate(pc_mean_l2fc = log2( (mean_PD + 1) / (mean_PC + 1) ))
+  
+  #--------------------------------------------------------------------------
+  #                              PD v HC gFC
+  #--------------------------------------------------------------------------
+  
+  # # Subset of phyloseq obj subset to get samples of interest
+  # dat_pdhc.PD = subset_samples(dat_pdhc, donor_group =="PD")
+  # dat_pdhc.PDabun <- as.data.frame.matrix(abundances(dat_pdhc.PD))
+  # dat_pdhc.HC = subset_samples(dat_pdhc, donor_group =="HC")
+  # dat_pdhc.HCabun <- as.data.frame.matrix(abundances(dat_pdhc.HC)) 
+  # 
+  # ######  Generalized or pseudo-fold change
+  # gfc_data <- generalized_fold_change(pd_abundance=dat_pdhc.PDabun,
+  #                                     ctrl_abundances=dat_pdhc.HCabun)
+  # PDovrHC <- tibble("feature" = rownames(dat_pdhc.PDabun), "gFC_PDvsHC" = gfc_data)
+  
+  pdhc.stats1 <- 
+    dat_pdhc %>% 
+    abundances() %>% 
+    t() %>% 
+    as.data.frame() %>% 
+    rownames_to_column(var = "id")
+  PDovrHC <- 
+    pdhc.stats1 %>% 
+    group_col_from_ids(ids = pdhc.stats1$id) %>% 
+    gather(-c(id, group), key=feature, value=Abundance) %>% 
+    dplyr::group_by(group, feature) %>% 
+    dplyr::summarise(mean = mean(Abundance), median = median(Abundance)) %>% 
+    pivot_wider(names_from = group, values_from = c(mean, median)) %>% 
+    mutate(hc_median_l2fc = log2( (median_PD + 1) / (median_HC + 1) )) %>% 
+    mutate(hc_mean_l2fc = log2( (mean_PD + 1) / (mean_HC + 1) ))
+  
+  
+  #--------------------------------------------
+  #           Plots
+  #--------------------------------------------
+  
+  # Table for shared depleted or enriched features labels
+  features <- taxa_names(obj)
+  features <- tibble("Node" = features)
+  
+  obj_cols <- daf_group_colors(features = features, 
+                               Maas.pd.pc.sig = Maas.pd.pc.sig, 
+                               Maas.pd.hc.sig = Maas.pd.hc.sig) %>% 
+    dplyr::rename(feature = Node)
+  
+  obj.plot <- left_join(PDovrHC, PDovrPC,  by = "feature") %>% 
+    left_join(obj_cols, by = "feature") %>% 
+    left_join(q.stats, by = "feature")
+  
+  obj.plot.label <- 
+    obj.plot %>% 
+    dplyr::filter(group != "None") %>% 
+    top_n(10, wt=-q.average) %>% 
+    decode_rfriendly_rows(passed_column = "feature")
+  
+  pal.color <-
+    c(
+      "BOTH" = "#2ca02c",
+      "PD" = "#bfbfbf",
+      "PC" = "#ed7d31",
+      "HC" = "#5b9bd5"
+    )
+  
+  obj.plot.sig <- obj.plot %>% 
+    dplyr::filter(group != "None")
+  obj.plot.nonsig <- obj.plot %>% 
+    dplyr::filter(group == "None")
+    
+  gFC_diff_plot <- 
+    ggplot() +
+    geom_point(data = obj.plot.nonsig,
+               aes(x = hc_mean_l2fc, y = pc_mean_l2fc), 
+               alpha = 0.2, color = "grey") +
+    geom_point(data = obj.plot.sig,
+               aes(x = hc_mean_l2fc, y = pc_mean_l2fc, color = group), 
+               alpha = 0.7) +
+    theme_bw() +
+    geom_abline(intercept = 0, slope = 1, linetype = 3, color = "darkgrey") +
+    geom_abline(intercept = 0, slope = -1, linetype = 3, color = "darkgrey") +
+    geom_vline(xintercept = 0, linetype = 1, color = "grey") +
+    geom_hline(yintercept = 0, linetype = 1, color = "grey") +
+    labs(x = expression(paste("log"[10] * '(PD/HC)')),
+         y = expression(paste("log"[10] * '(PD/PC)')),
+         title = obj.name,
+         color = "Feature \nAssociation") +
+    scale_color_manual(values = pal.color) +
+    geom_text_repel(data = obj.plot.label,
+                    aes(x = hc_mean_l2fc, y = pc_mean_l2fc, label = fullnames), 
+                    segment.alpha = 0.5,
+                    segment.size = 0.2, 
+                    size = 1.75,
+                    force = 1,
+                    max.time = 1,
+                    max.iter = Inf,
+                    nudge_y = ifelse(obj.plot.label$pc_mean_l2fc > 0, repelyup, 
+                                     ifelse(obj.plot.label$pc_mean_l2fc < 0, -repelydn, 0)),
+                    max.overlaps = Inf) +
+    theme(panel.grid = element_blank(),
+          plot.title = element_text(hjust = 0.5))
+  
+  print(gFC_diff_plot)
+
+  ggsave(gFC_diff_plot, filename = paste0("data/DAF_Analysis/", cohort, "/DAF_", obj.name, tag, ".png"),
+         width = 6, height = 5)
+}
+
+
+
+
 

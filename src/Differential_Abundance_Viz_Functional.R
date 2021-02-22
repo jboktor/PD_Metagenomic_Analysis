@@ -19,8 +19,8 @@ load("files/GMMs_PhyloseqObj.RData")
 ########################### SWAP FUNCTION LEVEL HERE: ########################### 
 ################################################################################# 
 
-LEV <- Phylo_Objects$KOs.slim
-lev <- "KOs.slim"
+dat <- Phylo_Objects$KOs.slim
+obj.name <- "KOs.slim"
 
 ################################################################################# 
 
@@ -33,45 +33,45 @@ cols.pdhc.rim <- c("PD"= "#494949", "HC" = "#2e75b5")
 
 
 # To protect against row/colname errors 
-if (lev == "Pathways"| lev == "Pathways.slim") {
-  features <- paste0("PATHWAY_", taxa_names(LEV)) 
+if (obj.name == "Pathways"| obj.name == "Pathways.slim") {
+  features <- paste0("PATHWAY_", taxa_names(dat)) 
   features <- gsub(":", ".", features)
   features <- gsub("\\|", ".", features)
   features <- gsub(" ", "_", features)
   features <- gsub("-", "_", features)
-  taxa_names(LEV) <- features
-} else if (lev == "Enzymes" | lev == "Enzymes.slim") {
-  features <- paste0("ENZYME_", taxa_names(LEV)) 
+  taxa_names(dat) <- features
+} else if (obj.name == "Enzymes" | obj.name == "Enzymes.slim") {
+  features <- paste0("ENZYME_", taxa_names(dat)) 
   features <- gsub(":", ".", features)
   features <- gsub("\\|", ".", features)
   features <- gsub(" ", "_", features)
   features <- gsub("-", "_", features)
-  taxa_names(LEV) <- features
-} else if (lev == "Species") {
-  taxa_names(LEV) <- gsub("s__", "", taxa_names(LEV))
-} else if (lev == "GMMs" | lev == "GBMs" ) {
-  features <- gsub(" ", ".", taxa_names(LEV))
+  taxa_names(dat) <- features
+} else if (obj.name == "Species") {
+  taxa_names(dat) <- gsub("s__", "", taxa_names(dat))
+} else if (obj.name == "GMMs" | obj.name == "GBMs" ) {
+  features <- gsub(" ", ".", taxa_names(dat))
   features <- gsub(" ", ".", features)
   features <- gsub(":", ".", features)
   features <- gsub("-", ".", features)
-  taxa_names(LEV) <- gsub("/", ".", features)
+  taxa_names(dat) <- gsub("/", ".", features)
   } else {
-  features <- taxa_names(LEV)
+  features <- taxa_names(dat)
   features <- gsub(":", ".", features)
   features <- gsub("\\|", ".", features)
   features <- gsub(" ", "_", features)
   features <- gsub("-", "_", features)
-  taxa_names(LEV) <- features
+  taxa_names(dat) <- features
   }
 
 # Check process above
-# taxa_names(LEV)
+# taxa_names(dat)
 
 ################################################################################# 
 
 ### Visualization Transformations
-# taxa_names(LEV) <- gsub("s__", "", taxa_names(LEV))
-dat_obj <- microbiome::transform(LEV, "compositional")
+# taxa_names(dat) <- gsub("s__", "", taxa_names(dat))
+dat_obj <- microbiome::transform(dat, "compositional")
 ## ArcSinSqrt() Transformation
 otu_table(dat_obj) <- asin(sqrt(otu_table(dat_obj)))
 
@@ -96,15 +96,15 @@ abun.pdhc <- as.data.frame.matrix(abundances(dat_pdhc))
 
 
 ### Read-in Maaslin Files - all features used in significance testing
-Maas.pd.pc <- read_tsv(paste0("data/MaAsLin2_Analysis/", lev, "_PDvPC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
+Maas.pd.pc <- read_tsv(paste0("data/MaAsLin2_Analysis/", obj.name, "_PDvPC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
   filter(value == "Population Control")
 Maas.pd.pc.sig <- Maas.pd.pc %>% filter(qval < 0.25)
 
-Maas.pd.hc <- read_tsv(paste0("data/MaAsLin2_Analysis/", lev, "_PDvHC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
+Maas.pd.hc <- read_tsv(paste0("data/MaAsLin2_Analysis/", obj.name, "_PDvHC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
   filter(value == "Household Control")
 Maas.pd.hc.sig <- Maas.pd.hc %>% filter(qval < 0.25) 
 
-if (lev == "Species") {
+if (obj.name == "Species") {
   Maas.pd.pc.sig$feature <- gsub("s__", "", Maas.pd.pc.sig$feature)
   Maas.pd.hc.sig$feature <- gsub("s__", "", Maas.pd.hc.sig$feature)
 }
@@ -115,7 +115,7 @@ v <- VennPlot(Maas.pd.pc.sig, Maas.pd.hc.sig, qval_threshold = 0.25)
 
 # Save Venn Diagrams
 if (!is.null(v$venn_depleted)){
-  pdf(file = paste0("data/DAF_Analysis/DAF_", lev, "_VennDiagram_PD_depleted.pdf"),
+  pdf(file = paste0("data/DAF_Analysis/DAF_", obj.name, "_VennDiagram_PD_depleted.pdf"),
       width = 7, 
       height = 5,
       pointsize = 12)
@@ -125,7 +125,7 @@ if (!is.null(v$venn_depleted)){
 }
 
 if (!is.null(v$venn_enriched)){
-  pdf(file = paste0("data/DAF_Analysis/DAF_", lev, "_VennDiagram_PD_enriched.pdf"),
+  pdf(file = paste0("data/DAF_Analysis/DAF_", obj.name, "_VennDiagram_PD_enriched.pdf"),
       width = 7, 
       height = 5,
       pointsize = 12)
@@ -315,7 +315,7 @@ DAF_part2 <- cowplot::plot_grid(g2a, g3a, g0a, h2a, h3a, h0a, nrow = 2, ncol=3, 
 DAF_final <- cowplot::plot_grid(DAF_part1, DAF_part2, ncol = 2, rel_widths = c(1.5, 1))
 # DAF_final
 
-ggsave(DAF_final, filename = paste0("data/DAF_Analysis/DAF_", lev, ".svg"),
+ggsave(DAF_final, filename = paste0("data/DAF_Analysis/DAF_", obj.name, ".svg"),
        width = 20, height = (top_len+bottom_len)/3)
 
 
