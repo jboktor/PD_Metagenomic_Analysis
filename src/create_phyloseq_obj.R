@@ -4,22 +4,23 @@ source("src/load_packages.R")
 source("src/miscellaneous_funcs.R")
 source("src/metaphlanToPhyloseq_Waldron.R")
 
-negative_controls <- c("S00A4-ATCC_MSA_1003_S96", 
-                       "S00A4-neg2_S119", 
-                       "S00A4-neg3_S125",
-                       "S00A4-neg_S118", 
-                       "S00A4NegExt_P00A4_S94", 
-                       "S00A4NegH2O_P00A4_S95",
-                       "S00A4_stagPos_S117", 
-                       "BLANK")
+negative_controls <- c(
+  "S00A4-ATCC_MSA_1003_S96",
+  "S00A4-neg2_S119",
+  "S00A4-neg3_S125",
+  "S00A4-neg_S118",
+  "S00A4NegExt_P00A4_S94",
+  "S00A4NegH2O_P00A4_S95",
+  "S00A4_stagPos_S117",
+  "BLANK"
+)
 
 #---------------------------------------------------------- 
 #-                 Metadata Prep - TBC   
 #---------------------------------------------------------- 
-metadata_TBC <- read.csv(file = "files/metadata_phyloseq_TBC.csv", header= TRUE) 
-rownames(metadata_TBC) <- metadata_TBC$donor_id
-metadata_TBC <- as.data.frame(metadata_TBC)
-metadata_TBC[is.na(metadata_TBC)] <- "not provided"
+metadata_TBC <- 
+  read.csv(file = "files/metadata_phyloseq_TBC.csv", header= TRUE) %>% 
+  mutate(TBC_Subject_ID = format(TBC_Subject_ID, scientific=F))
 
 TBC_keys <- read.csv(file = "files/metadata_keys.csv", header= TRUE) %>% 
   dplyr::select(c(MBI_Sample_ID, id)) %>% 
@@ -30,6 +31,28 @@ TBC_keys <- read.csv(file = "files/metadata_keys.csv", header= TRUE) %>%
 TBC_keymap <- TBC_keys$MBI_Sample_ID
 names(TBC_keymap) <- TBC_keys$id
 
+#load MDS-Survey data and merge with core metadata
+select_val <- function(x, na.rm = FALSE) substr(x, start = 0, stop = 1)
+
+MDSUPDRS <- 
+  read.csv(file = "files/MDSUPDRS_20210217.csv", header= T) %>%
+  # read.csv(file = "files/MDSUPDRS_20200831.csv", header= T) %>%
+  dplyr::select(-who_is_filling_out_survey) %>% 
+  mutate_at(vars(-TBC_Subject_ID), select_val) %>% 
+  mutate_at(vars(-TBC_Subject_ID), as.numeric) %>% 
+  mutate(TBC_Subject_ID = format(TBC_Subject_ID, scientific=F)) %>% 
+  rowwise() %>% 
+  mutate(mds_updrs_survey_total = sum(c_across(where(is.numeric)),na.rm = TRUE))
+
+reads.TBC <- load_reads("TBC")
+
+# Merged MDS-UDPRS Part I & II Survey scores with TBC data
+metadata_TBC <-
+  left_join(metadata_TBC, MDSUPDRS, by = "TBC_Subject_ID") %>% 
+  left_join(reads.TBC, by = "donor_id")
+rownames(metadata_TBC) <- metadata_TBC$donor_id
+metadata_TBC <- as.data.frame(metadata_TBC)
+metadata_TBC[is.na(metadata_TBC)] <- "not provided"
 
 #---------------------------------------------------------- 
 #-                TBC -  Taxonomy 
@@ -357,9 +380,6 @@ dat.EGGNOGs.slim.TBC <- dat.EGGNOGs.slim
 #---------------------------------------------------------- 
 
 metadata_RUSH <- read.csv(file = "files/metadata_phyloseq_RUSH.csv", header= TRUE) 
-rownames(metadata_RUSH) <- metadata_RUSH$donor_id
-metadata_RUSH <- as.data.frame(metadata_RUSH)
-metadata_RUSH[is.na(metadata_RUSH)] <- "not provided"
 
 RUSH_keys <- 
   metadata_RUSH %>% 
@@ -370,6 +390,12 @@ RUSH_keys <-
 RUSH_keymap <- RUSH_keys$host_subject_id
 names(RUSH_keymap) <- RUSH_keys$donor_id
 
+reads.RUSH <- load_reads("RUSH")
+metadata_RUSH <- left_join(metadata_RUSH, reads.RUSH, by = "donor_id")
+
+rownames(metadata_RUSH) <- metadata_RUSH$donor_id
+metadata_RUSH <- as.data.frame(metadata_RUSH)
+metadata_RUSH[is.na(metadata_RUSH)] <- "not provided"
 
 #---------------------------------------------------------- 
 #-                RUSH -  Taxonomy 
@@ -420,7 +446,7 @@ dat.kingdom = tax_glom(dat.species, taxrank = "Kingdom", NArm = F)
 taxa_names(dat.kingdom) <- tax_table(dat.kingdom)[,1]
 save(dat.kingdom, file = "files/Phyloseq_RUSH/Kingdom_PhyloseqObj.RData")
 
-#---------------------------------------------------------- 
+#-------------------- -------------------------------------- 
 #                   RUSH -  Pathways 
 #---------------------------------------------------------- 
 
@@ -677,6 +703,7 @@ dat.order.RUSH <- dat.order
 dat.family.RUSH <- dat.family
 dat.genus.RUSH <- dat.genus
 dat.species.RUSH <- dat.species
+
 dat.path.RUSH <- dat.path
 dat.path.slim.RUSH <- dat.path.slim
 dat.ec.RUSH <- dat.ec
@@ -705,6 +732,7 @@ dat.order <- merge_phyloseq(dat.order.TBC, dat.order.RUSH)
 dat.family <- merge_phyloseq(dat.family.TBC, dat.family.RUSH)
 dat.genus <- merge_phyloseq(dat.genus.TBC, dat.genus.RUSH)
 dat.species <- merge_phyloseq(dat.species.TBC, dat.species.RUSH)
+
 dat.path <- merge_phyloseq(dat.path.TBC, dat.path.RUSH)
 dat.path.slim <- merge_phyloseq(dat.path.slim.TBC, dat.path.slim.RUSH)
 dat.ec <- merge_phyloseq(dat.ec.TBC, dat.ec.RUSH)
