@@ -25,35 +25,45 @@
 # 
 
 #-------------------------------------------------------------------------
-#               LME and LM models 
+#               LMER and LM models 
 #-------------------------------------------------------------------------
 
-lm.PdPc <- function(metadf, metric){
+lm.PdPc <- function(metadf, metric, cohort){
   ###' Function conducts Linear Model for PD vs PC
   env.PdPc <- filter(metadf, donor_group != "HC")
-  formula <- as.formula(
-    paste(metric, "~", paste(c("description", "host_age_factor", "host_body_mass_index", "sex"), collapse="+") ) )
-  
-  linear.model <- lm(formula, data=env.PdPc, na.action = na.omit)
+  if (cohort == "Merged"){
+    formula <- as.formula(
+      paste(metric, "~", paste(c("description", "host_age_factor", "host_body_mass_index", "sex", "(1|cohort)"), collapse = "+")))
+    model <- lmer(formula, data = metadf, REML = T, na.action = na.exclude)
+  } else {
+    formula <- as.formula(
+      paste(metric, "~", paste(c("description", "host_age_factor", "host_body_mass_index", "sex"), collapse="+") ) )
+    model <- lm(formula, data=metadf, na.action = na.omit)
+  }
   # print(plot_model(linear.model, show.values = TRUE, value.offset = .3))
-  # plot(linear.model)
+  # print(plot(model))
   # dev.off()
-  return(linear.model)
+  return(model)
 }
 
-lmm.PdHc <- function(metadf, metric){
+lmm.PdHc <- function(metadf, metric, cohort){
   ###' Function conducts Linear Mixed Model for PD vs HC
-  env.PdHc <- filter(metadf, Paired.plot < 30)
-  env.PdHc$description <- factor(env.PdHc$description, levels = c("PD Patient", "Household Control"))
-  # env.PdHc$description <- relevel(env.PdHc$description, ref = "Household Control")
-  # formula and model
-  formula <- as.formula(paste(metric, "~", paste(c("description"))))
-  lmm <- lme(formula, random= ~ 1 | Paired, data=env.PdHc, na.action = na.omit)
-  qqnorm(resid(lmm))
-  qqline(resid(lmm))
-  print(plot(ranef(lmm))) # Random Effect Plot
-  print(plot(lmm)) # Plot Model
-  return(lmm)
+  metadf$description <- factor(metadf$description, levels = c("PD Patient", "Household Control"))
+  
+  if (cohort == "Merged"){
+    formula <- as.formula(
+      paste(metric, "~", paste(c("description", "(1|cohort:paired)"), collapse = "+")))
+    model <- lmer(formula, data = metadf, REML = T, na.action = na.exclude)
+  } else {  
+  formula <- as.formula(
+    paste(metric, "~", paste(c("description", "(1|paired)"), collapse = "+")))
+  model <- lmer(formula, data = metadf, REML = T, na.action = na.exclude)
+  }
+  # qqnorm(resid(model))
+  # qqline(resid(model))
+  # print(plot(ranef(model))) # Random Effect Plot
+  # print(plot(model)) # Plot Model
+  return(model)
 }
 
 #-------------------------------------------------------------------------
