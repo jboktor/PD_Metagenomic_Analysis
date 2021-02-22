@@ -8,14 +8,162 @@
 cols.pdpc <- c("PD"= "#bfbfbf", "PC" = "#ed7d31")
 cols.pdhc <- c("PD"= "#bfbfbf", "HC" = "#5b9bd5")
 cols.pdpchc <- c("PD"= "#bfbfbf", "PC" = "#ed7d31", "HC" = "#5b9bd5")
+cols.pdpchc.dark <- c("PD"= "#494949", "PC" = "#ed7d31", "HC" = "#5b9bd5")
+
 # Rims
 cols.pdpc.rim <- c("PD"= "#494949", "PC" = "#c15811")
 cols.pdhc.rim <- c("PD"= "#494949", "HC" = "#2e75b5")
 cols.pdpchc.rim <- c("PD"= "#494949", "PC" = "#c15811", "HC" = "#2e75b5")
 
+load_alphadiv_colors <- function(){ 
+  cols.pdpchc <- c("PD"= "#494949", 
+                   "PC" = "#ed7d31",
+                   "HC" = "#5b9bd5")
+  cols.pdpchc.rim <- c("PD"= "#494949", 
+                       "PC" = "#c15811",
+                       "HC" = "#2e75b5")
+  assign("cols.pdpchc", cols.pdpchc, envir = .GlobalEnv)
+  assign("cols.pdpchc.rim", cols.pdpchc.rim, envir = .GlobalEnv)
+  
+  }
+  
+load_betadiv_colors <- function(){
+  cols.pdpchc <- c("PD Patient"= "#bfbfbf", 
+                   "Population Control" = "#ed7d31",
+                   "Household Control" = "#5b9bd5")
+  cols.pdpchc.dark <- c("PD Patient"= "#494949", 
+                        "Population Control" = "#ed7d31",
+                        "Household Control" = "#5b9bd5")
+  cols.pdpchc.rim <- c("PD Patient"= "#494949", 
+                       "Population Control" = "#c15811",
+                       "Household Control" = "#2e75b5") 
+  
+  assign("cols.pdpchc", cols.pdpchc, envir = .GlobalEnv)
+  assign("cols.pdpchc.dark", cols.pdpchc.dark, envir = .GlobalEnv)
+  assign("cols.pdpchc.rim", cols.pdpchc.rim, envir = .GlobalEnv)
+}
+
+#-----------------------------------------------------------------------------------------------------------
+ # Remove Objects from environment
+
+remove_dats <- function() {
+  obj <- 
+    c("dat.species",
+      "dat.path",
+      "dat.ec",
+      "dat.KOs",
+      "dat.EGGNOGs",
+      "dat.PFAMs",
+      "dat.path.slim",
+      "dat.ec.slim",
+      "dat.KOs.slim",
+      "dat.EGGNOGs.slim",
+      "dat.PFAMs.slim")
+  withCallingHandlers(rm(list = obj), warning=function(w){invokeRestart("muffleWarning")})
+  }
 
 
+#--------------------------------------------------------------------------------------------------
+# Load number of clean sample reads
+#--------------------------------------------------------------------------------------------------
 
+# load_reads <- function(){
+#   func_reads <- read_tsv("files/humann2_read_and_species_count_table.tsv", col_names = T)
+#   reads <- dplyr::select(func_reads, c("# samples","total reads")) %>% 
+#     dplyr::rename( "id" = "# samples", "clean_total_reads" = "total reads")
+#   return(reads)
+# }
+
+load_reads <- function(cohort){
+  
+  negative_controls <- c("S00A4-ATCC_MSA_1003_S96", 
+                         "S00A4-neg2_S119", 
+                         "S00A4-neg3_S125",
+                         "S00A4-neg_S118", 
+                         "S00A4NegExt_P00A4_S94", 
+                         "S00A4NegH2O_P00A4_S95",
+                         "S00A4_stagPos_S117", 
+                         "BLANK")
+  
+  TBC_keys <- read.csv(file = "files/metadata_keys.csv", header= TRUE) %>% 
+    dplyr::select(c(MBI_Sample_ID, id)) %>% 
+    mutate(id = gsub("_", ".", id)) %>% 
+    mutate(MBI_Sample_ID = as.character(MBI_Sample_ID)) %>% 
+    mutate(id = as.character(id)) %>% 
+    dplyr::rename(`# samples` = MBI_Sample_ID)
+  
+  RUSH_keys <- read.csv(file = "files/metadata_phyloseq_RUSH.csv", header= TRUE) %>% 
+    dplyr::filter(study_group == "PD") %>% 
+    dplyr::select(donor_id, host_subject_id) %>% 
+    dplyr::mutate(donor_id = as.character(donor_id)) %>% 
+    dplyr::mutate(host_subject_id = as.character(host_subject_id)) %>% 
+    dplyr::rename(`# samples` = host_subject_id)
+  
+  if (cohort == "TBC"){
+    func_reads_TBC <-
+      read_tsv(
+        "files/TBC_biobakery_output_slim/humann/counts/humann_read_and_species_count_table.tsv",
+        col_names = T)
+    reads <- 
+      func_reads_TBC %>% 
+      dplyr::filter(`# samples` %ni%  negative_controls) %>% 
+      dplyr::mutate(`# samples` = substr(`# samples`, 1, 10)) %>% 
+      left_join(TBC_keys, by = "# samples") %>% 
+      dplyr::select(c("id","total reads")) %>% 
+      dplyr::rename("donor_id" = "id", "clean_total_reads" = "total reads") %>% 
+      return(reads)
+    
+  } else if (cohort == "RUSH") {
+    
+    func_reads_RUSH <-
+      read_tsv(
+        "files/RUSH_biobakery_output_slim/humann/counts/humann_read_and_species_count_table.tsv",
+        col_names = T)
+    reads <- 
+      func_reads_RUSH %>% 
+      dplyr::filter(str_detect(`# samples`, "BLANK", negate = TRUE)) %>% 
+      dplyr::filter(str_detect(`# samples`, "MSA", negate = TRUE)) %>% 
+      dplyr::mutate(`# samples` = substr(`# samples`, 1, 6)) %>% 
+      left_join(RUSH_keys, by = "# samples") %>% 
+      dplyr::select(c("donor_id", "total reads")) %>%
+      dplyr::rename("clean_total_reads" = "total reads")
+    return(reads)
+    
+  } else if (cohort == "Merged") {
+    
+    func_reads_TBC <-
+      read_tsv(
+        "files/TBC_biobakery_output_slim/humann/counts/humann_read_and_species_count_table.tsv",
+        col_names = T
+      )
+    reads_TBC <-
+      func_reads_TBC %>%
+      dplyr::filter(`# samples` %ni%  negative_controls) %>%
+      dplyr::mutate(`# samples` = substr(`# samples`, 1, 10)) %>%
+      left_join(TBC_keys, by = "# samples") %>%
+      dplyr::select(c("id", "total reads")) %>%
+      dplyr::rename("donor_id" = "id", "clean_total_reads" = "total reads") %>% 
+      dplyr::mutate(cohort = "TBC")
+    func_reads_RUSH <-
+      read_tsv(
+        "files/RUSH_biobakery_output_slim/humann/counts/humann_read_and_species_count_table.tsv",
+        col_names = T
+      )
+    reads_RUSH <-
+      func_reads_RUSH %>%
+      dplyr::filter(str_detect(`# samples`, "BLANK", negate = TRUE)) %>%
+      dplyr::filter(str_detect(`# samples`, "MSA", negate = TRUE)) %>%
+      dplyr::mutate(`# samples` = substr(`# samples`, 1, 6)) %>%
+      left_join(RUSH_keys, by = "# samples") %>%
+      dplyr::select(c("donor_id", "total reads")) %>%
+      dplyr::rename("clean_total_reads" = "total reads") %>% 
+      dplyr::mutate(cohort = "RUSH")
+    reads <- rbind(reads_TBC, reads_RUSH)
+    
+    return(reads)
+    
+  }
+}
 #-----------------------------------------------------------------------------------------------------------
 ######## p-value significance (integer to symbol function)
 
@@ -24,7 +172,9 @@ sig_mapper <- function(pval, shh = F, porq = "p", symbols = T) {
   ###' prints p-values if below significance
   
   if (symbols == T){
-    if (pval <= .001) {
+    if (is.na(pval)){
+      sigvalue = ""
+    } else if (pval <= .001) {
       sigvalue = "***"
     } else if (pval <= .01) {
       sigvalue = "**"
@@ -43,10 +193,10 @@ sig_mapper <- function(pval, shh = F, porq = "p", symbols = T) {
 
 #-----------------------------------------------------------------------------------------------------------
 
-sig.symbol.generator <- function(Column){
+sig.symbol.generator <- function(Column, porq = "p", shh = F){
   sig.symbol <- c()
   for (i in Column){
-    sig.symbol <- c(sig.symbol, sig_mapper(i))
+    sig.symbol <- c(sig.symbol, sig_mapper(i, porq = porq, shh = shh))
   }
   return(sig.symbol)
 }
@@ -149,8 +299,18 @@ prep_ko_names <- function(phylo_obj){
 #-----------------------------------------------------------------------------------------------------------
 
 group_col_from_ids <- function(df.in, ids){
-  df.out <- mutate(df.in, group = if_else(grepl("HC", ids), "HC",
+  df.out <- dplyr::mutate(df.in, group = if_else(grepl("HC", ids), "HC",
                                    if_else(grepl("PC", ids), "PC","PD")))
+  # rownames(df.out) <- rownames(df.in)
+  return(df.out)
+}
+
+group_col_from_ids2 <- function(df.in){
+  df.out <- 
+    df.in %>% 
+    dplyr::mutate(group = if_else(grepl("HC", donor_id), "HC",
+                                if_else(grepl("PC", donor_id), "PC", "PD")))
+  
   rownames(df.out) <- rownames(df.in)
   return(df.out)
 }
@@ -172,6 +332,30 @@ boxplot_all <- function(df, x, y, cols = group.cols, title = blank.title, ylabel
     theme_classic() +
     ggtitle(title) +
     labs(y = ylabel) +
+    scale_color_manual(values = cols, name ="Group") +
+    scale_fill_manual(values = cols, name ="Group") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.title.x = element_blank(),
+          panel.grid.major.y = element_blank())
+  
+}
+
+boxplot_all_facet <- function(df, x, y, cols = group.cols, title = blank.title, ylabel = blank.ylabel){
+  
+  blank.title = " "; blank.ylabel = " "
+  group.cols = c("PC"= "#ed7d31", "PD" = "#bfbfbf", "HC" = "#5b9bd5")
+  ###' Basic all group boxplot function with a cohort facet wrap
+  
+  set.seed(123)
+  plot <- 
+    ggplot(data=df, aes(x=x, y=y)) +
+    geom_boxplot(aes(color = x), outlier.alpha = 0, width = 0.9) +
+    geom_point(aes(fill = x), position = position_jitterdodge(jitter.width = 1), 
+               shape=21, size=1.5, alpha = 0.8) +
+    theme_classic() +
+    ggtitle(title) +
+    labs(y = ylabel) +
+    facet_wrap(~cohort) +
     scale_color_manual(values = cols, name ="Group") +
     scale_fill_manual(values = cols, name ="Group") +
     theme(plot.title = element_text(hjust = 0.5),
@@ -232,67 +416,6 @@ alpha_div_boxplots <- function(df, x, y,
     geom_signif(comparisons = list(c("PC", "PD")), annotations = sig_mapper(PDvPC.stat))
   return(p)
 }
-
-
-
-
-
-#-----------------------------------------------------------------------------------------------------------
-# Inspired by MicrobiomeAnalystR: https://github.com/xia-lab/MicrobiomeAnalystR
-
-
-# Plot (0.1 - 0.9) features by rank : to help decide on percentage cutoff 
-
-PlotVariance <- function(dat) {
-  
-  int.mat <- abundances(dat) %>% as.data.frame()
-  filter.val <- apply(int.mat, 1, function (x) {
-    diff(quantile(as.numeric(x), c(0.1, 0.9), na.rm = FALSE, names = FALSE, 
-                  type = 7)) })
-
-  var.df <- as.data.frame(filter.val) %>% 
-    rownames_to_column(var = "features")
-  
-  rk <- rank(-filter.val, ties.method='random')
-  rws <-  nrow(var.df)
-
-  p <- ggplot(var.df, aes(x= reorder(features, -filter.val), y= filter.val)) +
-    geom_point(color="#1170aa") + 
-    ggthemes::theme_clean() +
-    labs(x = "Ranked Features", y = "[0.1 - 0.9] Quantile Range") +
-    geom_vline(xintercept = c(rk[rk == round(rws*.9)], rk[rk == round(rws*.8)], rk[rk == round(rws*.7)], 
-                              rk[rk == round(rws*.6)], rk[rk == round(rws*.5)], rk[rk == round(rws*.4)],
-                              rk[rk == round(rws*.3)], rk[rk == round(rws*.2)]), linetype = "dashed", alpha = 0.7 ) +
-    theme(axis.text.x = element_blank())
-  return(p)
-}
-
-
-#-----------------------------------------------------------------------------------------------------------
-
-LowVarianceFilter <- function(dat, filter.percent = 0.1) {
-  
-  #' This function filters features by their
-  #' Inter-quartile range - larger values indicate larger spread
-  #' features are ranked by IQR and a specified percentage is trimmed
-  
-  int.mat <- abundances(dat) %>% as.data.frame()
-  filter.val <- apply(int.mat, 1, function (x) {
-    diff(quantile(as.numeric(x), c(0.1, 0.9), na.rm = FALSE, names = FALSE, 
-                  type = 7)) })
-  
-  rk <- rank(-filter.val, ties.method='random')
-  var.num <- nrow(int.mat);
-  remain <- rk <= var.num*(1-filter.percent);
-  int.mat <- int.mat[remain,];
-  
-  cat("A total of", sum(!remain), "low variance features were removed based on the Quantile Range between [0.1 - 0.9]. \n")
-  cat("The number of features remaining after filtering is:", nrow(int.mat), "\n")
-  
-  return(int.mat)
-
-}
-
 
 
 #-----------------------------------------------------------------------------------------------------------
@@ -533,3 +656,110 @@ fois <- function(datObj, foi) {
 }
 
 #-------------------------------------------------------------------
+# Negate %in% function
+
+'%ni%' <- Negate('%in%')
+
+#-------------------------------------------------------------------
+
+# SGV Stats Function
+
+nmean_summary <- function(df){
+  output.stats <- tibble()
+  vars = colnames(df)[1:ncol(df)-1]
+  for (sv in vars) {
+    print(sv)
+    stat.col <- df %>%
+      dplyr::select(group, sv) %>%
+      filter(!is.na(df[[sv]])) %>%
+      group_by(group) %>%
+      dplyr::summarise(n = n(),across(where(is.numeric),
+                              ~ mean(.x, na.rm = TRUE)))
+    colnames(stat.col)[3] <- "ratio_detected"
+
+    row2add <- cbind(stat.col[1:3], sv)
+    output.stats <- rbind(output.stats, row2add)
+  }
+  return(output.stats)
+}
+
+
+#-------------------------------------------------------------------
+
+# Functions to clean up column names 
+
+clean.cols.tax <- function(x) {
+  colnames(x) <- gsub("_taxonomic_profile", "", colnames(x)); x } 
+
+clean.cols.abund <- function(x) {
+  colnames(x) <- gsub("_Abundance", "", colnames(x)); x } 
+
+clean.cols.abund_RPK <- function(x) {
+  colnames(x) <- gsub("_Abundance-RPKs", "", colnames(x)); x } 
+
+clean.cols.abund_CPM <- function(x) {
+  colnames(x) <- gsub("_Abundance-CPM", "", colnames(x)); x } 
+
+
+trim_cols <- function(x, cohort) {
+  if (cohort == "TBC"){
+    colnames(x) <- substr(colnames(x), 1, 10); x 
+  } else if (cohort == "RUSH") {
+    colnames(x) <- substr(colnames(x), 1, 6); x
+    }
+  } 
+
+
+make_rfriendly_rows <- function(df, passed_column) {
+  features <- rlang::sym(passed_column)
+  df %>% 
+    mutate(simplenames = gsub(":", ".gc.", !!features)) %>% 
+    mutate(simplenames = gsub("\\|", ".gp.", simplenames)) %>% 
+    mutate(simplenames = gsub(" ", ".gs.", simplenames)) %>% 
+    mutate(simplenames = gsub("-", ".gh.", simplenames)) %>% 
+    mutate(simplenames = gsub("/", ".gd.", simplenames)) %>% 
+    mutate(simplenames = gsub("\\]", ".gsqrr.", simplenames)) %>% 
+    mutate(simplenames = gsub("\\[", ".gsqrl.", simplenames)) %>% 
+    mutate(simplenames = gsub("\\)", ".gpr.", simplenames)) %>% 
+    mutate(simplenames = gsub("\\(", ".gpl.", simplenames)) %>% 
+    mutate(simplenames = gsub(",", ".gm.", simplenames)) %>% 
+    mutate(simplenames = gsub("\\+", ".gplus.", simplenames)) %>% 
+    mutate(simplenames = gsub("\\'", ".gpar.", simplenames)) %>% 
+    mutate(simplenames = paste0("feat_", simplenames)) %>% 
+    tibble::column_to_rownames(var = "simplenames") %>% 
+    dplyr::select(-!!features)
+}
+
+
+decode_rfriendly_rows <- function(df, passed_column) {
+  features <- rlang::sym(passed_column)
+  df %>% 
+    mutate(fullnames = gsub("\\.gc.", ":", !!features)) %>% 
+    mutate(fullnames = gsub("\\.gsqrr.", "\\]", fullnames)) %>% 
+    mutate(fullnames = gsub("\\.gsqrl.", "\\[", fullnames)) %>% 
+    mutate(fullnames = gsub("\\.gplus.", "\\+", fullnames)) %>%
+    mutate(fullnames = gsub("\\.gpar.", "\\'", fullnames)) %>% 
+    mutate(fullnames = gsub("\\.gpr.", ")", fullnames)) %>% 
+    mutate(fullnames = gsub("\\.gpl.", "(", fullnames)) %>% 
+    mutate(fullnames = gsub("\\.gm.", ",", fullnames)) %>% 
+    mutate(fullnames = gsub("\\.gp.", "\\|", fullnames)) %>% 
+    mutate(fullnames = gsub("\\.gs.", " ", fullnames)) %>% 
+    mutate(fullnames = gsub("\\.gh.", "-", fullnames)) %>% 
+    mutate(fullnames = gsub("\\.gd.", "/", fullnames)) %>% 
+    mutate(fullnames = gsub("feat_", "", fullnames))
+}
+
+
+#----------------------------------------------------------------------------------------------------------
+
+maaslin_prep <- function(dat){
+  dat <- dat %>% 
+    subset_samples(donor_id %ni% low_qc[[1]]) %>% 
+    core(detection = 0, prevalence = 0.1)
+  return(dat)
+}
+
+#-----------------------------------------------------------------------------------------------------------
+
+
+

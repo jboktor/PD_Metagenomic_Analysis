@@ -17,11 +17,11 @@ install.packages(
     "ggplot2",
     "tidyverse",
     "readxl",
+    "plyr",
     "dplyr",
     "ggrepel",
     "gridExtra",
     "reshape2",
-    "plyr",
     "devtools",
     "RColorBrewer",
     "ggfortify",
@@ -32,6 +32,7 @@ install.packages(
     "gplots",
     "viridis",
     "lme4",
+    "jtools",
     "phangorn",
     "plotly",
     "VennDiagram",
@@ -66,7 +67,15 @@ install.packages(
     "rstatix",
     "mlbench",
     "caret",
-    "MLeval"
+    "MLeval",
+    "rsconnnect",
+    "lazyeval",
+    "ppcor",
+    "ggdendro",
+    "tidymodels",
+    "vip",
+    "Rcpp",
+    "mRMRe"
   )
 )
 
