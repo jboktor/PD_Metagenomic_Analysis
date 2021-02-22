@@ -23,7 +23,7 @@ library(MLeval)
 ridge.lasso.enet.regression.model <- function(obj, comparison = "PDvPC", model.type){
   
   #' Function to train a Rigde, lASSO, or ElasticNet Regression Model
-  #' Input: Phlyoseq Obj, comparison of interest, and model type
+  #' Input: Phyloseq Obj, comparison of interest, and model type
   #' Returns: a list including 
   #' 1) The fitted Model 
   #' 2) A dataframe of values with the optimal parameters (for ROC plot)
@@ -128,7 +128,7 @@ ridge.lasso.enet.regression.model <- function(obj, comparison = "PDvPC", model.t
 random.forest.model <- function(obj, comparison = "PDvPC"){
   
   #' Function to train a Random Forrest Model
-  #' Input: Phlyoseq Obj and comparison of interest 
+  #' Input: Phyloseq Obj and comparison of interest 
   #' Returns: a list including 
   #' 1) The fitted Model 
   #' 2) A dataframe of values with the optimal parameters (for ROC plot)
@@ -255,7 +255,7 @@ xgboost.model <- function(obj, comparison = "PDvPC"){
   # 
   
   #' Function to train a Random Forrest Model
-  #' Input: Phlyoseq Obj and comparison of interest 
+  #' Input: Phyloseq Obj and comparison of interest 
   #' Returns: a list including 
   #' 1) A dataframe of values with the optimal parameters (for ROC plot)
   #' 2) MLeval individual model ROC plot
@@ -549,14 +549,14 @@ xgboost.model <- function(obj, comparison = "PDvPC"){
 ridge.lasso.enet.regression.model.DS <- function(model.input, model.type){
   
   #' Function to train a Rigde, lASSO, or ElasticNet Regression Model
-  #' Input: Phlyoseq Obj, comparison of interest, and model type
+  #' Input: Phyloseq Obj, comparison of interest, and model type
   #' Returns: a list including 
   #' 1) The fitted Model 
   #' 2) A dataframe of values with the optimal parameters (for ROC plot)
   #' 3) MLeval AUC-ROC values 
   #' 4) Other MLeval analysis parameters
   
-  # Initalize variables
+  # Initialize variables
   model <- NULL
   output.list <- vector(mode="list", length=4)
   names(output.list) <- c("fitted_model", "optimal.df", "AUCROC", "MLevaldata")
@@ -636,7 +636,7 @@ ridge.lasso.enet.regression.model.DSxPD <- function(disease.model.input, model.t
   # model.type = "enet"
   # 
   #' Function to train a Rigde, lASSO, or ElasticNet Regression Model
-  #' Input: Phlyoseq Obj, comparison of interest, and model type
+  #' Input: Phyloseq Obj, comparison of interest, and model type
   #' Returns: a list including 
   #' 1) The fitted Model 
   #' 2) A dataframe of values with the optimal parameters (for ROC plot)
@@ -735,4 +735,448 @@ ridge.lasso.enet.regression.model.DSxPD <- function(disease.model.input, model.t
 
 
 
+#--------------------------------------------------------------------------------
+#                           ML Functions
+#--------------------------------------------------------------------------------
 
+prep_ml_input <- function(obj){
+  all_abund <- abundances(obj) %>% 
+    t() %>% as.data.frame() %>% 
+    rownames_to_column("donor_id")
+  all_meta <- process_meta(obj, cohort = "Merged") %>% 
+    select(donor_id, PD, cohort, paired)
+  ml_input <- inner_join(all_meta, all_abund) %>% 
+    as_tibble()
+  return(ml_input)
+}
+#---------------------------------------
+
+prep_mRMR_input <- function(obj){
+  
+  all_abund <- abundances(obj) %>%
+    t() %>% as.data.frame() %>%
+    rownames_to_column("donor_id")
+  all_meta <- process_meta(obj, cohort = "Merged") %>%
+    select(donor_id, PD)
+  mRMR_input <- left_join(all_meta, all_abund) %>%
+    as.data.frame() %>%
+    column_to_rownames(var = "donor_id") %>% 
+    mutate(PD = factor(PD, levels = c("No", "Yes"))) %>%
+    mutate(PD = as.numeric(PD)) 
+  
+  return(mRMR_input)
+}
+
+#---------------------------------------
+#             mRMRe wrapper 
+#---------------------------------------
+
+feature_selection <- function(df, n_features, n_algorithm = 1){
+  mdat <- mRMR.data(data = data.frame(df))
+  mRMR <- mRMR.ensemble(data = mdat, target_indices = 1, 
+                        feature_count = n_features, solution_count = n_algorithm)
+  selections <- mRMR_input[, solutions(mRMR)$`1`] %>% colnames()
+  return(selections)
+}
+
+
+
+
+
+#--------------------------------------------------------------------------------
+#                   Cross-Validation & Prediction LASSO 
+#--------------------------------------------------------------------------------
+
+lasso_model <- function(train, test){
+  
+  # TROUBLE 
+  train = ml_input_tbc
+  test = ml_input_rush
+  
+  combined <- bind_rows(train, test)
+  ind <- list(
+    analysis = seq(nrow(train)),
+    assessment = nrow(train) + seq(nrow(test)))
+  splits <- make_splits(ind, combined)
+  ml_train <- training(splits)
+  ml_test <- testing(splits)
+  
+  set.seed(42)
+  # Generate 10-fold CV model with 5 repetitions, stratified by PD status 
+  cv_splits <- rsample::vfold_cv(ml_train, v = 10, repeats = 5, strata = PD)
+  # Define tunable Lasso model
+  tune_spec <- logistic_reg(penalty = tune(), mixture = 1) %>%
+    set_engine("glmnet")
+  
+  ml_recipe <- recipe(PD ~ ., data = ml_train) %>% 
+    update_role(donor_id, new_role = "donor_id") %>% 
+    update_role(cohort, new_role = "cohort") %>% 
+    update_role(paired, new_role = "paired") %>%
+    step_zv(all_numeric(), -all_outcomes()) %>% 
+    step_normalize(all_numeric(), -all_outcomes())
+  
+  wf <- workflow() %>% 
+    add_recipe(ml_recipe) %>% 
+    add_model(tune_spec)
+  
+  #-----------------------------------------------------
+  #                TUNE LASSO MODEL  
+  #-----------------------------------------------------
+  # Create a grid of penalty values to test
+  lambda_grid <- grid_regular(penalty(), levels = 50)
+  ctrl <- control_grid(save_pred = TRUE, verbose = TRUE)
+  doParallel::registerDoParallel()
+  
+  set.seed(42)
+  lasso_grid <-
+    tune_grid(wf,
+              resamples = cv_splits,
+              grid = lambda_grid,
+              control = ctrl)
+  
+  # select optimal penalty by filtering largest rocauc
+  best_aucroc <- select_best(lasso_grid, "roc_auc")
+  # visualize model metrics of grid 
+  model_performance <- 
+    lasso_grid %>% 
+    collect_metrics() %>% 
+    ggplot(aes(penalty, mean, color = .metric)) +
+    geom_errorbar(aes(ymin = mean - std_err,
+                      ymax = mean + std_err),
+                  alpha = 0.5) +
+    geom_line(size = 1.25, show.legend = F) +
+    facet_wrap(~.metric, scales = "free", nrow = 2) +
+    theme_bw() + 
+    scale_x_log10() +
+    scale_color_viridis_d(option = "cividis", begin = .9, end = 0) +
+    theme(legend.position = "none")
+  print(model_performance)
+  
+  # Filtering ROCAUC valued from optimal 5x10fold CV model
+  train_metrics <- 
+    lasso_grid %>% 
+    collect_metrics() %>% 
+    filter(penalty == best_aucroc$penalty)
+  
+  # Finalize trained workflow - use on hold out test sets
+  train_lasso <-
+    wf %>%
+    finalize_workflow(best_aucroc) %>%
+    fit(ml_train)
+  
+  # Predictions on test data
+  test_lasso <- 
+    last_fit(train_lasso, split = splits) 
+  test_metrics <- test_lasso %>%
+    collect_metrics()
+  
+  # Test predictions using CV tune model
+  lasso_grid %>% 
+    collect_predictions()
+  lasso_grid %>%
+    collect_predictions() %>%
+    accuracy(truth = PD, .pred_class)
+  
+    roc_auc(truth = PD, .pred_Yes)
+  
+  output <- list(
+    "cv_tune_model" = lasso_grid,
+    "train_lasso" = train_lasso,
+    "test_lasso" = test_lasso,
+    "train_metrics" = train_metrics,
+    "test_metrics" = test_metrics
+  )
+  return(output)
+}
+
+#--------------------------------------------------------------------------------
+#                      LASSO Cohort Cross Testing
+#--------------------------------------------------------------------------------
+
+lasso_cohort_summary <- function(obj_tbc_all, obj_rush_all, featSelection = NULL){
+  
+  # TROUBLE
+  obj_tbc_all = obj_tbc_all
+  obj_rush_all = obj_rush_all
+  featSelection = hits_KOs
+  
+  ml_input_tbc <- prep_ml_input(obj_tbc_all)
+  ml_input_rush <- prep_ml_input(obj_rush_all)
+  
+  if(!is.null(featSelection)){
+    cat("Running mRMR feature selection .. \n")
+    ml_input_tbc <- ml_input_tbc %>% 
+      dplyr::select(donor_id, PD, cohort, paired, contains(featSelection))
+    cat("Features selected from TBC: ", ncol(ml_input_tbc)-4, "\n")
+    ml_input_rush <- ml_input_rush %>% 
+      dplyr::select(donor_id, PD, cohort, paired, contains(featSelection))
+    cat("Features selected from Rush: ", ncol(ml_input_rush)-4, "\n")
+  }
+  
+  tbc_vs_rush <- lasso_model(train = ml_input_tbc,
+                             test = ml_input_rush)
+  rush_vs_tbc <- lasso_model(train = ml_input_rush,
+                             test = ml_input_tbc)
+
+  # PD vs Controls (Rush vs TBC)
+  summary_A <-
+    bind_rows(
+      tbc_vs_rush$train_metrics %>%
+        mutate(train = "TBC", test = "TBC"),
+      tbc_vs_rush$test_metrics %>%
+        mutate(train = "TBC", test = "Rush"),
+      rush_vs_tbc$train_metrics %>%
+        mutate(train = "Rush", test = "Rush"),
+      rush_vs_tbc$test_metrics %>%
+        mutate(train = "Rush", test = "TBC")
+    )
+  
+  
+  output <- c("tbc_vs_rush" = tbc_vs_rush, "rush_vs_tbc" = rush_vs_tbc, "summary_A" = summary_A)
+  return(output)
+}
+
+#-----------------------------------------------------
+
+#--------------------------------------------------------------------------------
+#                 LASSO Cohort x Donor Group Cross Testing
+#--------------------------------------------------------------------------------
+
+lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelection = NULL){
+  
+  ml_input_tbc <- prep_ml_input(obj_tbc_all)
+  ml_input_rush <- prep_ml_input(obj_rush_all)
+  
+  if(!is.null(featSelection)){
+    cat("Running mRMR feature selection .. \n")
+    ml_input_tbc <- ml_input_tbc %>% 
+      dplyr::select(donor_id, PD, cohort, paired, matches(featSelection))
+    ml_input_rush <- ml_input_rush %>% 
+      dplyr::select(donor_id, PD, cohort, paired, matches(featSelection))
+  }
+  
+  ml_input_tbc_house <- obj_tbc_all %>% 
+    subset_samples(paired != "No") %>% prep_ml_input()
+  ml_input_tbc_healthy <- obj_tbc_all %>% 
+    subset_samples(donor_group != "HC") %>% prep_ml_input() 
+  ml_input_rush_house <- obj_rush_all %>% 
+    subset_samples(paired != "No") %>% prep_ml_input()
+  ml_input_rush_healthy <- obj_rush_all %>% 
+    subset_samples(donor_group != "HC") %>% prep_ml_input()
+  
+  
+  rush_PC_vs_rush_HC <- lasso_model(train = ml_input_rush_healthy,
+                                    test = ml_input_rush_house)
+  rush_PC_vs_tbc_PC <- lasso_model(train = ml_input_rush_healthy,
+                                   test = ml_input_tbc_healthy)
+  rush_PC_vs_tbc_HC <- lasso_model(train = ml_input_rush_healthy,
+                                   test = ml_input_tbc_house)
+  
+  rush_HC_vs_rush_PC <- lasso_model(train = ml_input_rush_house,
+                                    test = ml_input_rush_healthy)
+  rush_HC_vs_tbc_PC <- lasso_model(train = ml_input_rush_house,
+                                   test = ml_input_tbc_healthy)
+  rush_HC_vs_tbc_HC <- lasso_model(train = ml_input_rush_house,
+                                   test = ml_input_tbc_house)
+  
+  tbc_PC_vs_tbc_HC <- lasso_model(train = ml_input_tbc_healthy,
+                                  test = ml_input_tbc_house)
+  tbc_PC_vs_rush_PC <- lasso_model(train = ml_input_tbc_healthy,
+                                   test = ml_input_rush_healthy)
+  tbc_PC_vs_rush_HC <- lasso_model(train = ml_input_tbc_healthy,
+                                   test = ml_input_rush_house)
+  
+  tbc_HC_vs_tbc_PC <- lasso_model(train = ml_input_tbc_house,
+                                  test = ml_input_tbc_healthy)
+  tbc_HC_vs_rush_PC <- lasso_model(train = ml_input_tbc_house,
+                                   test = ml_input_rush_healthy)
+  tbc_HC_vs_rush_HC <- lasso_model(train = ml_input_tbc_house,
+                                   test = ml_input_rush_house)
+  
+  
+  summaryB <-
+    bind_rows(
+      # RUSH PC vs all
+      rush_PC_vs_rush_HC$train_metrics %>%
+        mutate(train = "Rush_PC", test = "Rush_PC"),
+      rush_PC_vs_rush_HC$test_metrics %>%
+        mutate(train = "Rush_PC", test = "Rush_HC"),
+      rush_PC_vs_tbc_PC$test_metrics %>%
+        mutate(train = "Rush_PC", test = "TBC_PC"),
+      rush_PC_vs_tbc_HC$test_metrics %>%
+        mutate(train = "Rush_PC", test = "TBC_HC"),
+      # RUSH HC vs all
+      rush_HC_vs_rush_PC$train_metrics %>%
+        mutate(train = "Rush_HC", test = "Rush_HC"),
+      rush_HC_vs_rush_PC$test_metrics %>%
+        mutate(train = "Rush_HC", test = "Rush_PC"),
+      rush_HC_vs_tbc_PC$test_metrics %>%
+        mutate(train = "Rush_HC", test = "TBC_PC"),
+      rush_HC_vs_tbc_HC$test_metrics %>%
+        mutate(train = "Rush_HC", test = "TBC_HC"),
+      # TBC PC vs all
+      tbc_PC_vs_tbc_HC$train_metrics %>%
+        mutate(train = "TBC_PC", test = "TBC_PC"),
+      tbc_PC_vs_tbc_HC$test_metrics %>%
+        mutate(train = "TBC_PC", test = "TBC_HC"),
+      tbc_PC_vs_rush_PC$test_metrics %>%
+        mutate(train = "TBC_PC", test = "Rush_PC"),
+      tbc_PC_vs_rush_HC$test_metrics %>%
+        mutate(train = "TBC_PC", test = "Rush_HC"),
+      # TBC PC vs all
+      tbc_HC_vs_tbc_PC$train_metrics %>%
+        mutate(train = "TBC_HC", test = "TBC_HC"),
+      tbc_HC_vs_tbc_PC$test_metrics %>%
+        mutate(train = "TBC_HC", test = "TBC_PC"),
+      tbc_HC_vs_rush_PC$test_metrics %>%
+        mutate(train = "TBC_HC", test = "Rush_PC"),
+      tbc_HC_vs_rush_HC$test_metrics %>%
+        mutate(train = "TBC_HC", test = "Rush_HC")
+    ) %>% 
+    mutate(train_cohort = substr(train, 1, nchar(train)-3)) %>% 
+    mutate(test_cohort = substr(test, 1, nchar(test)-3)) %>% 
+    mutate(train_group = substr(train, nchar(train)-1, nchar(train))) %>% 
+    mutate(test_group = substr(test, nchar(test)-1, nchar(test)))
+  
+  return(summaryB)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 
+# 
+# lasso_model <- function(train, test){
+#   
+#   # TROUBLE
+#   ml_input_tbc <- prep_ml_input(obj_tbc_all)
+#   ml_input_rush <- prep_ml_input(obj_rush_all)
+#   train = ml_input_tbc
+#   test = ml_input_rush
+# 
+#   
+# 
+#   combined <- bind_rows(train, test)
+#   ind <- list(
+#     analysis = seq(nrow(train)),
+#     assessment = nrow(train) + seq(nrow(test)))
+#   splits <- make_splits(ind, combined)
+#   ml_train <- training(splits)
+#   ml_test <- testing(splits)
+#   
+#   set.seed(42)
+#   # Generate 10-fold CV model with 5 repetitions, stratified by PD status 
+#   cv_splits <- rsample::vfold_cv(ml_train, v = 10, repeats = 10, strata = PD)
+#   # Define tunable Lasso model
+#   tune_spec <- logistic_reg(penalty = tune(), mixture = 1) %>%
+#     set_engine("glmnet")
+#   
+#   ml_recipe <- recipe(PD ~ ., data = ml_train) %>% 
+#     update_role(donor_id, new_role = "donor_id") %>% 
+#     update_role(cohort, new_role = "cohort") %>% 
+#     update_role(paired, new_role = "paired") %>%
+#     step_zv(all_numeric(), -all_outcomes()) %>% 
+#     step_normalize(all_numeric(), -all_outcomes())
+#   
+#   wf <- workflow() %>% 
+#     add_recipe(ml_recipe) %>% 
+#     add_model(tune_spec)
+#   
+#   #-----------------------------------------------------
+#   #                TUNE LASSO MODEL  
+#   #-----------------------------------------------------
+#   # Create a grid of penalty values to test
+#   lambda_grid <- grid_regular(penalty(), levels = 50)
+#   ctrl <- control_grid(save_pred = TRUE, verbose = TRUE)
+#   doParallel::registerDoParallel()
+#   
+#   set.seed(42)
+#   lasso_grid <-
+#     tune_grid(wf,
+#               resamples = cv_splits,
+#               grid = lambda_grid,
+#               control = ctrl)
+#   
+#   # select optimal penalty by filtering largest rocauc
+#   best_aucroc <- select_best(lasso_grid, "roc_auc")
+#   # visualize model metrics of grid 
+#   model_performance <- 
+#     lasso_grid %>% 
+#     collect_metrics() %>% 
+#     ggplot(aes(penalty, mean, color = .metric)) +
+#     geom_errorbar(aes(ymin = mean - std_err,
+#                       ymax = mean + std_err),
+#                   alpha = 0.5) +
+#     geom_line(size = 1.25, show.legend = F) +
+#     facet_wrap(~.metric, scales = "free", nrow = 2) +
+#     theme_bw() + 
+#     scale_x_log10() +
+#     scale_color_viridis_d(option = "cividis", begin = .9, end = 0) +
+#     theme(legend.position = "none")
+#   print(model_performance)
+#   
+#   train_lasso2 <-
+#     wf %>%
+#     finalize_workflow(best_aucroc) %>% 
+#     fit_resamples(cv_splits, control = control_resamples(save_pred = TRUE))
+# 
+#   train_lasso2 %>% 
+#     collect_metrics() %>% 
+#     filter(penalty == best_aucroc$penalty)
+#   
+#   
+#   # Filtering ROCAUC valued from optimal 5x10fold CV model
+#   # train_metrics <- 
+#   #   lasso_grid %>% 
+#   #   collect_metrics() %>% 
+#   #   filter(penalty == best_aucroc$penalty)
+#   
+#   # Finalize trained workflow - use on hold out test sets
+#   train_lasso <-
+#     wf %>%
+#     finalize_workflow(best_aucroc) %>%
+#     fit(ml_train)
+#   
+#   # Predictions on test data
+#   test_lasso <- 
+#     last_fit(train_lasso2, split = splits) 
+#   test_metrics <- test_lasso %>%
+#     collect_metrics()
+#   
+#   output <- list("train_lasso" = train_lasso, 
+#                  "test_lasso" = test_lasso, 
+#                  "train_metrics" = train_metrics,
+#                  "test_metrics" = test_metrics)
+#   return(output)
+# }
