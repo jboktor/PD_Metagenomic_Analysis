@@ -103,10 +103,8 @@ This analysis sources PERMANOVA_Analysis.R which may take a few minutes to compl
   * Run: __PERMANOVA_Viz.R__
 
 ### Community-Composition
-Run the following scripts:
-  * __Community_Composition_Overview.R__ 
-  * __Beta_Diversity_Analysis_adaptable_input_script.R__ 
-  * __Alpha_Diversity_Analysis_adaptable_input_script.R__
+Run the following:
+  * __community_composition_overview.R__ 
 
 ### Multivariate-Statistical-Linear-Models
 To test for associations between our PD donors and the two controls groups we utilized [MaAsLin2](https://github.com/biobakery/Maaslin2) and employed general linear models accounting for age, sex, and bmi in one comparison between PD patients (n=48) and Healthy Population Controls (n=41), and a separate model for PD Patients and Spouse Controls (n=29 each) which accounts for the household effect. 
@@ -120,9 +118,7 @@ Run the following scripts:
 To vizualize data generated from these models:
 
 Run:
-  * __Differential_Abundance_Viz_Taxa_Figure_2.R__
-
-  * __Differential_Abundance_Viz_Functional.R__ 
+  * __dafs.R__
 
 Note that this script requires some manual input: To visualize a particular dataset of interest - replace name of Robj in section of script titled (SWAP FUNCTION LEVEL HERE) (see table above for options) 
 
