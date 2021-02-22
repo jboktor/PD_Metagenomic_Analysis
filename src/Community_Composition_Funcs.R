@@ -1,18 +1,21 @@
 ### QC Functions
 
 
+'%ni%' <- Negate('%in%')
+
 #--------------------------------------------------------------------------------------------------
 # Get Pseduo-Counts from clean reads and abundance table
 #--------------------------------------------------------------------------------------------------
 
 PseudoCounts <- function(dat, reads){
   
-  psudocnts <- dat %>% microbiome::transform("compositional") %>% 
-    microbiome::abundances() %>% as.data.frame()
+  psudocnts <- dat %>% 
+    microbiome::abundances() %>% 
+    as.data.frame()
   cat("TSS \n")
   
   for (i in colnames(psudocnts)){
-    donor_reads <- reads[[which(reads$id == i), 2]]
+    donor_reads <- reads[[which(reads$donor_id == i), 2]]
     psudocnts[i] <- psudocnts[i] * donor_reads
   }
   cat("Pseudocount Transformation Complete\n")
@@ -24,20 +27,15 @@ PseudoCounts <- function(dat, reads){
 # Rarefaction Analysis 
 #--------------------------------------------------------------------------------------------------
 
-RareFactionPlot <- function(dat, featuretype="Species", reads){
-  
+feature_accumulation_plot <- function(dat, featuretype="Species", reads, cohort){
+
   cat("\n\n\n"); cat(featuretype, "Rarefaction  \n")
 
   # Get Pseuo-counts
-  psudocnts <- dat %>% microbiome::transform("compositional") %>% 
-    abundances() %>% as.data.frame()
-  cat("TSS \n")
-  
-  for (i in colnames(psudocnts)){
-    donor_reads <- reads[[which(reads$id == i), 2]]
-    psudocnts[i] <- psudocnts[i] * donor_reads
-  }
   cat("Pseudocount Estimation \n")
+  psudocnts <- dat %>% 
+    subset_samples(donor_id %ni% low_qc[[1]]) %>% 
+    PseudoCounts(reads)
   
   # Filter 
   psudocnts.HC <- psudocnts %>% dplyr::select(contains("HC")) %>% 
@@ -58,10 +56,7 @@ RareFactionPlot <- function(dat, featuretype="Species", reads){
   df.acc.HC <- data.frame(Sites=acc.HC$sites, Richness=acc.HC$richness, SD=acc.HC$sd)
   df.acc.PC <- data.frame(Sites=acc.PC$sites, Richness=acc.PC$richness, SD=acc.PC$sd)
   df.acc.PD <- data.frame(Sites=acc.PD$sites, Richness=acc.PD$richness, SD=acc.PD$sd)
-  
-  # PD.col <- "#FDE725"; PD.col2 <- "#fdad19"; PD.col3 <- "#d48a02"
-  # PC.col <- "#21908C"; PC.col2 <- "#2cc0bb"
-  # HC.col <- "#440154"; HC.col2 <- "#73028e"
+
   PD.col <- "#bfbfbf"; PD.col2 <- "#494949"; PD.col3 <- "#848484"
   PC.col <- "#ed7d31"; PC.col2 <- "#f3a977"
   HC.col <- "#5b9bd5"; HC.col2 <- "#99c1e5"
@@ -84,8 +79,10 @@ RareFactionPlot <- function(dat, featuretype="Species", reads){
     theme(strip.background = element_blank(),
           panel.grid = element_blank())
   
-  ggsave(p1, filename = paste0("data/Community_Composition/Rarefaction_Plots/Rarefaction_Plot_", featuretype, ".svg"),
+  ggsave(p1, filename = 
+           paste0("data/Community_Composition/Rarefaction_Plots/Rarefaction_Plot_", cohort, "_", featuretype, ".svg"),
          width = 4, height = 3)
+  
   return(p1)
   
 }
@@ -173,17 +170,6 @@ BetaLinearRegressionPlot <- function(df, x, y, y2, color, fill, feature, title){
   return(c1)
 }
 
-
-#--------------------------------------------------------------------------------------------------
-# Load number of clean sample reads
-#--------------------------------------------------------------------------------------------------
-
-load_reads <- function(){
-  func_reads <- read_tsv("files/humann2_read_and_species_count_table.tsv", col_names = T)
-  reads <- dplyr::select(func_reads, c("# samples","total reads")) %>% 
-    dplyr::rename( "id" = "# samples", "clean_total_reads" = "total reads")
-  return(reads)
-}
 
 #--------------------------------------------------------------------------------------------------
 # DMM Analysis - Determine Optimal Clusters
@@ -303,33 +289,56 @@ DMM_select_cluster <- function(df, cluster_n){
   return(df)
 }
 
-
-DMM_cluster_driver_plot(K2vK1.df, yval =  K2vK1.df$K2vK1, comparison = "2/1")
-
 #--------------------------------------------------------------------------------------------------
 # DMM Analysis - distinguishing features plotting function
 #--------------------------------------------------------------------------------------------------
 
 DMM_cluster_driver_plot <- function(df, yval, comparison){
   
-  # Troubleshoot
-  df = K2vK1.df
-  yval =  K2vK1.df$K2vK1
-  comparison = "2/1"
+  # # Troubleshoot
+  # df = K2vK1.df
+  # yval =  K2vK1.df$K2vK1
+  # comparison = "2/1"
   
   LFC.KvK <- ggplot(df, aes(x = reorder(feature, yval), y = yval)) +
-    geom_bar(stat = "identity",  width = 0.75) +
+    geom_bar(stat = "identity",  width = 0.5) +
     labs(title = paste("Distinguishing features: Clusters ", comparison), y = expression(log[2]*" fold change")) +
     geom_rangeframe() + 
     theme_tufte() +
     coord_flip() +
-    theme(axis.title.y = element_blank(),
-          axis.text.y = element_text(face = "italic")) 
-    
-  
-  print(xrange)
+    theme(axis.title.y = element_blank()) 
   
   return(LFC.KvK)
   
 }
 
+#--------------------------------------------------------------------------------------------------
+#                                        Manual LM models
+#--------------------------------------------------------------------------------------------------
+# 
+# lm.PdPc <- function(metadf, metric){
+#   ###' Function conducts Linear Model for PD vs PC
+#   env.PdPc <- filter(metadf, donor_group != "HC")
+#   formula <- as.formula(
+#     paste(metric, "~", paste(c("description", "host_age_factor", "host_body_mass_index", "sex"), collapse="+") ) )
+#   
+#   linear.model <- lm(formula, data=env.PdPc, na.action = na.omit)
+#   plot_model(linear.model, show.values = TRUE, value.offset = .3)
+#   qqnorm(resid(linear.model))
+#   qqline(resid(linear.model))
+#   dev.off()
+#   return(linear.model)
+# }
+# 
+# 
+# lmm.PdHc <- function(metadf, metric){
+#   ###' Function conducts Linear Mixed Model for PD vs HC
+#   env.PdHc <- filter(metadf, paired != "No")
+#   
+#   formula <- as.formula(paste(metric, "~", paste(c("description"))))
+#   lmm <- lme(formula, random= ~ 1 | paired, data=env.PdHc, na.action = na.omit)
+#   qqnorm(resid(lmm))
+#   qqline(resid(lmm))
+#   return(lmm)
+# }
+#--------------------------------------------------------------------------------------------------
