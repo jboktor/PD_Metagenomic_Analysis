@@ -16,8 +16,7 @@ functionalObj <- c("Pathways",
                    "KOs",
                    "KOs.slim")
 
-cat("Current Working Directory: \n",  getwd(), "\n")
-
+cat("Current Working Directory: ",  getwd(), "\n")
 #-------------------------------------------------------------------------------
 #                               APP/UI
 #-------------------------------------------------------------------------------
@@ -58,8 +57,13 @@ ui <- dashboardPage(
                      icon = icon("th"),
                      tabName = "creds")
         ),
-        box(imageOutput("caltechLogo"),
-            width = 1)
+        fluidRow(
+            column(width = 1,
+                   box(imageOutput("caltechLogo"),
+                       height = 30),
+                   box(imageOutput("SKM"),
+                       height = 30))
+            )
     ),
     dashboardBody(tabItems(
         tabItem(
@@ -103,11 +107,13 @@ server <- function(input, output) {
         showModal(
             modalDialog(
                 title = "Instructions",
-                "This application produces data visualization for metagenomic profiles",
-                "of the PD microbiome. This includes taxonomic, metabolic, and gene-level relative abundance profiles.",
-                "All features are displayed as boxplots. Additionally,",
-                "metabolic and gene level profiles also display the assigned",
-                "taxonomic stratification for a given feature as a stacked barplot.",
+                "This application allows users to explore metagenomic profiles of",
+                "of the PD microbiome. This includes features at the  taxonomic, metabolic, and gene-level.",
+                "You may search for features of interest to generate boxplots. Additionally,",
+                "for metabolic and gene level profiles we provide the option to view",
+                "the assigned taxonomic stratification for a given feature as a stacked barplot.",
+                "When viewing a feature of this class, a button titled 'Download Stratified'",
+                "will appear in the bottom left-hand corner", 
                 br(),
                 br(),
                 "1) Select a dataset of interest from the sidebar menu on the left",
@@ -430,9 +436,10 @@ server <- function(input, output) {
 
     output$SKM <- renderImage({
         return(list(
-            src = "SKM.png",
+            src = "SarkisMazmanianLabLogo.png",
             contentType = "image/png",
-            alt = "Error"
+            alt = "Error",
+            height = 30
         ))
     }, deleteFile = FALSE)
 
