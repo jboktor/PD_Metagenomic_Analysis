@@ -317,10 +317,12 @@ server <- function(input, output) {
             y = dm$value,
             title = "",
             ylabel = paste(unique(dm$features), "Abundance")
-        )
+        ) +
+            stat_compare_means(method = "kruskal.test")
         print(plot)
         return(plot)
     })
+
     
     # Download Function:
     # 2 arguments as functions {filename, content}
@@ -363,9 +365,14 @@ server <- function(input, output) {
                    "_stratified_abundance.html")
         },
         content = function(file) {
-            stratplot.df <- barplot_prep()
-            stratplot <-
-                stratplot.df %>%
+            stratplot.df <- barplot_prep() %>%
+                mutate(Var2 =  sub(".*\\|", "", Var2)) %>%
+                group_by(Var2) %>% 
+                mutate(mean_size = mean(value, na.rm = TRUE)) %>% 
+                ungroup() %>% 
+                dplyr::mutate(Var2 = fct_reorder(Var2, mean_size)) 
+            stratplot <- 
+                stratplot.df %>% 
                 ggplot(aes(
                     x = reorder(Var1,-value),
                     y = value,
@@ -373,13 +380,21 @@ server <- function(input, output) {
                 )) +
                 geom_bar(stat = "identity") +
                 theme_bw() +
-                labs(x = "Donor", y = "Abundance") +
-                facet_wrap( ~ group, scales = "free_x") +
+                labs(x = "Donor", y = "Abundance", fill = NULL) +
+                facet_wrap( ~ group, scales = "free_x", 
+                            labeller = labeller(group = c(
+                                "PC" = "Population Controls", 
+                                "PD" ="Parkinson's Disease",  
+                                "HC" = "Household Controls"))) +
+                scale_fill_manual(values = color_loop_generator(levels(stratplot.df$Var2)), 
+                                  guide = guide_legend(reverse = TRUE)) +
                 theme(
-                    legend.position = "none",
+                    # legend.position = "none",
                     axis.text.x = element_blank(),
                     panel.grid.minor = element_blank(),
                     panel.grid.major.x = element_blank(),
+                    strip.background =element_rect(fill="white"), 
+                    plot.margin = unit(c(1, 1, 1, 3), "cm")
                 )
             stratPlot <-
                 ggplotly(stratplot, tooltip = c("y", "x", "fill"))
@@ -399,8 +414,13 @@ server <- function(input, output) {
         stratplot.df <- barplot_prep()
         
         if (!is.null(stratplot.df)) {
+            stratplot.final.df <- stratplot.df %>%
+                group_by(Var2) %>%
+                mutate(mean_size = mean(value, na.rm = TRUE)) %>%
+                ungroup() %>%
+                dplyr::mutate(Var2 = fct_reorder(Var2, mean_size))
             stratplot <-
-                stratplot.df %>%
+                stratplot.final %>%
                 ggplot(aes(
                     x = reorder(Var1,-value),
                     y = value,
@@ -410,15 +430,17 @@ server <- function(input, output) {
                 theme_bw() +
                 labs(x = "Donor", y = "Abundance") +
                 facet_wrap( ~ group, scales = "free_x") +
+                scale_fill_manual(values = color_loop_generator(levels(stratplot.final.df$Var2)),
+                                  guide = guide_legend(reverse = TRUE)) +
                 theme(
                     legend.position = "none",
                     axis.text.x = element_blank(),
                     panel.grid.minor = element_blank(),
                     panel.grid.major.x = element_blank(),
+                    plot.margin = unit(c(1, 1, 1, 3), "cm")
                 )
             stratPlot <-
                 ggplotly(stratplot, tooltip = c("y", "x", "fill"))
-            # session_store$stratPlot <- stratPlot
         }
     })
     
