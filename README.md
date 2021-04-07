@@ -103,8 +103,6 @@ Run the following:
 ### Multivariate-Statistical-Linear-Models
 To test for associations between our PD donors and the two controls groups we utilized [MaAsLin2](https://github.com/biobakery/Maaslin2) and employed general linear models accounting for cohort, age, sex, and bmi in one comparison between PD patients (n=92) and Healthy Population Controls (n=83), and a separate model for PD Patients and Spouse Controls (n=59 each) which accounts for cohort and a household effect. 
 
-Run the following scripts to generate analyses and vizualize data:
-
 Run:
   * __dafs.R__
 
