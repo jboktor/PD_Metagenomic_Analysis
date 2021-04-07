@@ -88,8 +88,8 @@ To collate data tables into phlyoseq objects that are used downstream.
 ### Exploratory-Data-Visualization
 A Shiny Web Application is made available to explore features of interest within this dataset. To use this application open the __app.R__ script and run using the green arrow in the top right-hand corner of R-studio.
 
-<img src="EDA_App/instructions.png" width="600">
-<img src="EDA_App/sample.png" width="600">
+<img src="EDA_App/Shiny_app_screenshot.png" width="600">
+<img src="EDA_App/2021-03-29_K03781:%20catalase%20%5BEC:1.11.1.6%5D_stratified_abundance.png" width="600">
 
 
 ### Metadata-Explained-Variance
