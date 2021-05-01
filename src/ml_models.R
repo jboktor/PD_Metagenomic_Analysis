@@ -14,725 +14,19 @@ library(mlbench)
 library(caret)
 library(MLeval)
 
-
-#----------------------------------------------------------------------------------------
-###                       RIDGE, LASSO, ENET LOGISTIC REGRESSION                     ###
-#----------------------------------------------------------------------------------------
-
-
-ridge.lasso.enet.regression.model <- function(obj, comparison = "PDvPC", model.type){
-  
-  #' Function to train a Rigde, lASSO, or ElasticNet Regression Model
-  #' Input: Phyloseq Obj, comparison of interest, and model type
-  #' Returns: a list including 
-  #' 1) The fitted Model 
-  #' 2) A dataframe of values with the optimal parameters (for ROC plot)
-  #' 3) MLeval AUC-ROC values 
-  #' 4) Other MLeval analysis parameters
-  
-  # Initalize variables
-  model <- NULL
-  model.input <- NULL
-  output.list <- vector(mode="list", length=4)
-  names(output.list) <- c("fitted_model", "optimal.df", "AUCROC", "MLevaldata")
-  
-  if (model.type == "ridge"){
-    tune.grid = expand.grid(alpha = 0, lambda=seq(0, 1, 0.1))
-  } else if (model.type == "lasso"){
-    tune.grid = expand.grid(alpha = 1, lambda=seq(0, 1, 0.1))
-  } else if (model.type == "enet"){
-    tune.grid = expand.grid(alpha = 0.5, lambda=seq(0, 1, 0.1))
-  }
-  
-  # Select samples and prep abundance DF 
-  if (comparison == "PDvPC"){
-    dat_pdpc = subset_samples(obj, donor_group !="HC")
-    d <- dat_pdpc %>%
-      microbiome::transform("compositional") %>% 
-      microbiome::abundances() %>% 
-      t() %>% 
-      as.data.frame() 
-    d <- asin(sqrt(d))
-    pdPC.df <- group_col_from_ids(d, id= rownames(d))
-    rownames(pdPC.df) <- rownames(d)
-    pdPC.df$group <- factor(pdPC.df$group, levels = c("PC", "PD"))
-    model.input <- pdPC.df
-    
-  } else if (comparison == "PDvHC"){
-    dat_pdhc = subset_samples(obj, Paired !="No")
-    d <- dat_pdhc %>%
-      microbiome::transform("compositional") %>% 
-      microbiome::abundances() %>% 
-      t() %>% 
-      as.data.frame() 
-    d <- asin(sqrt(d))
-    pdHC.df <- group_col_from_ids(d, id= rownames(d))
-    rownames(pdHC.df) <- rownames(d)
-    pdHC.df$group <- factor(pdHC.df$group, levels = c("HC", "PD"))
-    model.input <- pdHC.df
-  }
-  
-  # Model Parameters
-  numbers <- 10
-  repeats <- 5  
-  set.seed(42)
-  seed <- 42
-  rcvSeeds <- setSeeds(method = "repeatedcv", numbers = numbers, repeats = repeats, seed = seed)
-  
-  mytrainControl <- 
-    trainControl(method='repeatedcv',
-                 number=numbers, 
-                 repeats=repeats,
-                 search='grid',
-                 seeds = rcvSeeds,
-                 savePredictions = TRUE, 
-                 classProbs = TRUE, 
-                 verboseIter = TRUE)
-  
-  # Run 10-fold CV Model with 5 Repitions
-  model <-train(group ~.,
-                data=model.input, 
-                method='glmnet', 
-                metric='Accuracy', 
-                tuneGrid=tune.grid, 
-                trControl=mytrainControl,
-                verboseIter = T)
-  cat("Model Summary")
-  print(model)
-  cat("\n\n")
-  print(plot(model))
-  
-  # Select model with optimal Lambda
-  selectedIndices <- model$pred$lambda == model$bestTune$lambda
-  df.output <- model$pred[selectedIndices, ]
-  
-  # MLeval
-  mleval <- evalm(model)
-  mleval$roc
-  output.list$fitted_model <- model
-  output.list$optimal.df <- df.output
-  output.list$AUCROC <- mleval$stdres$`Group 1`["AUC-ROC", "Score"]
-  output.list$MLevaldata <- mleval$stdres
-  
-  
-  return(output.list)
-  
-}
-
-#----------------------------------------------------------------------------------------
-###                              RANDOM FOREST MODELS                                ###
-#----------------------------------------------------------------------------------------
-
-
-
-random.forest.model <- function(obj, comparison = "PDvPC"){
-  
-  #' Function to train a Random Forrest Model
-  #' Input: Phyloseq Obj and comparison of interest 
-  #' Returns: a list including 
-  #' 1) The fitted Model 
-  #' 2) A dataframe of values with the optimal parameters (for ROC plot)
-  #' 3) MLeval AUC-ROC values 
-  #' 4) Other MLeval analysis parameters
-  
-  intervalStart <- Sys.time()
-  
-  # Initalize variables
-  model <- NULL
-  output.list <- vector(mode="list", length=4)
-  names(output.list) <- c("fitted_model", "optimal.df", "AUCROC", "MLevaldata")
-
-  # Select samples and prep abundance DF 
-  if (comparison == "PDvPC"){
-    dat_pdpc = subset_samples(obj, donor_group !="HC")
-    d <- dat_pdpc %>%
-      microbiome::transform("compositional") %>% 
-      microbiome::abundances() %>% 
-      t() %>% 
-      as.data.frame()
-    d <- asin(sqrt(d))
-    pdPC.df <- group_col_from_ids(d, id= rownames(d))
-    rownames(pdPC.df) <- rownames(d)
-    pdPC.df$group <- factor(pdPC.df$group, levels = c("PC", "PD"))
-    model.input <- pdPC.df
-    
-  } else if (comparison == "PDvHC"){
-    dat_pdhc = subset_samples(obj, Paired !="No")
-    d <- dat_pdhc %>%
-      microbiome::transform("compositional") %>% 
-      microbiome::abundances() %>% 
-      t() %>% 
-      as.data.frame() 
-    d <- asin(sqrt(d))
-    pdHC.df <- group_col_from_ids(d, id= rownames(d))
-    rownames(pdHC.df) <- rownames(d)
-    pdHC.df$group <- factor(pdHC.df$group, levels = c("HC", "PD"))
-    model.input <- pdHC.df
-  }
-  
-  # Model Parameters
-  numbers <- 10
-  repeats <- 5
-  tune.grid = expand.grid(.mtry =   seq(1, 2 * as.integer(sqrt(ncol(model.input) - 1)), by=2)) 
-  set.seed(42)
-  seed <- 42
-  # Repeated cross validation
-  rcvSeeds <- setSeeds(method = "repeatedcv", numbers = numbers, repeats = repeats, 
-                       tunes = length(tune.grid$.mtry), seed = seed)
-  # c('B + 1' = length(rcvSeeds), M = length(rcvSeeds[[1]]))
-  # rcvSeeds[c(1, length(rcvSeeds))]
-  mytrainControl <- 
-    trainControl(method='repeatedcv',
-                 number=numbers, 
-                 repeats=repeats,
-                 search='grid',
-                 savePredictions = TRUE, 
-                 classProbs = TRUE, 
-                 verboseIter = TRUE,
-                 allowParallel = TRUE,
-                 seeds = rcvSeeds)
-  
-  # Run model using multiple threads 
-  cluster <- parallel::makeCluster(detectCores() - 1, setup_strategy = "sequential")
-  registerDoParallel(cluster)
-  
-  # Run 10-fold CV Model with 5 Repitions
-  system.time(
-    model <-train(group ~.,
-                data=model.input, 
-                method='rf', 
-                metric='Accuracy', 
-                tuneGrid=tune.grid, 
-                ntree = 1000,
-                trControl=mytrainControl,
-                importance = TRUE,
-                verboseIter = T)
-  )
-  
-  stopCluster(cluster)
-  unregister()
-
-  cat("Model Summary")
-  print(model)
-  cat("\n\n")
-  print(plot(model))
-  
-  # Select model with optimal __mtry__ 
-  selectedIndices <- model$pred$mtry == model$bestTune$mtry
-  df.output <- model$pred[selectedIndices, ]
-  
-  # MLeval
-  mleval <- evalm(model)
-  mleval$roc
-  output.list$fitted_model <- model
-  output.list$optimal.df <- df.output
-  output.list$AUCROC <- mleval$stdres$`Group 1`["AUC-ROC", "Score"]
-  output.list$MLevaldata <- mleval$stdres
-  
-  intervalEnd <- Sys.time()
-  cat("Random Forest analysis took",
-        intervalEnd - intervalStart,attr(intervalEnd - intervalStart,"units"))
-  cat("\n\n")
-  return(output.list)
-  
-}
-
-
-
-
-#----------------------------------------------------------------------------------------
-###                                XBOOST MODELS                                      ###
-#----------------------------------------------------------------------------------------
-
-
-xgboost.model <- function(obj, comparison = "PDvPC"){
-  
-  
-  # ########    DELETE LATER  4 - TESTING ######## 
-  # obj = dat
-  # comparison = "PDvPC"
-  # ########  ########  ########  ########  ######## 
-  # 
-  
-  #' Function to train a Random Forrest Model
-  #' Input: Phyloseq Obj and comparison of interest 
-  #' Returns: a list including 
-  #' 1) A dataframe of values with the optimal parameters (for ROC plot)
-  #' 2) MLeval individual model ROC plot
-  #' 3) MLeval AUC-ROC values 
-  #' 4) Other MLeval analysis parameters
-  
-  intervalStart <- Sys.time()
-  
-  # Initalize variables
-  model <- NULL
-  output.list <- vector(mode="list", length=3)
-  names(output.list) <- c("optimal.df", "AUCROC", "MLevaldata")
-
-  set.seed(42)
-  
-  # Select samples and prep abundance DF 
-  if (comparison == "PDvPC"){
-    dat_pdpc = subset_samples(obj, donor_group !="HC")
-    d <- dat_pdpc %>%
-      microbiome::transform("compositional") %>% 
-      microbiome::abundances() %>% 
-      t() %>% 
-      as.data.frame() 
-    d <- asin(sqrt(d))
-    pdPC.df <- group_col_from_ids(d, id= rownames(d))
-    rownames(pdPC.df) <- rownames(d)
-    pdPC.df$group <- factor(pdPC.df$group, levels = c("PC", "PD"))
-    model.input <- pdPC.df
-    
-  } else if (comparison == "PDvHC"){
-    dat_pdhc = subset_samples(obj, Paired !="No")
-    d <- dat_pdhc %>%
-      microbiome::transform("compositional") %>% 
-      microbiome::abundances() %>% 
-      t() %>% 
-      as.data.frame() 
-    d <- asin(sqrt(d))
-    pdHC.df <- group_col_from_ids(d, id= rownames(d))
-    rownames(pdHC.df) <- rownames(d)
-    pdHC.df$group <- factor(pdHC.df$group, levels = c("HC", "PD"))
-    model.input <- pdHC.df
-  }
-  
-  # Set-up Parallel Processing Threads
-  # omp_set_num_threads(3)
-  # intervalStart <- Sys.time()
-  
-  #----------------------------------- 
-  # Hyperparameter Tuning 
-  #Informed by: https://www.kaggle.com/pelkoja/visual-xgboost-tuning-with-caret/report
-  
-  #---------------------------------------------------------- 
-  # 1) nrounds & eta 
-  #---------------------------------------------------------- 
-
-  tune_grid <- expand.grid(
-    nrounds = seq(from = 200, to = 1000, by = 50),
-    eta = c(0.025, 0.05, 0.1, 0.3),
-    max_depth = c(2, 3, 4, 5, 6),
-    gamma = 0,
-    colsample_bytree = 1,
-    min_child_weight = 1,
-    subsample = 1
-  )
-  
-  tune_control <-
-    trainControl(method='repeatedcv',
-                 number=5,
-                 repeats=3,
-                 search='grid',
-                 # savePredictions = TRUE,
-                 # classProbs = TRUE,
-                 # allowParallel = TRUE,
-                 verboseIter = TRUE)
-  
-  xgb_tune <- caret::train(
-    group ~.,
-    data=model.input,
-    trControl = tune_control,
-    tuneGrid = tune_grid,
-    method = "xgbTree",
-    verbose = TRUE
-  )
-  
-  cat("Tuning Step 1: Maximum Depth, learning rate, and nrounds baseline \n COMPLETE \n")
-  print(tuneplot(xgb_tune))
-  print(xgb_tune$bestTune)
-  
-  #---------------------------------------------------------- 
-  # 2) Maximum Depth and Minimum Child Weight
-  #---------------------------------------------------------- 
-  
-  if (xgb_tune$bestTune$max_depth == 2) {
-    mxdpth <- 
-      c(xgb_tune$bestTune$max_depth:4)
-  }  else {
-    mxdpth <-  
-      c((xgb_tune$bestTune$max_depth - 1):(xgb_tune$bestTune$max_depth + 1))
-  }
-
-  tune_grid2 <- expand.grid(
-    nrounds = seq(from = 50, to = 1000, by = 50),
-    eta = xgb_tune$bestTune$eta,
-    max_depth = mxdpth,
-    gamma = 0,
-    colsample_bytree = 1,
-    min_child_weight = c(1, 2, 3),
-    subsample = 1
-  )
-  
-  xgb_tune2 <- caret::train(
-    group ~.,
-    data=model.input,
-    trControl = tune_control,
-    tuneGrid = tune_grid2,
-    method = "xgbTree",
-    verbose = TRUE
-  )
-  cat("Tuning Step 2: Maximum Depth and Minimum Child Weight \n COMPLETE \n")
-  print(tuneplot(xgb_tune2))
-  print(xgb_tune2$bestTune)
-  
-  #---------------------------------------------------------- 
-  # 3)  Column and Row Sampling
-  #---------------------------------------------------------- 
-  
-  tune_grid3 <- expand.grid(
-    nrounds = seq(from = 50, to = 1000, by = 50),
-    eta = xgb_tune$bestTune$eta,
-    max_depth = xgb_tune2$bestTune$max_depth,
-    gamma = 0,
-    colsample_bytree = c(0.4, 0.6, 0.8, 1.0),
-    min_child_weight = xgb_tune2$bestTune$min_child_weight,
-    subsample = c(0.5, 0.75, 1.0)
-  )
-  
-  xgb_tune3 <- caret::train(
-    group ~.,
-    data=model.input,
-    trControl = tune_control,
-    tuneGrid = tune_grid3,
-    method = "xgbTree",
-    verbose = TRUE
-  )
-  
-  cat("Tuning Step 3: Column and Row Sampling \n COMPLETE \n")
-  print(tuneplot(xgb_tune3, probs = .95))
-  print(xgb_tune3$bestTune)
-  
-  #---------------------------------------------------------- 
-  # 4)  Gamma
-  #---------------------------------------------------------- 
-  
-  tune_grid4 <- expand.grid(
-    nrounds = seq(from = 50, to = 1000, by = 50),
-    eta = xgb_tune$bestTune$eta,
-    max_depth = xgb_tune2$bestTune$max_depth,
-    gamma = c(0, 0.05, 0.1, 0.5, 0.7, 0.9, 1.0),
-    colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
-    min_child_weight = xgb_tune2$bestTune$min_child_weight,
-    subsample = xgb_tune3$bestTune$subsample
-  )
-  
-  xgb_tune4 <- caret::train(
-    group ~.,
-    data=model.input,
-    trControl = tune_control,
-    tuneGrid = tune_grid4,
-    method = "xgbTree",
-    verbose = TRUE
-  )
-  
-  cat("Tuning Step 4: Gamma \n COMPLETE \n")
-  print(tuneplot(xgb_tune4))
-  print(xgb_tune4$bestTune)
-  
-  #---------------------------------------------------------- 
-  # 5)  Reducing the Learning Rate
-  #---------------------------------------------------------- 
-  
-  tune_grid5 <- expand.grid(
-    nrounds = seq(from = 100, to = 1000, by = 100),
-    eta = c(0.01, 0.015, 0.025, 0.05, 0.1),
-    max_depth = xgb_tune2$bestTune$max_depth,
-    gamma = xgb_tune4$bestTune$gamma,
-    colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
-    min_child_weight = xgb_tune2$bestTune$min_child_weight,
-    subsample = xgb_tune3$bestTune$subsample
-  )
-  
-  xgb_tune5 <- caret::train(
-    group ~.,
-    data=model.input,
-    trControl = tune_control,
-    tuneGrid = tune_grid5,
-    method = "xgbTree",
-    verbose = TRUE
-  )
-  
-  cat("Tuning Step 5: Final Learning Rate \n COMPLETE \n")
-  print(tuneplot(xgb_tune5))
-  print(xgb_tune5$bestTune)
-  
-  
-  #---------------------------------------------------------- 
-  # 5)  Fitting the Model
-  #---------------------------------------------------------- 
-  
-  final_grid <- expand.grid(
-    nrounds = xgb_tune5$bestTune$nrounds,
-    eta = xgb_tune5$bestTune$eta,
-    max_depth = xgb_tune5$bestTune$max_depth,
-    gamma = xgb_tune5$bestTune$gamma,
-    colsample_bytree = xgb_tune5$bestTune$colsample_bytree,
-    min_child_weight = xgb_tune5$bestTune$min_child_weight,
-    subsample = xgb_tune5$bestTune$subsample
-  )
-  
-  mytrainControl <-
-    trainControl(method='repeatedcv',
-                 number=5,
-                 repeats=5,
-                 search='grid',
-                 savePredictions = TRUE,
-                 classProbs = TRUE,
-                 allowParallel = TRUE,
-                 verboseIter = TRUE)
-  
-
-  # Run 5-fold CV Model with 5 Repetition
-  model <-train(group ~.,
-                data=model.input, 
-                method='xgbTree', 
-                metric='Accuracy', 
-                tuneGrid=final_grid, 
-                trControl=mytrainControl,
-                verbose = TRUE)
-
-  
-  cat("Model Summary")
-  print(model)
-  cat("\n\n")
-  # print(plot(model))
-  
-  intervalEnd <- Sys.time()
-  cat("XGBoost model tuning completed in: ",
-      intervalEnd - intervalStart, attr(intervalEnd - intervalStart, "units"))
-  cat("\n\n")
-  
-  # Select model with optimal hyper-parameters
-  df.output <- model$pred 
-
-  # MLeval
-  mleval <- evalm(model)
-  mleval$roc
-  output.list$optimal.df <- df.output
-  # output.list$AUCROC <- mleval$roc
-  output.list$AUCROC <- mleval$stdres$`Group 1`["AUC-ROC", "Score"]
-  output.list$MLevaldata <- mleval$stdres
-
-
-  return(output.list)
-  
-}
-
-
-
-#----------------------------------------------------------------------------------------
-###                       ARTIFICAL NEURAL NETWORK MODELS                             ###
-#----------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-#----------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------
-
-
-
-#----------------------------------------------------------------------------------------
-###         RIDGE, LASSO, ENET LOGISTIC REGRESSION  --  For Curated Datasets            
-#----------------------------------------------------------------------------------------
-
-
-ridge.lasso.enet.regression.model.DS <- function(model.input, model.type){
-  
-  #' Function to train a Rigde, lASSO, or ElasticNet Regression Model
-  #' Input: Phyloseq Obj, comparison of interest, and model type
-  #' Returns: a list including 
-  #' 1) The fitted Model 
-  #' 2) A dataframe of values with the optimal parameters (for ROC plot)
-  #' 3) MLeval AUC-ROC values 
-  #' 4) Other MLeval analysis parameters
-  
-  # Initialize variables
-  model <- NULL
-  output.list <- vector(mode="list", length=4)
-  names(output.list) <- c("fitted_model", "optimal.df", "AUCROC", "MLevaldata")
-  
-  if (model.type == "ridge"){
-    tune.grid = expand.grid(alpha = 0, lambda=seq(0, 1, 0.1))
-  } else if (model.type == "lasso"){
-    tune.grid = expand.grid(alpha = 1, lambda=seq(0, 1, 0.1))
-  } else if (model.type == "enet"){
-    tune.grid = expand.grid(alpha = 0.5, lambda=seq(0, 1, 0.1))
-  }
-  
-  # AST Transformation on merged data
-  groupcol <- factor(model.input$group)
-  temp <- dplyr::select(model.input, -group)
-  model.input <- asin(sqrt(temp))
-  model.input$group <- groupcol
-  
-  # Model Parameters
-  numbers <- 10
-  repeats <- 5  
-  set.seed(42)
-  seed <- 42
-  rcvSeeds <- setSeeds(method = "repeatedcv", numbers = numbers, repeats = repeats, seed = seed)
-  
-  mytrainControl <- 
-    trainControl(method='repeatedcv',
-                 number=numbers, 
-                 repeats=repeats,
-                 search='grid',
-                 seeds = rcvSeeds,
-                 savePredictions = TRUE, 
-                 classProbs = TRUE, 
-                 verboseIter = TRUE)
-  
-  # Run 10-fold CV Model with 5 Repitions
-  model <-train(group ~.,
-                data=model.input, 
-                method='glmnet', 
-                metric='Accuracy', 
-                tuneGrid=tune.grid, 
-                trControl=mytrainControl,
-                verboseIter = T)
-  
-  cat("Model Summary")
-  print(model)
-  cat("\n\n")
-  print(plot(model))
-  
-  # Select model with optimal Lambda
-  selectedIndices <- model$pred$lambda == model$bestTune$lambda
-  df.output <- model$pred[selectedIndices, ]
-  
-  # MLeval
-  mleval <- evalm(model)
-  mleval$roc
-  output.list$fitted_model <- model
-  output.list$optimal.df <- df.output
-  output.list$AUCROC <- mleval$stdres$`Group 1`["AUC-ROC", "Score"]
-  output.list$MLevaldata <- mleval$stdres
-  
-  return(output.list)
-  
-}
-
-
-#----------------------------------------------------------------------------------------
-###   RIDGE, LASSO, ENET LOGISTIC REGRESSION  --  For Curated Datasets & PD COMPARISON        
-#----------------------------------------------------------------------------------------
-
-
-ridge.lasso.enet.regression.model.DSxPD <- function(disease.model.input, model.type, obj = dat){
-  
-  # # TROUBLESHOOTING
-  # disease.model.input = VincentC_2016.model.input;
-  # obj = dat;
-  # model.type = "enet"
-  # 
-  #' Function to train a Rigde, lASSO, or ElasticNet Regression Model
-  #' Input: Phyloseq Obj, comparison of interest, and model type
-  #' Returns: a list including 
-  #' 1) The fitted Model 
-  #' 2) A dataframe of values with the optimal parameters (for ROC plot)
-  #' 3) MLeval AUC-ROC values 
-  #' 4) Other MLeval analysis parameters
-  
-  # Initalize variables
-  model <- NULL
-  output.list <- vector(mode="list", length=4)
-  names(output.list) <- c("fitted_model", "optimal.df", "AUCROC", "MLevaldata")
-  
-  if (model.type == "ridge"){
-    tune.grid = expand.grid(alpha = 0, lambda=seq(0, 1, 0.1))
-  } else if (model.type == "lasso"){
-    tune.grid = expand.grid(alpha = 1, lambda=seq(0, 1, 0.1))
-  } else if (model.type == "enet"){
-    tune.grid = expand.grid(alpha = 0.5, lambda=seq(0, 1, 0.1))
-  }
-  
-  # Trim Control Samples from Disease Dataset 
-  disease.model.input <- filter(disease.model.input, group != "control")
-  # Load Native PD Dataset
-  dat_pd = subset_samples(dat, donor_group == "PD")
-  d <- dat_pd %>%
-    microbiome::transform("compositional") %>% 
-    microbiome::abundances() %>% 
-    t() %>% 
-    as.data.frame() 
-  pd.model.input <- group_col_from_ids(d, id= rownames(d))
-  rownames(pd.model.input) <- rownames(d)
-  
-  
-# Merge Disease and PD input datasets
-  model.input <- full_join(pd.model.input, disease.model.input)
-  groupcol <- factor(model.input$group)
-  
-  # option 1)   Replace all NAs with 0s 
-  # model.input[is.na(model.input)] = 0
-  # option 2)  Trim all features that aren't shared (Detected in both groups)
-  model.input <- model.input[ ,colSums(is.na(model.input)) == 0]
-  
-  # AST Transformation on merged data
-  temp <- dplyr::select(model.input, -group)
-  model.input <- asin(sqrt(temp))
-  model.input$group <- groupcol
-  
-
-  
-  # Model Parameters
-  numbers <- 10
-  repeats <- 5  
-  set.seed(42)
-  seed <- 42
-  rcvSeeds <- setSeeds(method = "repeatedcv", 
-                       numbers = numbers, repeats = repeats, seed = seed)
-  
-  mytrainControl <- 
-    trainControl(method='repeatedcv',
-                 number=numbers, 
-                 repeats=repeats,
-                 search='grid',
-                 seeds = rcvSeeds,
-                 savePredictions = TRUE, 
-                 classProbs = TRUE, 
-                 verboseIter = TRUE)
-  
-  # Run 10-fold CV Model with 5 Repitions
-  model <-train(group ~.,
-                data=model.input, 
-                method='glmnet', 
-                metric='Accuracy', 
-                tuneGrid=tune.grid, 
-                trControl=mytrainControl,
-                verboseIter = T)
-  
-  cat("Model Summary")
-  print(model)
-  cat("\n\n")
-  print(plot(model))
-  
-  # Select model with optimal Lambda
-  selectedIndices <- model$pred$lambda == model$bestTune$lambda
-  df.output <- model$pred[selectedIndices, ]
-  
-  # MLeval
-  mleval <- evalm(model)
-  mleval$roc
-  output.list$fitted_model <- model
-  output.list$optimal.df <- df.output
-  output.list$AUCROC <- mleval$stdres$`Group 1`["AUC-ROC", "Score"]
-  output.list$MLevaldata <- mleval$stdres
-  
-  return(output.list)
-  
-}
-
+library(tidyverse)
+library(parsnip)
+library(rsample)
+library(yardstick)
+library(recipes)
+library(workflows)
+library(dials)
+library(tune)
+library(janitor)
+library(remotes)
+# lightgbm and catboost for parsnip
+# remotes::install_github("curso-r/treesnip", dependencies = T) 
+library(treesnip)
 
 
 #--------------------------------------------------------------------------------
@@ -743,8 +37,9 @@ prep_ml_input <- function(obj){
   all_abund <- abundances(obj) %>% 
     t() %>% as.data.frame() %>% 
     rownames_to_column("donor_id")
-  all_meta <- process_meta(obj, cohort = "Merged") %>% 
-    select(donor_id, PD, cohort, paired)
+  all_meta <- process_meta(obj, cohort = "Merged_ML") %>% 
+    dplyr::select(donor_id, PD, cohort, paired) %>% 
+    dplyr::mutate(PDxcohort = paste(PD, cohort, sep = "_"))
   ml_input <- inner_join(all_meta, all_abund) %>% 
     as_tibble()
   return(ml_input)
@@ -756,8 +51,8 @@ prep_mRMR_input <- function(obj){
   all_abund <- abundances(obj) %>%
     t() %>% as.data.frame() %>%
     rownames_to_column("donor_id")
-  all_meta <- process_meta(obj, cohort = "Merged") %>%
-    select(donor_id, PD)
+  all_meta <- process_meta(obj, cohort = "Merged_ML") %>%
+    dplyr::select(donor_id, PD)
   mRMR_input <- left_join(all_meta, all_abund) %>%
     as.data.frame() %>%
     column_to_rownames(var = "donor_id") %>% 
@@ -772,26 +67,24 @@ prep_mRMR_input <- function(obj){
 #---------------------------------------
 
 feature_selection <- function(df, n_features, n_algorithm = 1){
+  
   mdat <- mRMR.data(data = data.frame(df))
   mRMR <- mRMR.ensemble(data = mdat, target_indices = 1, 
                         feature_count = n_features, solution_count = n_algorithm)
-  selections <- mRMR_input[, solutions(mRMR)$`1`] %>% colnames()
+  selections <- df[, solutions(mRMR)$`1`] %>% colnames()
   return(selections)
 }
 
 
-
-
-
 #--------------------------------------------------------------------------------
-#                   Cross-Validation & Prediction LASSO 
+#                       Tidymodels LASSO 
 #--------------------------------------------------------------------------------
 
 lasso_model <- function(train, test){
   
-  # TROUBLE 
-  train = ml_input_tbc
-  test = ml_input_rush
+  # # TROUBLE
+  # train = ml_input_A
+  # test = ml_input_B
   
   combined <- bind_rows(train, test)
   ind <- list(
@@ -801,9 +94,12 @@ lasso_model <- function(train, test){
   ml_train <- training(splits)
   ml_test <- testing(splits)
   
+  # # Generate 10-fold CV model with 5 repetitions, stratified by PD status 
+  # cv_splits <- rsample::bootstraps(ml_train, v = 10, repeats = 5, strata = PD)
+  # Generate Grid of bootstrapped testing values for training 
   set.seed(42)
-  # Generate 10-fold CV model with 5 repetitions, stratified by PD status 
-  cv_splits <- rsample::vfold_cv(ml_train, v = 10, repeats = 5, strata = PD)
+  boot_splits <- rsample::bootstraps(ml_train, times = 50, strata = PDxcohort)
+  
   # Define tunable Lasso model
   tune_spec <- logistic_reg(penalty = tune(), mixture = 1) %>%
     set_engine("glmnet")
@@ -812,6 +108,7 @@ lasso_model <- function(train, test){
     update_role(donor_id, new_role = "donor_id") %>% 
     update_role(cohort, new_role = "cohort") %>% 
     update_role(paired, new_role = "paired") %>%
+    update_role(PDxcohort, new_role = "PDxcohort") %>%
     step_zv(all_numeric(), -all_outcomes()) %>% 
     step_normalize(all_numeric(), -all_outcomes())
   
@@ -824,15 +121,11 @@ lasso_model <- function(train, test){
   #-----------------------------------------------------
   # Create a grid of penalty values to test
   lambda_grid <- grid_regular(penalty(), levels = 50)
-  ctrl <- control_grid(save_pred = TRUE, verbose = TRUE)
+  # ctrl <- control_grid(save_pred = TRUE, verbose = TRUE)
   doParallel::registerDoParallel()
   
   set.seed(42)
-  lasso_grid <-
-    tune_grid(wf,
-              resamples = cv_splits,
-              grid = lambda_grid,
-              control = ctrl)
+  lasso_grid <- tune_grid(wf, resamples = boot_splits, grid = lambda_grid)
   
   # select optimal penalty by filtering largest rocauc
   best_aucroc <- select_best(lasso_grid, "roc_auc")
@@ -870,14 +163,12 @@ lasso_model <- function(train, test){
   test_metrics <- test_lasso %>%
     collect_metrics()
   
-  # Test predictions using CV tune model
-  lasso_grid %>% 
-    collect_predictions()
-  lasso_grid %>%
-    collect_predictions() %>%
-    accuracy(truth = PD, .pred_class)
-  
-    roc_auc(truth = PD, .pred_Yes)
+  conf_matrix <- 
+    test_lasso %>% 
+    collect_predictions() %>% 
+    conf_mat(PD, .pred_class) %>% 
+    autoplot()
+  print(conf_matrix)
   
   output <- list(
     "cv_tune_model" = lasso_grid,
@@ -889,54 +180,702 @@ lasso_model <- function(train, test){
   return(output)
 }
 
+
 #--------------------------------------------------------------------------------
-#                      LASSO Cohort Cross Testing
+#                   Tidymodels RANDOM FOREST 
 #--------------------------------------------------------------------------------
 
-lasso_cohort_summary <- function(obj_tbc_all, obj_rush_all, featSelection = NULL){
+rf_model <- function(train, test){
   
-  # TROUBLE
-  obj_tbc_all = obj_tbc_all
-  obj_rush_all = obj_rush_all
-  featSelection = hits_KOs
+  # # TROUBLE
+  # train = ml_input_A
+  # test = ml_input_B
   
-  ml_input_tbc <- prep_ml_input(obj_tbc_all)
-  ml_input_rush <- prep_ml_input(obj_rush_all)
-  
-  if(!is.null(featSelection)){
-    cat("Running mRMR feature selection .. \n")
-    ml_input_tbc <- ml_input_tbc %>% 
-      dplyr::select(donor_id, PD, cohort, paired, contains(featSelection))
-    cat("Features selected from TBC: ", ncol(ml_input_tbc)-4, "\n")
-    ml_input_rush <- ml_input_rush %>% 
-      dplyr::select(donor_id, PD, cohort, paired, contains(featSelection))
-    cat("Features selected from Rush: ", ncol(ml_input_rush)-4, "\n")
-  }
-  
-  tbc_vs_rush <- lasso_model(train = ml_input_tbc,
-                             test = ml_input_rush)
-  rush_vs_tbc <- lasso_model(train = ml_input_rush,
-                             test = ml_input_tbc)
+  combined <- bind_rows(train, test)
+  ind <- list(
+    analysis = seq(nrow(train)),
+    assessment = nrow(train) + seq(nrow(test)))
+  splits <- make_splits(ind, combined)
+  ml_train <- training(splits)
+  ml_test <- testing(splits)
 
-  # PD vs Controls (Rush vs TBC)
-  summary_A <-
-    bind_rows(
-      tbc_vs_rush$train_metrics %>%
-        mutate(train = "TBC", test = "TBC"),
-      tbc_vs_rush$test_metrics %>%
-        mutate(train = "TBC", test = "Rush"),
-      rush_vs_tbc$train_metrics %>%
-        mutate(train = "Rush", test = "Rush"),
-      rush_vs_tbc$test_metrics %>%
-        mutate(train = "Rush", test = "TBC")
-    )
+  # Generate Grid of bootstrapped testing values for training 
+  set.seed(42)
+  boot_splits <- rsample::bootstraps(ml_train, times = 25, strata = PDxcohort)
   
+  # Define tunable RF model
+  ranger_spec <-
+    rand_forest(mtry = tune(), min_n = tune(), trees = 1000) %>% 
+    set_mode("classification") %>%
+    set_engine("ranger") 
+    
+  ml_recipe <- recipe(formula = PD ~ ., data = ml_train) %>% 
+    update_role(donor_id, new_role = "donor_id") %>% 
+    update_role(cohort, new_role = "cohort") %>% 
+    update_role(paired, new_role = "paired") %>%
+    update_role(PDxcohort, new_role = "PDxcohort") %>%
+    step_zv(all_numeric(), -all_outcomes()) %>% 
+    step_normalize(all_numeric(), -all_outcomes())
   
-  output <- c("tbc_vs_rush" = tbc_vs_rush, "rush_vs_tbc" = rush_vs_tbc, "summary_A" = summary_A)
+  wf <- workflow() %>% 
+    add_recipe(ml_recipe) %>% 
+    add_model(ranger_spec)
+  
+  #-----------------------------------------------------
+  #                TUNE RF MODEL  
+  #-----------------------------------------------------
+
+  doParallel::registerDoParallel()
+  set.seed(42)
+  ranger_tune <- tune_grid(wf, resamples = boot_splits, grid = 50)
+  
+  # select optimal penalty by filtering largest rocauc
+  best_aucroc <- select_best(ranger_tune, "roc_auc")
+
+  # visualize model metrics of grid 
+  print(autoplot(ranger_tune))
+  
+  # Filtering ROCAUC valued from optimal 5x10fold CV model
+  train_metrics <- 
+    ranger_tune %>% 
+    collect_metrics() %>% 
+    filter(mtry == best_aucroc$mtry,
+           min_n == best_aucroc$min_n)
+  
+  # Finalize trained workflow - use on hold out test sets
+  train_rf <-
+    wf %>%
+    finalize_workflow(best_aucroc) %>%
+    fit(ml_train)
+  
+  # Predictions on test data
+  test_rf <- 
+    last_fit(train_rf, split = splits) 
+  test_metrics <- test_rf %>%
+    collect_metrics()
+  
+  conf_matrix <- 
+    test_rf %>% 
+    collect_predictions() %>% 
+    conf_mat(PD, .pred_class) %>% 
+    autoplot()
+  print(conf_matrix)
+  
+  output <- list(
+    "bootstrap_tune_model" = ranger_tune,
+    "train_rf" = train_rf,
+    "test_rf" = test_rf,
+    "train_metrics" = train_metrics,
+    "test_metrics" = test_metrics
+  )
   return(output)
 }
 
-#-----------------------------------------------------
+
+#--------------------------------------------------------------------------------
+#                       Tidymodels XGBoost 
+#--------------------------------------------------------------------------------
+
+
+xgb_model <- function(train, test){
+  
+  # # TROUBLE
+  # obj_A <- obj_Shanghai
+  # obj_B <- obj_TBC
+  # ml_input_A <- prep_ml_input(obj_A)
+  # ml_input_B <- prep_ml_input(obj_B)
+  # train = ml_input_A
+  # test = ml_input_B
+  
+  combined <- bind_rows(train, test)
+  ind <- list(
+    analysis = seq(nrow(train)),
+    assessment = nrow(train) + seq(nrow(test)))
+  splits <- make_splits(ind, combined)
+  ml_train <- training(splits)
+  ml_test <- testing(splits)
+  
+  set.seed(42)
+  # Generate Grid of bootstrapped testing values for training 
+  boot_splits <- rsample::bootstraps(ml_train, times = 50, strata = PDxcohort)
+  
+  # Define tunable model
+  xgboost_spec <- 
+    boost_tree(
+      trees = tune(),
+      min_n = tune(),
+      tree_depth = tune(),
+      learn_rate = tune(),
+      loss_reduction = tune(),
+      sample_size = tune(),
+      mtry = tune(),
+    ) %>%
+    set_mode("classification") %>% 
+    set_engine("xgboost") 
+  
+  ml_recipe <- recipe(formula = PD ~ ., data = ml_train) %>% 
+    update_role(donor_id, new_role = "donor_id") %>% 
+    update_role(cohort, new_role = "cohort") %>% 
+    update_role(paired, new_role = "paired") %>%
+    update_role(PDxcohort, new_role = "PDxcohort") %>%
+    step_zv(all_numeric(), -all_outcomes()) %>% 
+    step_normalize(all_numeric(), -all_outcomes())
+  
+  wf <- workflow() %>% 
+    add_recipe(ml_recipe) %>% 
+    add_model(xgboost_spec)
+  
+  #-----------------------------------------------------
+  #                TUNE MODEL  
+  #-----------------------------------------------------
+  
+  xgb_grid <-
+    grid_max_entropy(
+      trees(),
+      min_n(),
+      learn_rate(),
+      loss_reduction(),
+      sample_size = sample_prop(),
+      tree_depth(),
+      finalize(mtry(), ml_train),
+      size = 100
+    )
+  
+  doParallel::registerDoParallel()
+  set.seed(42)
+  xgb_tune <- tune_grid(wf, resamples = boot_splits, grid = xgb_grid)
+  
+  # select optimal penalty by filtering largest rocauc
+  best_aucroc <- select_best(xgb_tune, "roc_auc")
+
+  # visualize model metrics of grid 
+  xgb_tune.plot <- xgb_tune %>% 
+    collect_metrics() %>% 
+    filter(.metric == "roc_auc") %>% 
+    dplyr::select(mean, mtry:sample_size) %>% 
+    pivot_longer(mtry:sample_size, names_to = "parameter", values_to = "value") %>% 
+    ggplot(aes(value, mean, color = parameter)) +
+    geom_point(show.legend = F) +
+    facet_wrap(~ parameter, scales = "free_x", nrow = 2)
+  print(xgb_tune.plot)
+  
+  # Filtering ROCAUC valued from optimal 5x10fold CV model
+  train_metrics <- 
+    xgb_tune %>% 
+    collect_metrics() %>% 
+    filter(mtry == best_aucroc$mtry,
+           min_n == best_aucroc$min_n)
+  
+  # Finalize trained workflow - use on hold out test sets
+  train_xgb <-
+    wf %>%
+    finalize_workflow(best_aucroc) %>%
+    fit(ml_train)
+  
+  # Predictions on test data
+  test_xgb <- 
+    last_fit(train_xgb, split = splits) 
+  test_metrics <- test_xgb %>%
+    collect_metrics()
+  
+  conf_matrix <- 
+    test_xgb %>% 
+    collect_predictions() %>% 
+    conf_mat(PD, .pred_class) %>% 
+    # roc_curve(PD, .pred_No) %>% 
+    autoplot()
+  print(conf_matrix)
+  
+  output <- list(
+    "bootstrap_tune_model" = xgb_tune,
+    "train_xgb" = train_xgb,
+    "test_xgb" = test_xgb,
+    "train_metrics" = train_metrics,
+    "test_metrics" = test_metrics
+  )
+  return(output)
+}
+
+
+#--------------------------------------------------------------------------------
+#                       Tidymodels LightGBM 
+#--------------------------------------------------------------------------------
+
+
+lgbm_model <- function(train, test){
+  
+  # # TROUBLE
+  # obj_A <- obj_Shanghai
+  # obj_B <- obj_TBC
+  # ml_input_A <- prep_ml_input(obj_A)
+  # ml_input_B <- prep_ml_input(obj_B)
+  # train = ml_input_A
+  # test = ml_input_B
+
+  combined <- bind_rows(train, test)
+  ind <- list(
+    analysis = seq(nrow(train)),
+    assessment = nrow(train) + seq(nrow(test)))
+  splits <- make_splits(ind, combined)
+  ml_train <- training(splits)
+  ml_test <- testing(splits)
+  
+  set.seed(42)
+  # Generate Grid of bootstrapped testing values for training 
+  boot_splits <- rsample::bootstraps(ml_train, times = 25, strata = PDxcohort)
+  
+  # Define tunable model
+  lgbm_spec <- 
+    boost_tree(
+      trees = tune(),
+      min_n = tune(),
+      tree_depth = tune(),
+      learn_rate = tune(),
+      loss_reduction = tune(),
+      sample_size = tune(),
+      mtry = tune(),
+    ) %>%
+    set_mode("classification") %>% 
+    set_engine("lightgbm") 
+  
+  ml_recipe <- recipe(formula = PD ~ ., data = ml_train) %>% 
+    update_role(donor_id, new_role = "donor_id") %>% 
+    update_role(cohort, new_role = "cohort") %>% 
+    update_role(paired, new_role = "paired") %>%
+    update_role(PDxcohort, new_role = "PDxcohort") %>%
+    step_zv(all_numeric(), -all_outcomes()) %>% 
+    step_normalize(all_numeric(), -all_outcomes())
+  
+  wf <- workflow() %>% 
+    add_recipe(ml_recipe) %>% 
+    add_model(lgbm_spec)
+  
+  #-----------------------------------------------------
+  #                TUNE MODEL  
+  #-----------------------------------------------------
+  
+  lgbm_grid <-
+    grid_max_entropy(
+      trees(),
+      min_n(),
+      learn_rate(),
+      loss_reduction(),
+      sample_size = sample_prop(),
+      tree_depth(),
+      finalize(mtry(), ml_train),
+      size = 30
+    )
+  
+  doParallel::registerDoParallel()
+  set.seed(42)
+  lgbm_tune <- tune_grid(wf, resamples = boot_splits, grid = lgbm_grid)
+
+  # select optimal penalty by filtering largest rocauc
+  best_aucroc <- select_best(lgbm_tune, "roc_auc")
+  
+  # visualize model metrics of grid 
+  lgbm_tune.plot <- lgbm_tune %>% 
+    collect_metrics() %>% 
+    filter(.metric == "roc_auc") %>% 
+    dplyr::select(mean, mtry:sample_size) %>% 
+    pivot_longer(mtry:sample_size, names_to = "parameter", values_to = "value") %>% 
+    ggplot(aes(value, mean, color = parameter)) +
+    geom_point(show.legend = F) +
+    facet_wrap(~ parameter, scales = "free_x", nrow = 2)
+  print(lgbm_tune.plot)
+  
+  # Filtering ROCAUC valued from optimal training model
+  train_metrics <- 
+    lgbm_tune %>% 
+    collect_metrics() %>% 
+    filter(mtry == best_aucroc$mtry,
+           min_n == best_aucroc$min_n)
+  
+  # Finalize trained workflow - use on hold out test sets
+  train_lgbm <-
+    wf %>%
+    finalize_workflow(best_aucroc) %>%
+    fit(ml_train)
+  
+  # Predictions on test data
+  test_lgbm <- 
+    last_fit(train_lgbm, split = splits) 
+  test_metrics <- test_lgbm %>%
+    collect_metrics()
+  
+  conf_matrix <- 
+    test_lgbm %>% 
+    collect_predictions() %>% 
+    conf_mat(PD, .pred_class) %>%
+    # roc_curve(PD, .pred_No) %>%
+    autoplot()
+  print(conf_matrix)
+  
+  output <- list(
+    "bootstrap_tune_model" = lgbm_tune,
+    "train_lgbm" = train_lgbm,
+    "test_lgbm" = test_lgbm,
+    "train_metrics" = train_metrics,
+    "test_metrics" = test_metrics
+  )
+  return(output)
+}
+
+
+
+#--------------------------------------------------------------------------------
+#                      Feature Selection Function
+#--------------------------------------------------------------------------------
+
+mRMR_selection <- function(input, feats){
+  cat("Running mRMR feature selection .. \n")
+  trimmed_input <- input %>% 
+    dplyr::select(donor_id, PD, cohort, paired, matches(feats))
+  cat("Feature N input:", length(feats) ,"Features selected : ", ncol(trimmed_input)-4, "\n")
+  return(trimmed_input)
+}
+
+
+#--------------------------------------------------------------------------------
+#                      ML Cohort Cross Testing
+#--------------------------------------------------------------------------------
+
+ml_summary <- function(obj_A,
+                       obj_B,
+                       label_A,
+                       label_B,
+                       analysis,
+                       featSelection = NULL,
+                       model_type = "lasso") {
+
+  
+  ml_input_A <- prep_ml_input(obj_A)
+  ml_input_B <- prep_ml_input(obj_B)
+  
+  if(!is.null(featSelection)){
+    cat("Selecting mRMR features .. \n")
+    ml_input_A <- ml_input_A %>% 
+      dplyr::select(donor_id, PD, cohort, PDxcohort, paired, matches(featSelection))
+    cat("Features selected from A: ", ncol(ml_input_A)-5, "\n")
+    ml_input_B <- ml_input_B %>% 
+      dplyr::select(donor_id, PD, cohort, PDxcohort, paired, matches(featSelection))
+    cat("Features selected from B: ", ncol(ml_input_B)-5, "\n")
+  }
+  
+  if (model_type == "lasso"){
+    A_vs_B <- lasso_model(train = ml_input_A, test = ml_input_B)
+  } else if (model_type == "randomforest"){
+    A_vs_B <- rf_model(train = ml_input_A, test = ml_input_B)
+  } else if (model_type == "xgboost"){
+    A_vs_B <- xgb_model(train = ml_input_A, test = ml_input_B)
+  } else if (model_type == "lightgbm"){
+    A_vs_B <- lgbm_model(train = ml_input_A, test = ml_input_B)
+  } 
+  
+  summary_A <-
+    bind_rows(
+      A_vs_B$train_metrics %>%
+        mutate(train = label_A, test = label_A, model = "Bootstrap validation"),
+      A_vs_B$test_metrics %>%
+        mutate(train = label_A, test = label_B, model = "Prediction")) %>% 
+    mutate(analysis = analysis)
+
+  return(summary_A)
+}
+
+
+
+#--------------------------------------------------------------------------------
+#                      LASSO Cohort Cross Testing TRIMMED FUNCTION
+#--------------------------------------------------------------------------------
+
+lasso_cohort_summary_trim <- function(ml_input_A, ml_input_B, 
+                                 label_A, label_B, analysis, featSelection = NULL){
+
+  A_vs_B <- lasso_model(train = ml_input_A,
+                        test = ml_input_B)
+  summary_A <-
+    bind_rows(
+      A_vs_B$train_metrics %>%
+        mutate(train = label_A, test = label_A, model = "10-fold CV"),
+      A_vs_B$test_metrics %>%
+        mutate(train = label_A, test = label_B, model = "Prediction")) %>% 
+    mutate(analysis = analysis)
+  
+  return(summary_A)
+}
+
+
+#--------------------------------------------------------------------------------
+#                      Study to Study Transfer
+#--------------------------------------------------------------------------------
+
+ml_s2s <- function(Shanghai,
+                   TBC,
+                   Rush,
+                   Bonn,
+                   model_type = "lasso",
+                   featSelection = NULL,
+                   nfeats = 100) {
+  
+  feats <- vector("list", length = 3)
+  
+  if(!is.null(featSelection)){
+    featselectStart <- Sys.time()
+    mRMR_Shanghai <-
+      feature_selection(df = prep_mRMR_input(Shanghai), n_features = nfeats, n_algorithm = 1)
+    mRMR_TBC <-
+      feature_selection(df = prep_mRMR_input(TBC), n_features = nfeats, n_algorithm = 1)
+    mRMR_Rush <-
+      feature_selection(df = prep_mRMR_input(Rush), n_features = nfeats, n_algorithm = 1)
+    mRMR_Bonn <-
+      feature_selection(df = prep_mRMR_input(Bonn), n_features = nfeats, n_algorithm = 1)
+    
+    feats[[1]] <- mRMR_Shanghai
+    feats[[2]] <- mRMR_TBC
+    feats[[3]] <- mRMR_Rush
+    feats[[4]] <- mRMR_Bonn
+    names(feats) <- c("mRMR_Shanghai", "mRMR_TBC", "mRMR_Rush", "mRMR_Bonn")
+    
+    featselectEnd <- Sys.time()
+    cat("\nfeature selection complete : ", 
+        featselectEnd - featselectStart,
+        attr(featselectEnd - featselectStart, "units"), "\n")
+  } 
+  
+  modelsStart <- Sys.time()
+  # Study to Study Transfer
+  s2s_Shanghai_x_TBC <-
+    ml_summary(
+      obj_A = Shanghai,
+      obj_B = TBC,
+      label_A = "Shanghai",
+      label_B = "TBC",
+      analysis = "S2S",
+      model_type = model_type,
+      featSelection = feats[["mRMR_Shanghai"]]
+    )
+  s2s_Shanghai_x_Rush <-
+    ml_summary(
+      obj_A = Shanghai,
+      obj_B = Rush,
+      label_A = "Shanghai",
+      label_B = "Rush",
+      analysis = "S2S",
+      model_type = model_type,
+      featSelection = feats[["mRMR_Shanghai"]]
+    )
+  s2s_Shanghai_x_Bonn <-
+    ml_summary(
+      obj_A = Shanghai,
+      obj_B = Bonn,
+      label_A = "Shanghai",
+      label_B = "Bonn",
+      analysis = "S2S",
+      model_type = model_type,
+      featSelection = feats[["mRMR_Shanghai"]]
+      )
+  
+  s2s_TBC_x_Shanghai <-
+    ml_summary(
+      obj_A = TBC,
+      obj_B = Shanghai,
+      label_A = "TBC",
+      label_B = "Shanghai",
+      analysis = "S2S",
+      model_type = model_type,
+      featSelection = feats[["mRMR_TBC"]]
+    )
+  s2s_TBC_x_Rush <-
+    ml_summary(
+      obj_A = TBC,
+      obj_B = Rush,
+      label_A = "TBC",
+      label_B = "Rush",
+      analysis = "S2S",
+      model_type = model_type,
+      featSelection = feats[["mRMR_TBC"]]
+    )
+  s2s_TBC_x_Bonn <-
+    ml_summary(
+      obj_A = TBC,
+      obj_B = Rush,
+      label_A = "TBC",
+      label_B = "Bonn",
+      analysis = "S2S",
+      model_type = model_type,
+      featSelection = feats[["mRMR_TBC"]]
+    )
+  
+  s2s_Rush_x_Shanghai <-
+    ml_summary(
+      obj_A = Rush,
+      obj_B = Shanghai,
+      label_A = "Rush",
+      label_B = "Shanghai",
+      analysis = "S2S",
+      model_type = model_type,
+      featSelection =  feats[["mRMR_Rush"]]
+    )
+  s2s_Rush_x_TBC <-
+    ml_summary(
+      obj_A = Rush,
+      obj_B = TBC,
+      label_A = "Rush",
+      label_B = "TBC",
+      analysis = "S2S",
+      model_type = model_type,
+      featSelection =  feats[["mRMR_Rush"]]
+    )
+  s2s_Rush_x_Bonn <-
+    ml_summary(
+      obj_A = Rush,
+      obj_B = TBC,
+      label_A = "Rush",
+      label_B = "Bonn",
+      analysis = "S2S",
+      model_type = model_type,
+      featSelection =  feats[["mRMR_Rush"]]
+    )
+  
+  s2s_Bonn_x_TBC <-
+    ml_summary(
+      obj_A = Bonn,
+      obj_B = TBC,
+      label_A = "Bonn",
+      label_B = "TBC",
+      analysis = "S2S",
+      model_type = model_type,
+      featSelection = feats[["mRMR_Bonn"]]
+    )
+  s2s_Bonn_x_Rush <-
+    ml_summary(
+      obj_A = Bonn,
+      obj_B = Rush,
+      label_A = "Bonn",
+      label_B = "Rush",
+      analysis = "S2S",
+      model_type = model_type,
+      featSelection = feats[["mRMR_Bonn"]]
+    )
+  s2s_Bonn_x_Shanghai <-
+    ml_summary(
+      obj_A = Bonn,
+      obj_B = Rush,
+      label_A = "Bonn",
+      label_B = "Shanghai",
+      analysis = "S2S",
+      model_type = model_type,
+      featSelection = feats[["mRMR_Bonn"]]
+    )
+  
+  modelsEnd <- Sys.time()
+  cat("\n", model_type, " Study to Study Transfer Analysis complete : ", 
+      modelsEnd - modelsStart, attr(modelsEnd - modelsStart, "units"), "\n")
+  
+  s2s_summary <- bind_rows(
+    s2s_Shanghai_x_TBC, s2s_Shanghai_x_Rush, s2s_Shanghai_x_Bonn,
+    s2s_TBC_x_Shanghai, s2s_TBC_x_Rush, s2s_TBC_x_Bonn,
+    s2s_Rush_x_Shanghai, s2s_Rush_x_TBC, s2s_Rush_x_Bonn,
+    s2s_Bonn_x_TBC, s2s_Bonn_x_Rush, s2s_Bonn_x_Shanghai
+  )
+  return(s2s_summary)
+}
+
+#--------------------------------------------------------------------------------
+#                    LOSO - Leave One Study Out
+#--------------------------------------------------------------------------------
+
+
+ml_loso <- function(Shanghai,
+                   noShanghai,
+                   TBC,
+                   noTBC,
+                   Rush,
+                   noRush,
+                   Bonn,
+                   noBonn,
+                   model_type = "lasso",
+                   featSelection = NULL,
+                   nfeats = 100){
+  
+  feats <- vector("list", length = 3)
+  
+  if(!is.null(featSelection)){
+    
+    featselectStart <- Sys.time()
+    
+    mRMR_noShanghai <-
+      feature_selection(df = prep_mRMR_input(noShanghai), n_features = nfeats, n_algorithm = 1)
+    mRMR_noTBC <-
+      feature_selection(df = prep_mRMR_input(noTBC), n_features = nfeats, n_algorithm = 1)
+    mRMR_noRush <-
+      feature_selection(df = prep_mRMR_input(noRush), n_features = nfeats, n_algorithm = 1)
+    mRMR_noBonn <-
+      feature_selection(df = prep_mRMR_input(noBonn), n_features = nfeats, n_algorithm = 1)
+    
+    feats[[1]] <- mRMR_noShanghai
+    feats[[2]] <- mRMR_noTBC
+    feats[[3]] <- mRMR_noRush
+    feats[[4]] <- mRMR_noBonn
+    names(feats) <- c("mRMR_noShanghai", "mRMR_noTBC", "mRMR_noRush", "mRMR_noBonn")
+    
+    featselectEnd <- Sys.time()
+    cat("\nfeature selection complete : ", 
+        featselectEnd - featselectStart,
+        attr(featselectEnd - featselectStart, "units"), "\n")
+  } 
+  modelsStart <- Sys.time()
+  
+  loso_shanghai <-
+    ml_summary(
+      obj_A = noShanghai,
+      obj_B = Shanghai,
+      label_A = "LOSO_Shanghai",
+      label_B = "Shanghai",
+      analysis = "LOSO",
+      model_type = model_type,
+      featSelection =  feats[["mRMR_noShanghai"]]
+    )
+  loso_TBC <-
+    ml_summary(
+      obj_A = noTBC,
+      obj_B = TBC,
+      label_A = "LOSO_TBC",
+      label_B = "TBC",
+      analysis = "LOSO",
+      model_type = model_type,
+      featSelection =  feats[["mRMR_noTBC"]]
+    )
+  loso_Rush <-
+    ml_summary(
+      obj_A = noRush,
+      obj_B = Rush,
+      label_A = "LOSO_Rush",
+      label_B = "Rush",
+      analysis = "LOSO",
+      model_type = model_type,
+      featSelection =  feats[["mRMR_noRush"]]
+    )
+  loso_Bonn <-
+    ml_summary(
+      obj_A = noBonn,
+      obj_B = Bonn,
+      label_A = "LOSO_Bonn",
+      label_B = "Bonn",
+      analysis = "LOSO",
+      model_type = model_type,
+      featSelection =  feats[["mRMR_noBonn"]]
+    )
+  
+  modelsEnd <- Sys.time()
+  cat("\n ", model_type, " LOSO Analysis complete : ", 
+      modelsEnd - modelsStart, attr(modelsEnd - modelsStart, "units"), "\n")
+  
+  loso_summary <- bind_rows(loso_shanghai, loso_TBC, loso_Rush, loso_Bonn)
+  return(loso_summary)
+}
+
 
 #--------------------------------------------------------------------------------
 #                 LASSO Cohort x Donor Group Cross Testing
@@ -948,7 +887,7 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
   ml_input_rush <- prep_ml_input(obj_rush_all)
   
   if(!is.null(featSelection)){
-    cat("Running mRMR feature selection .. \n")
+    cat("Selecting mRMR features .. \n")
     ml_input_tbc <- ml_input_tbc %>% 
       dplyr::select(donor_id, PD, cohort, paired, matches(featSelection))
     ml_input_rush <- ml_input_rush %>% 
@@ -1180,3 +1119,725 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #                  "test_metrics" = test_metrics)
 #   return(output)
 # }
+#' 
+#' 
+#' 
+#' #----------------------------------------------------------------------------------------
+#' ###                       RIDGE, LASSO, ENET LOGISTIC REGRESSION                     ###
+#' #----------------------------------------------------------------------------------------
+#' 
+#' 
+#' ridge.lasso.enet.regression.model <- function(obj, comparison = "PDvPC", model.type){
+#'   
+#'   #' Function to train a Ridge, lASSO, or ElasticNet Regression Model
+#'   #' Input: Phyloseq Obj, comparison of interest, and model type
+#'   #' Returns: a list including 
+#'   #' 1) The fitted Model 
+#'   #' 2) A dataframe of values with the optimal parameters (for ROC plot)
+#'   #' 3) MLeval AUC-ROC values 
+#'   #' 4) Other MLeval analysis parameters
+#'   
+#'   # Initalize variables
+#'   model <- NULL
+#'   model.input <- NULL
+#'   output.list <- vector(mode="list", length=4)
+#'   names(output.list) <- c("fitted_model", "optimal.df", "AUCROC", "MLevaldata")
+#'   
+#'   if (model.type == "ridge"){
+#'     tune.grid = expand.grid(alpha = 0, lambda=seq(0, 1, 0.1))
+#'   } else if (model.type == "lasso"){
+#'     tune.grid = expand.grid(alpha = 1, lambda=seq(0, 1, 0.1))
+#'   } else if (model.type == "enet"){
+#'     tune.grid = expand.grid(alpha = 0.5, lambda=seq(0, 1, 0.1))
+#'   }
+#'   
+#'   # Select samples and prep abundance DF 
+#'   if (comparison == "PDvPC"){
+#'     dat_pdpc = subset_samples(obj, donor_group !="HC")
+#'     d <- dat_pdpc %>%
+#'       microbiome::transform("compositional") %>% 
+#'       microbiome::abundances() %>% 
+#'       t() %>% 
+#'       as.data.frame() 
+#'     d <- asin(sqrt(d))
+#'     pdPC.df <- group_col_from_ids(d, id= rownames(d))
+#'     rownames(pdPC.df) <- rownames(d)
+#'     pdPC.df$group <- factor(pdPC.df$group, levels = c("PC", "PD"))
+#'     model.input <- pdPC.df
+#'     
+#'   } else if (comparison == "PDvHC"){
+#'     dat_pdhc = subset_samples(obj, Paired !="No")
+#'     d <- dat_pdhc %>%
+#'       microbiome::transform("compositional") %>% 
+#'       microbiome::abundances() %>% 
+#'       t() %>% 
+#'       as.data.frame() 
+#'     d <- asin(sqrt(d))
+#'     pdHC.df <- group_col_from_ids(d, id= rownames(d))
+#'     rownames(pdHC.df) <- rownames(d)
+#'     pdHC.df$group <- factor(pdHC.df$group, levels = c("HC", "PD"))
+#'     model.input <- pdHC.df
+#'   }
+#'   
+#'   # Model Parameters
+#'   numbers <- 10
+#'   repeats <- 5  
+#'   set.seed(42)
+#'   seed <- 42
+#'   rcvSeeds <- setSeeds(method = "repeatedcv", numbers = numbers, repeats = repeats, seed = seed)
+#'   
+#'   mytrainControl <- 
+#'     trainControl(method='repeatedcv',
+#'                  number=numbers, 
+#'                  repeats=repeats,
+#'                  search='grid',
+#'                  seeds = rcvSeeds,
+#'                  savePredictions = TRUE, 
+#'                  classProbs = TRUE, 
+#'                  verboseIter = TRUE)
+#'   
+#'   # Run 10-fold CV Model with 5 Repitions
+#'   model <-train(group ~.,
+#'                 data=model.input, 
+#'                 method='glmnet', 
+#'                 metric='Accuracy', 
+#'                 tuneGrid=tune.grid, 
+#'                 trControl=mytrainControl,
+#'                 verboseIter = T)
+#'   cat("Model Summary")
+#'   print(model)
+#'   cat("\n\n")
+#'   print(plot(model))
+#'   
+#'   # Select model with optimal Lambda
+#'   selectedIndices <- model$pred$lambda == model$bestTune$lambda
+#'   df.output <- model$pred[selectedIndices, ]
+#'   
+#'   # MLeval
+#'   mleval <- evalm(model)
+#'   mleval$roc
+#'   output.list$fitted_model <- model
+#'   output.list$optimal.df <- df.output
+#'   output.list$AUCROC <- mleval$stdres$`Group 1`["AUC-ROC", "Score"]
+#'   output.list$MLevaldata <- mleval$stdres
+#'   
+#'   
+#'   return(output.list)
+#'   
+#' }
+#' 
+#' #----------------------------------------------------------------------------------------
+#' ###                              RANDOM FOREST MODELS                                ###
+#' #----------------------------------------------------------------------------------------
+#' 
+#' 
+#' 
+#' random.forest.model <- function(obj, comparison = "PDvPC"){
+#'   
+#'   #' Function to train a Random Forrest Model
+#'   #' Input: Phyloseq Obj and comparison of interest 
+#'   #' Returns: a list including 
+#'   #' 1) The fitted Model 
+#'   #' 2) A dataframe of values with the optimal parameters (for ROC plot)
+#'   #' 3) MLeval AUC-ROC values 
+#'   #' 4) Other MLeval analysis parameters
+#'   
+#'   intervalStart <- Sys.time()
+#'   
+#'   # Initalize variables
+#'   model <- NULL
+#'   output.list <- vector(mode="list", length=4)
+#'   names(output.list) <- c("fitted_model", "optimal.df", "AUCROC", "MLevaldata")
+#'   
+#'   # Select samples and prep abundance DF 
+#'   if (comparison == "PDvPC"){
+#'     dat_pdpc = subset_samples(obj, donor_group !="HC")
+#'     d <- dat_pdpc %>%
+#'       microbiome::transform("compositional") %>% 
+#'       microbiome::abundances() %>% 
+#'       t() %>% 
+#'       as.data.frame()
+#'     d <- asin(sqrt(d))
+#'     pdPC.df <- group_col_from_ids(d, id= rownames(d))
+#'     rownames(pdPC.df) <- rownames(d)
+#'     pdPC.df$group <- factor(pdPC.df$group, levels = c("PC", "PD"))
+#'     model.input <- pdPC.df
+#'     
+#'   } else if (comparison == "PDvHC"){
+#'     dat_pdhc = subset_samples(obj, Paired !="No")
+#'     d <- dat_pdhc %>%
+#'       microbiome::transform("compositional") %>% 
+#'       microbiome::abundances() %>% 
+#'       t() %>% 
+#'       as.data.frame() 
+#'     d <- asin(sqrt(d))
+#'     pdHC.df <- group_col_from_ids(d, id= rownames(d))
+#'     rownames(pdHC.df) <- rownames(d)
+#'     pdHC.df$group <- factor(pdHC.df$group, levels = c("HC", "PD"))
+#'     model.input <- pdHC.df
+#'   }
+#'   
+#'   # Model Parameters
+#'   numbers <- 10
+#'   repeats <- 5
+#'   tune.grid = expand.grid(.mtry =   seq(1, 2 * as.integer(sqrt(ncol(model.input) - 1)), by=2)) 
+#'   set.seed(42)
+#'   seed <- 42
+#'   # Repeated cross validation
+#'   rcvSeeds <- setSeeds(method = "repeatedcv", numbers = numbers, repeats = repeats, 
+#'                        tunes = length(tune.grid$.mtry), seed = seed)
+#'   # c('B + 1' = length(rcvSeeds), M = length(rcvSeeds[[1]]))
+#'   # rcvSeeds[c(1, length(rcvSeeds))]
+#'   mytrainControl <- 
+#'     trainControl(method='repeatedcv',
+#'                  number=numbers, 
+#'                  repeats=repeats,
+#'                  search='grid',
+#'                  savePredictions = TRUE, 
+#'                  classProbs = TRUE, 
+#'                  verboseIter = TRUE,
+#'                  allowParallel = TRUE,
+#'                  seeds = rcvSeeds)
+#'   
+#'   # Run model using multiple threads 
+#'   cluster <- parallel::makeCluster(detectCores() - 1, setup_strategy = "sequential")
+#'   registerDoParallel(cluster)
+#'   
+#'   # Run 10-fold CV Model with 5 Repitions
+#'   system.time(
+#'     model <-train(group ~.,
+#'                   data=model.input, 
+#'                   method='rf', 
+#'                   metric='Accuracy', 
+#'                   tuneGrid=tune.grid, 
+#'                   ntree = 1000,
+#'                   trControl=mytrainControl,
+#'                   importance = TRUE,
+#'                   verboseIter = T)
+#'   )
+#'   
+#'   stopCluster(cluster)
+#'   unregister()
+#'   
+#'   cat("Model Summary")
+#'   print(model)
+#'   cat("\n\n")
+#'   print(plot(model))
+#'   
+#'   # Select model with optimal __mtry__ 
+#'   selectedIndices <- model$pred$mtry == model$bestTune$mtry
+#'   df.output <- model$pred[selectedIndices, ]
+#'   
+#'   # MLeval
+#'   mleval <- evalm(model)
+#'   mleval$roc
+#'   output.list$fitted_model <- model
+#'   output.list$optimal.df <- df.output
+#'   output.list$AUCROC <- mleval$stdres$`Group 1`["AUC-ROC", "Score"]
+#'   output.list$MLevaldata <- mleval$stdres
+#'   
+#'   intervalEnd <- Sys.time()
+#'   cat("Random Forest analysis took",
+#'       intervalEnd - intervalStart,attr(intervalEnd - intervalStart,"units"))
+#'   cat("\n\n")
+#'   return(output.list)
+#'   
+#' }
+#' 
+#' 
+#' 
+#' 
+#' #----------------------------------------------------------------------------------------
+#' ###                                XBOOST MODELS                                      ###
+#' #----------------------------------------------------------------------------------------
+#' 
+#' 
+#' xgboost.model <- function(obj, comparison = "PDvPC"){
+#'   
+#'   
+#'   # ########    DELETE LATER  4 - TESTING ######## 
+#'   # obj = dat
+#'   # comparison = "PDvPC"
+#'   # ########  ########  ########  ########  ######## 
+#'   # 
+#'   
+#'   #' Function to train a Random Forrest Model
+#'   #' Input: Phyloseq Obj and comparison of interest 
+#'   #' Returns: a list including 
+#'   #' 1) A dataframe of values with the optimal parameters (for ROC plot)
+#'   #' 2) MLeval individual model ROC plot
+#'   #' 3) MLeval AUC-ROC values 
+#'   #' 4) Other MLeval analysis parameters
+#'   
+#'   intervalStart <- Sys.time()
+#'   
+#'   # Initalize variables
+#'   model <- NULL
+#'   output.list <- vector(mode="list", length=3)
+#'   names(output.list) <- c("optimal.df", "AUCROC", "MLevaldata")
+#'   
+#'   set.seed(42)
+#'   
+#'   # Select samples and prep abundance DF 
+#'   if (comparison == "PDvPC"){
+#'     dat_pdpc = subset_samples(obj, donor_group !="HC")
+#'     d <- dat_pdpc %>%
+#'       microbiome::transform("compositional") %>% 
+#'       microbiome::abundances() %>% 
+#'       t() %>% 
+#'       as.data.frame() 
+#'     d <- asin(sqrt(d))
+#'     pdPC.df <- group_col_from_ids(d, id= rownames(d))
+#'     rownames(pdPC.df) <- rownames(d)
+#'     pdPC.df$group <- factor(pdPC.df$group, levels = c("PC", "PD"))
+#'     model.input <- pdPC.df
+#'     
+#'   } else if (comparison == "PDvHC"){
+#'     dat_pdhc = subset_samples(obj, Paired !="No")
+#'     d <- dat_pdhc %>%
+#'       microbiome::transform("compositional") %>% 
+#'       microbiome::abundances() %>% 
+#'       t() %>% 
+#'       as.data.frame() 
+#'     d <- asin(sqrt(d))
+#'     pdHC.df <- group_col_from_ids(d, id= rownames(d))
+#'     rownames(pdHC.df) <- rownames(d)
+#'     pdHC.df$group <- factor(pdHC.df$group, levels = c("HC", "PD"))
+#'     model.input <- pdHC.df
+#'   }
+#'   
+#'   # Set-up Parallel Processing Threads
+#'   # omp_set_num_threads(3)
+#'   # intervalStart <- Sys.time()
+#'   
+#'   #----------------------------------- 
+#'   # Hyperparameter Tuning 
+#'   #Informed by: https://www.kaggle.com/pelkoja/visual-xgboost-tuning-with-caret/report
+#'   
+#'   #---------------------------------------------------------- 
+#'   # 1) nrounds & eta 
+#'   #---------------------------------------------------------- 
+#'   
+#'   tune_grid <- expand.grid(
+#'     nrounds = seq(from = 200, to = 1000, by = 50),
+#'     eta = c(0.025, 0.05, 0.1, 0.3),
+#'     max_depth = c(2, 3, 4, 5, 6),
+#'     gamma = 0,
+#'     colsample_bytree = 1,
+#'     min_child_weight = 1,
+#'     subsample = 1
+#'   )
+#'   
+#'   tune_control <-
+#'     trainControl(method='repeatedcv',
+#'                  number=5,
+#'                  repeats=3,
+#'                  search='grid',
+#'                  # savePredictions = TRUE,
+#'                  # classProbs = TRUE,
+#'                  # allowParallel = TRUE,
+#'                  verboseIter = TRUE)
+#'   
+#'   xgb_tune <- caret::train(
+#'     group ~.,
+#'     data=model.input,
+#'     trControl = tune_control,
+#'     tuneGrid = tune_grid,
+#'     method = "xgbTree",
+#'     verbose = TRUE
+#'   )
+#'   
+#'   cat("Tuning Step 1: Maximum Depth, learning rate, and nrounds baseline \n COMPLETE \n")
+#'   print(tuneplot(xgb_tune))
+#'   print(xgb_tune$bestTune)
+#'   
+#'   #---------------------------------------------------------- 
+#'   # 2) Maximum Depth and Minimum Child Weight
+#'   #---------------------------------------------------------- 
+#'   
+#'   if (xgb_tune$bestTune$max_depth == 2) {
+#'     mxdpth <- 
+#'       c(xgb_tune$bestTune$max_depth:4)
+#'   }  else {
+#'     mxdpth <-  
+#'       c((xgb_tune$bestTune$max_depth - 1):(xgb_tune$bestTune$max_depth + 1))
+#'   }
+#'   
+#'   tune_grid2 <- expand.grid(
+#'     nrounds = seq(from = 50, to = 1000, by = 50),
+#'     eta = xgb_tune$bestTune$eta,
+#'     max_depth = mxdpth,
+#'     gamma = 0,
+#'     colsample_bytree = 1,
+#'     min_child_weight = c(1, 2, 3),
+#'     subsample = 1
+#'   )
+#'   
+#'   xgb_tune2 <- caret::train(
+#'     group ~.,
+#'     data=model.input,
+#'     trControl = tune_control,
+#'     tuneGrid = tune_grid2,
+#'     method = "xgbTree",
+#'     verbose = TRUE
+#'   )
+#'   cat("Tuning Step 2: Maximum Depth and Minimum Child Weight \n COMPLETE \n")
+#'   print(tuneplot(xgb_tune2))
+#'   print(xgb_tune2$bestTune)
+#'   
+#'   #---------------------------------------------------------- 
+#'   # 3)  Column and Row Sampling
+#'   #---------------------------------------------------------- 
+#'   
+#'   tune_grid3 <- expand.grid(
+#'     nrounds = seq(from = 50, to = 1000, by = 50),
+#'     eta = xgb_tune$bestTune$eta,
+#'     max_depth = xgb_tune2$bestTune$max_depth,
+#'     gamma = 0,
+#'     colsample_bytree = c(0.4, 0.6, 0.8, 1.0),
+#'     min_child_weight = xgb_tune2$bestTune$min_child_weight,
+#'     subsample = c(0.5, 0.75, 1.0)
+#'   )
+#'   
+#'   xgb_tune3 <- caret::train(
+#'     group ~.,
+#'     data=model.input,
+#'     trControl = tune_control,
+#'     tuneGrid = tune_grid3,
+#'     method = "xgbTree",
+#'     verbose = TRUE
+#'   )
+#'   
+#'   cat("Tuning Step 3: Column and Row Sampling \n COMPLETE \n")
+#'   print(tuneplot(xgb_tune3, probs = .95))
+#'   print(xgb_tune3$bestTune)
+#'   
+#'   #---------------------------------------------------------- 
+#'   # 4)  Gamma
+#'   #---------------------------------------------------------- 
+#'   
+#'   tune_grid4 <- expand.grid(
+#'     nrounds = seq(from = 50, to = 1000, by = 50),
+#'     eta = xgb_tune$bestTune$eta,
+#'     max_depth = xgb_tune2$bestTune$max_depth,
+#'     gamma = c(0, 0.05, 0.1, 0.5, 0.7, 0.9, 1.0),
+#'     colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
+#'     min_child_weight = xgb_tune2$bestTune$min_child_weight,
+#'     subsample = xgb_tune3$bestTune$subsample
+#'   )
+#'   
+#'   xgb_tune4 <- caret::train(
+#'     group ~.,
+#'     data=model.input,
+#'     trControl = tune_control,
+#'     tuneGrid = tune_grid4,
+#'     method = "xgbTree",
+#'     verbose = TRUE
+#'   )
+#'   
+#'   cat("Tuning Step 4: Gamma \n COMPLETE \n")
+#'   print(tuneplot(xgb_tune4))
+#'   print(xgb_tune4$bestTune)
+#'   
+#'   #---------------------------------------------------------- 
+#'   # 5)  Reducing the Learning Rate
+#'   #---------------------------------------------------------- 
+#'   
+#'   tune_grid5 <- expand.grid(
+#'     nrounds = seq(from = 100, to = 1000, by = 100),
+#'     eta = c(0.01, 0.015, 0.025, 0.05, 0.1),
+#'     max_depth = xgb_tune2$bestTune$max_depth,
+#'     gamma = xgb_tune4$bestTune$gamma,
+#'     colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
+#'     min_child_weight = xgb_tune2$bestTune$min_child_weight,
+#'     subsample = xgb_tune3$bestTune$subsample
+#'   )
+#'   
+#'   xgb_tune5 <- caret::train(
+#'     group ~.,
+#'     data=model.input,
+#'     trControl = tune_control,
+#'     tuneGrid = tune_grid5,
+#'     method = "xgbTree",
+#'     verbose = TRUE
+#'   )
+#'   
+#'   cat("Tuning Step 5: Final Learning Rate \n COMPLETE \n")
+#'   print(tuneplot(xgb_tune5))
+#'   print(xgb_tune5$bestTune)
+#'   
+#'   
+#'   #---------------------------------------------------------- 
+#'   # 5)  Fitting the Model
+#'   #---------------------------------------------------------- 
+#'   
+#'   final_grid <- expand.grid(
+#'     nrounds = xgb_tune5$bestTune$nrounds,
+#'     eta = xgb_tune5$bestTune$eta,
+#'     max_depth = xgb_tune5$bestTune$max_depth,
+#'     gamma = xgb_tune5$bestTune$gamma,
+#'     colsample_bytree = xgb_tune5$bestTune$colsample_bytree,
+#'     min_child_weight = xgb_tune5$bestTune$min_child_weight,
+#'     subsample = xgb_tune5$bestTune$subsample
+#'   )
+#'   
+#'   mytrainControl <-
+#'     trainControl(method='repeatedcv',
+#'                  number=5,
+#'                  repeats=5,
+#'                  search='grid',
+#'                  savePredictions = TRUE,
+#'                  classProbs = TRUE,
+#'                  allowParallel = TRUE,
+#'                  verboseIter = TRUE)
+#'   
+#'   
+#'   # Run 5-fold CV Model with 5 Repetition
+#'   model <-train(group ~.,
+#'                 data=model.input, 
+#'                 method='xgbTree', 
+#'                 metric='Accuracy', 
+#'                 tuneGrid=final_grid, 
+#'                 trControl=mytrainControl,
+#'                 verbose = TRUE)
+#'   
+#'   
+#'   cat("Model Summary")
+#'   print(model)
+#'   cat("\n\n")
+#'   # print(plot(model))
+#'   
+#'   intervalEnd <- Sys.time()
+#'   cat("XGBoost model tuning completed in: ",
+#'       intervalEnd - intervalStart, attr(intervalEnd - intervalStart, "units"))
+#'   cat("\n\n")
+#'   
+#'   # Select model with optimal hyper-parameters
+#'   df.output <- model$pred 
+#'   
+#'   # MLeval
+#'   mleval <- evalm(model)
+#'   mleval$roc
+#'   output.list$optimal.df <- df.output
+#'   # output.list$AUCROC <- mleval$roc
+#'   output.list$AUCROC <- mleval$stdres$`Group 1`["AUC-ROC", "Score"]
+#'   output.list$MLevaldata <- mleval$stdres
+#'   
+#'   
+#'   return(output.list)
+#'   
+#' }
+#' 
+#' 
+#' 
+#' #----------------------------------------------------------------------------------------
+#' ###                       ARTIFICAL NEURAL NETWORK MODELS                             ###
+#' #----------------------------------------------------------------------------------------
+#' 
+#' 
+#' 
+#' 
+#' 
+#' 
+#' 
+#' 
+#' #----------------------------------------------------------------------------------------
+#' #----------------------------------------------------------------------------------------
+#' #----------------------------------------------------------------------------------------
+#' #----------------------------------------------------------------------------------------
+#' 
+#' 
+#' 
+#' #----------------------------------------------------------------------------------------
+#' ###         RIDGE, LASSO, ENET LOGISTIC REGRESSION  --  For Curated Datasets            
+#' #----------------------------------------------------------------------------------------
+#' 
+#' 
+#' ridge.lasso.enet.regression.model.DS <- function(model.input, model.type){
+#'   
+#'   #' Function to train a Rigde, lASSO, or ElasticNet Regression Model
+#'   #' Input: Phyloseq Obj, comparison of interest, and model type
+#'   #' Returns: a list including 
+#'   #' 1) The fitted Model 
+#'   #' 2) A dataframe of values with the optimal parameters (for ROC plot)
+#'   #' 3) MLeval AUC-ROC values 
+#'   #' 4) Other MLeval analysis parameters
+#'   
+#'   # Initialize variables
+#'   model <- NULL
+#'   output.list <- vector(mode="list", length=4)
+#'   names(output.list) <- c("fitted_model", "optimal.df", "AUCROC", "MLevaldata")
+#'   
+#'   if (model.type == "ridge"){
+#'     tune.grid = expand.grid(alpha = 0, lambda=seq(0, 1, 0.1))
+#'   } else if (model.type == "lasso"){
+#'     tune.grid = expand.grid(alpha = 1, lambda=seq(0, 1, 0.1))
+#'   } else if (model.type == "enet"){
+#'     tune.grid = expand.grid(alpha = 0.5, lambda=seq(0, 1, 0.1))
+#'   }
+#'   
+#'   # AST Transformation on merged data
+#'   groupcol <- factor(model.input$group)
+#'   temp <- dplyr::select(model.input, -group)
+#'   model.input <- asin(sqrt(temp))
+#'   model.input$group <- groupcol
+#'   
+#'   # Model Parameters
+#'   numbers <- 10
+#'   repeats <- 5  
+#'   set.seed(42)
+#'   seed <- 42
+#'   rcvSeeds <- setSeeds(method = "repeatedcv", numbers = numbers, repeats = repeats, seed = seed)
+#'   
+#'   mytrainControl <- 
+#'     trainControl(method='repeatedcv',
+#'                  number=numbers, 
+#'                  repeats=repeats,
+#'                  search='grid',
+#'                  seeds = rcvSeeds,
+#'                  savePredictions = TRUE, 
+#'                  classProbs = TRUE, 
+#'                  verboseIter = TRUE)
+#'   
+#'   # Run 10-fold CV Model with 5 Repitions
+#'   model <-train(group ~.,
+#'                 data=model.input, 
+#'                 method='glmnet', 
+#'                 metric='Accuracy', 
+#'                 tuneGrid=tune.grid, 
+#'                 trControl=mytrainControl,
+#'                 verboseIter = T)
+#'   
+#'   cat("Model Summary")
+#'   print(model)
+#'   cat("\n\n")
+#'   print(plot(model))
+#'   
+#'   # Select model with optimal Lambda
+#'   selectedIndices <- model$pred$lambda == model$bestTune$lambda
+#'   df.output <- model$pred[selectedIndices, ]
+#'   
+#'   # MLeval
+#'   mleval <- evalm(model)
+#'   mleval$roc
+#'   output.list$fitted_model <- model
+#'   output.list$optimal.df <- df.output
+#'   output.list$AUCROC <- mleval$stdres$`Group 1`["AUC-ROC", "Score"]
+#'   output.list$MLevaldata <- mleval$stdres
+#'   
+#'   return(output.list)
+#'   
+#' }
+#' 
+#' 
+#' #----------------------------------------------------------------------------------------
+#' ###   RIDGE, LASSO, ENET LOGISTIC REGRESSION  --  For Curated Datasets & PD COMPARISON        
+#' #----------------------------------------------------------------------------------------
+#' 
+#' 
+#' ridge.lasso.enet.regression.model.DSxPD <- function(disease.model.input, model.type, obj = dat){
+#'   
+#'   # # TROUBLESHOOTING
+#'   # disease.model.input = VincentC_2016.model.input;
+#'   # obj = dat;
+#'   # model.type = "enet"
+#'   # 
+#'   #' Function to train a Rigde, lASSO, or ElasticNet Regression Model
+#'   #' Input: Phyloseq Obj, comparison of interest, and model type
+#'   #' Returns: a list including 
+#'   #' 1) The fitted Model 
+#'   #' 2) A dataframe of values with the optimal parameters (for ROC plot)
+#'   #' 3) MLeval AUC-ROC values 
+#'   #' 4) Other MLeval analysis parameters
+#'   
+#'   # Initalize variables
+#'   model <- NULL
+#'   output.list <- vector(mode="list", length=4)
+#'   names(output.list) <- c("fitted_model", "optimal.df", "AUCROC", "MLevaldata")
+#'   
+#'   if (model.type == "ridge"){
+#'     tune.grid = expand.grid(alpha = 0, lambda=seq(0, 1, 0.1))
+#'   } else if (model.type == "lasso"){
+#'     tune.grid = expand.grid(alpha = 1, lambda=seq(0, 1, 0.1))
+#'   } else if (model.type == "enet"){
+#'     tune.grid = expand.grid(alpha = 0.5, lambda=seq(0, 1, 0.1))
+#'   }
+#'   
+#'   # Trim Control Samples from Disease Dataset 
+#'   disease.model.input <- filter(disease.model.input, group != "control")
+#'   # Load Native PD Dataset
+#'   dat_pd = subset_samples(dat, donor_group == "PD")
+#'   d <- dat_pd %>%
+#'     microbiome::transform("compositional") %>% 
+#'     microbiome::abundances() %>% 
+#'     t() %>% 
+#'     as.data.frame() 
+#'   pd.model.input <- group_col_from_ids(d, id= rownames(d))
+#'   rownames(pd.model.input) <- rownames(d)
+#'   
+#'   
+#'   # Merge Disease and PD input datasets
+#'   model.input <- full_join(pd.model.input, disease.model.input)
+#'   groupcol <- factor(model.input$group)
+#'   
+#'   # option 1)   Replace all NAs with 0s 
+#'   # model.input[is.na(model.input)] = 0
+#'   # option 2)  Trim all features that aren't shared (Detected in both groups)
+#'   model.input <- model.input[ ,colSums(is.na(model.input)) == 0]
+#'   
+#'   # AST Transformation on merged data
+#'   temp <- dplyr::select(model.input, -group)
+#'   model.input <- asin(sqrt(temp))
+#'   model.input$group <- groupcol
+#'   
+#'   
+#'   
+#'   # Model Parameters
+#'   numbers <- 10
+#'   repeats <- 5  
+#'   set.seed(42)
+#'   seed <- 42
+#'   rcvSeeds <- setSeeds(method = "repeatedcv", 
+#'                        numbers = numbers, repeats = repeats, seed = seed)
+#'   
+#'   mytrainControl <- 
+#'     trainControl(method='repeatedcv',
+#'                  number=numbers, 
+#'                  repeats=repeats,
+#'                  search='grid',
+#'                  seeds = rcvSeeds,
+#'                  savePredictions = TRUE, 
+#'                  classProbs = TRUE, 
+#'                  verboseIter = TRUE)
+#'   
+#'   # Run 10-fold CV Model with 5 Repitions
+#'   model <-train(group ~.,
+#'                 data=model.input, 
+#'                 method='glmnet', 
+#'                 metric='Accuracy', 
+#'                 tuneGrid=tune.grid, 
+#'                 trControl=mytrainControl,
+#'                 verboseIter = T)
+#'   
+#'   cat("Model Summary")
+#'   print(model)
+#'   cat("\n\n")
+#'   print(plot(model))
+#'   
+#'   # Select model with optimal Lambda
+#'   selectedIndices <- model$pred$lambda == model$bestTune$lambda
+#'   df.output <- model$pred[selectedIndices, ]
+#'   
+#'   # MLeval
+#'   mleval <- evalm(model)
+#'   mleval$roc
+#'   output.list$fitted_model <- model
+#'   output.list$optimal.df <- df.output
+#'   output.list$AUCROC <- mleval$stdres$`Group 1`["AUC-ROC", "Score"]
+#'   output.list$MLevaldata <- mleval$stdres
+#'   
+#'   return(output.list)
+#'   
+#' }
+
+
