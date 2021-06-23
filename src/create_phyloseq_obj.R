@@ -35,12 +35,11 @@ names(TBC_keymap) <- TBC_keys$id
 select_val <- function(x, na.rm = FALSE) substr(x, start = 0, stop = 1)
 
 MDSUPDRS <- 
-  read.csv(file = "files/MDSUPDRS_20210217.csv", header= T) %>%
-  # read.csv(file = "files/MDSUPDRS_20200831.csv", header= T) %>%
+  read.csv(file = "files/MDSUPDRS_20200831.csv", header= T) %>%
   dplyr::select(-who_is_filling_out_survey) %>% 
   mutate_at(vars(-TBC_Subject_ID), select_val) %>% 
   mutate_at(vars(-TBC_Subject_ID), as.numeric) %>% 
-  mutate(TBC_Subject_ID = format(TBC_Subject_ID, scientific=F)) %>% 
+  mutate(TBC_Subject_ID = format(TBC_Subject_ID, scientific=F)) %>%
   rowwise() %>% 
   mutate(mds_updrs_survey_total = sum(c_across(where(is.numeric)),na.rm = TRUE))
 
@@ -66,6 +65,7 @@ bugs.species <- met.table %>%
   dplyr::rename("taxonomy" = `# taxonomy`) %>% 
   filter(grepl("s__", taxonomy)) %>% 
   filter(!grepl("t__", taxonomy)) %>% 
+  mutate(taxonomy = gsub("s__", "", taxonomy)) %>% 
   column_to_rownames(var = "taxonomy") %>% 
   clean.cols.tax() %>%
   dplyr::select(-contains(negative_controls)) %>%
@@ -137,7 +137,6 @@ my_sample_data <- meta(dat.species) %>% sample_data()
 dat.path.slim <- phyloseq(my_pathab_table, my_sample_data)
 dat.path.slim
 save(dat.path.slim, file = "files/Phyloseq_TBC/Pathways.slim_PhyloseqObj.RData")
-
 
 
 #---------------------------------------------------------- 
@@ -383,7 +382,7 @@ metadata_RUSH <- read.csv(file = "files/metadata_phyloseq_RUSH.csv", header= TRU
 
 RUSH_keys <- 
   metadata_RUSH %>% 
-  select(donor_id, host_subject_id) %>% 
+  dplyr::select(donor_id, host_subject_id) %>% 
   mutate(donor_id = as.character(donor_id)) %>% 
   mutate(host_subject_id = as.character(host_subject_id))
 
@@ -391,6 +390,7 @@ RUSH_keymap <- RUSH_keys$host_subject_id
 names(RUSH_keymap) <- RUSH_keys$donor_id
 
 reads.RUSH <- load_reads("RUSH")
+
 metadata_RUSH <- left_join(metadata_RUSH, reads.RUSH, by = "donor_id")
 
 rownames(metadata_RUSH) <- metadata_RUSH$donor_id
@@ -409,6 +409,7 @@ bugs.species <- met.table %>%
   dplyr::rename("taxonomy" = `# taxonomy`) %>% 
   filter(grepl("s__", taxonomy)) %>% 
   filter(!grepl("t__", taxonomy)) %>% 
+  mutate(taxonomy = gsub("s__", "", taxonomy)) %>% 
   column_to_rownames(var = "taxonomy") %>% 
   clean.cols.tax() %>%
   dplyr::select(-contains(negative_controls)) %>%
@@ -795,5 +796,35 @@ Phylo_Objects$GOs <- dat.GOs; Phylo_Objects$GOs.slim <- dat.GOs.slim
 Phylo_Objects$PFAMs <- dat.PFAMs; Phylo_Objects$PFAMs.slim <- dat.PFAMs.slim
 Phylo_Objects$EGGNOGs <- dat.EGGNOGs; Phylo_Objects$EGGNOGs.slim <- dat.EGGNOGs.slim
 save(Phylo_Objects, file = "files/Phyloseq_Merged/PhyloseqObj.RData")
+#-------------------------------------------------------------------------------------------
+
+load("files/Phyloseq_Merged/Species_PhyloseqObj.RData")
+load("files/Phyloseq_Merged/Genus_PhyloseqObj.RData")
+load("files/Phyloseq_Merged/Family_PhyloseqObj.RData")
+load("files/Phyloseq_Merged/Order_PhyloseqObj.RData")
+load("files/Phyloseq_Merged/Class_PhyloseqObj.RData")
+load("files/Phyloseq_Merged/Phylum_PhyloseqObj.RData")
+load("files/Phyloseq_Merged/Kingdom_PhyloseqObj.RData")
+load("files/Phyloseq_Merged/Pathways_PhyloseqObj.RData")
+load("files/Phyloseq_Merged/Pathways.slim_PhyloseqObj.RData")
+load("files/Phyloseq_Merged/Enzymes_PhyloseqObj.RData")
+load("files/Phyloseq_Merged/Enzymes.slim_PhyloseqObj.RData")
+load("files/Phyloseq_Merged/KOs_PhyloseqObj.RData")
+load("files/Phyloseq_Merged/KOs.slim_PhyloseqObj.RData")
+
+### Create list for objects
+Phylo_Objects <- vector(mode="list", length=13)
+names(Phylo_Objects) <- c("Species", "Genus", "Family", "Order", "Class", "Phylum", "Kingdom",
+                          "Pathways", "Pathways.slim",
+                          "Enzymes", "Enzymes.slim",
+                          "KOs", "KOs.slim")
+
+Phylo_Objects$Species <- dat.species; Phylo_Objects$Genus <- dat.genus;
+Phylo_Objects$Family <- dat.family; Phylo_Objects$Order <- dat.order; Phylo_Objects$Class <- dat.class;
+Phylo_Objects$Phylum <- print(dat.phylum); Phylo_Objects$Kingdom <- dat.kingdom;
+Phylo_Objects$Pathways <- dat.path; Phylo_Objects$Pathways.slim <- dat.path.slim;
+Phylo_Objects$Enzymes <- dat.ec; Phylo_Objects$Enzymes.slim <- dat.ec.slim;
+Phylo_Objects$KOs <- dat.KOs; Phylo_Objects$KOs.slim <- dat.KOs.slim
+save(Phylo_Objects, file = "EDA_App/PhyloseqObj.RData")
 #-------------------------------------------------------------------------------------------
 

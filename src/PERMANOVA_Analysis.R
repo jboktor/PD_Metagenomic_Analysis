@@ -6,25 +6,13 @@ source("src/miscellaneous_funcs.R")
 source("src/load_phyloseq_obj.R")
 source("src/metadata_prep_funcs.R")
 load("files/low_quality_samples.RData")
-load_all_cohorts()
+load_data("Merged")
 
-dat <- dat.species %>% 
-  subset_samples(donor_id %ni% low_qc[[1]]) %>% 
-  microbiome::transform("compositional")
-dat_clr <- microbiome::transform(dat, "clr")
-sp <- t(abundances(dat_clr))
+#-------------------------------------------------------------------------------
+#####                       PERMANOVA Analysis                             ##### 
+#-------------------------------------------------------------------------------
 
-# Run Metadata pre-processing function
-env <- process_meta(dat, cohort = "Merged")
-env <- trim_meta(env, min_ratio = 2/234)
-# remove ID variable and duplicate grouping variable
-env.pa <- dplyr::select(env, -matches(other_metadata))
-## Adding Alpha Diversity to PERMANOVA
-env.pa$Shannon <- alpha(abundances(dat), 'shannon')$diversity_shannon
-# env$right_hand
-
-####################  Prep PERMANOVA  #################### 
-distlist <- c("euclidean")
+distlist <- c("euclidean", "bray")
 sigmetadata <- vector("list", length(distlist))
 names(sigmetadata) = distlist
 
@@ -35,50 +23,139 @@ for (j in distlist) {
 siglst <- c()
 env.pa_perm <- tibble()
 
-#################### PERMANOVA LOOP  #################### 
-# Note with permutations = 9999, will take 5-10 min to run
+objs <-
+  c(dat.species,
+    dat.path,
+    dat.ec.slim,
+    dat.KOs.slim,
+    dat.PFAMs.slim,
+    dat.EGGNOGs.slim)
+obj_name <-
+  c("Species",
+    "Pathways",
+    "Enzymes.slim",
+    "KOs.slim",
+    "Pfams.slim",
+    "Eggnogs.slim")
 
-# Runs through metadata columns, if NA detected, 
-# sample is omitted from metadata & same sample from abundance table
+#-------------------------------------------------------------------------------
+#####                       Aitchisons Distance                            ##### 
+#-------------------------------------------------------------------------------
 
-for (i in 1:length(env.pa)) { 
-  a <- env.pa[,i]
-  a.narm <- na.omit(a)
-  if (any(is.na(a))) {
-    sp.narm <- sp[-attr(a.narm, "na.action"), ]
-  } else {
-    sp.narm <- sp
-  }
-  for (j in distlist) {
-    meta_ano = adonis(dist(sp.narm, method = "euclidean") ~ a.narm, permutations = 9999)
-    row2add <- cbind(colnames(env.pa[i]) ,meta_ano$aov.tab[1,], length(a.narm))
+cnt <- 1
+for (obj in objs) {
+  obj_processed <- obj %>% 
+    subset_samples(donor_id %ni% low_qc[[1]]) %>% 
+    microbiome::transform("compositional") %>% 
+    microbiome::transform("clr")
+  sp <- t(abundances(obj_processed))
+  # Run Metadata pre-processing function
+  env <- process_meta(obj_processed, cohort = "Merged")
+  env <- trim_meta(env, min_ratio = 2/234)
+  # remove ID variable and duplicate grouping variable
+  env.pa <- dplyr::select(env, -matches(other_metadata))
+  ## Adding Alpha Diversity to PERMANOVA
+  alpha_diversity <- obj_processed %>% abundances() %>% 
+    microbiome::alpha('shannon')
+  env.pa$diversity_shannon <- alpha_diversity$diversity_shannon
+    
+  for (i in 1:length(env.pa)) { 
+    a <- env.pa[,i]
+    a.narm <- na.omit(a)
+    if (any(is.na(a))) {
+      sp.narm <- sp[-attr(a.narm, "na.action"), ]
+    } else {
+      sp.narm <- sp
+    }
+    cat("Aitchisons", obj_name[cnt], ": ", colnames(env.pa[i]), "\n")
+    meta_ano = adonis(vegdist(sp.narm, method = "euclidean") ~ a.narm, permutations = 9999)
+    row2add <-
+      cbind(colnames(env.pa[i]),
+            meta_ano$aov.tab[1, ],
+            length(a.narm),
+            obj_name[cnt], 
+            "Aitchisons")
     env.pa_perm <- rbind(env.pa_perm, row2add)
     sig <- meta_ano$aov.tab$`Pr(>F)`[1]
-    if (sig < .1 & sig > .05) {
-      mssage <- paste(colnames(env.pa[i]), ": near significant metadata column (p < 0.1) with", j, "Distance")
-      print(mssage)
-      sigmetadata[[j]]$almostSiglst <- c(sigmetadata[[j]]$almostSiglst, colnames(env.pa[i]))
-    }
-    if (sig < .05) {
-      mssage <- paste(colnames(env.pa[i]), "is a significant metadata column (p < 0.05) with", j, "Distance")
-      print(mssage)
-      sigmetadata[[j]]$siglst <- c(sigmetadata[[j]]$siglst, colnames(env.pa[i]))
-    }
   }
+  cnt = cnt + 1
 }
+permanova_aitch <- env.pa_perm %>%
+  remove_rownames() %>%
+  dplyr::rename(
+    "p_value" = "Pr(>F)",
+    "vars" = "colnames(env.pa[i])",
+    "n_meta" = "length(a.narm)",
+    "data_type" = "obj_name[cnt]",
+    "distance" = '"Aitchisons"'
+  ) 
+
+#-------------------------------------------------------------------------------
+#####                       Bray-Curtis Distance                            ##### 
+#-------------------------------------------------------------------------------
+
+env.pa_perm <- tibble()
+cnt <- 1
+for (obj in objs) {
+  obj_processed <- obj %>% 
+    subset_samples(donor_id %ni% low_qc[[1]]) %>% 
+    microbiome::transform("compositional")
+  sp <- t(abundances(obj_processed))
+  # Run Metadata pre-processing function
+  env <- process_meta(obj_processed, cohort = "Merged")
+  env <- trim_meta(env, min_ratio = 2/234)
+  # remove ID variable and duplicate grouping variable
+  env.pa <- dplyr::select(env, -matches(other_metadata))
+  ## Adding Alpha Diversity to PERMANOVA
+  alpha_diversity <- obj_processed %>% abundances() %>% 
+    microbiome::alpha('shannon')
+  env.pa$diversity_shannon <- alpha_diversity$diversity_shannon
+  
+  for (i in 1:length(env.pa)) { 
+    a <- env.pa[,i]
+    a.narm <- na.omit(a)
+    if (any(is.na(a))) {
+      sp.narm <- sp[-attr(a.narm, "na.action"), ]
+    } else {
+      sp.narm <- sp
+    }
+    cat("Bray-Curtis", obj_name[cnt], ": ", colnames(env.pa[i]), "\n")
+    meta_ano = adonis(vegdist(sp.narm, method = "bray") ~ a.narm, permutations = 9999)
+    row2add <-
+      cbind(colnames(env.pa[i]),
+            meta_ano$aov.tab[1, ],
+            length(a.narm),
+            obj_name[cnt],
+            "BrayCurtis")
+    env.pa_perm <- rbind(env.pa_perm, row2add)
+    sig <- meta_ano$aov.tab$`Pr(>F)`[1]
+  }
+  cnt = cnt + 1
+}
+permanova_bray <- env.pa_perm %>%
+  remove_rownames() %>%
+  dplyr::rename(
+    "p_value" = "Pr(>F)",
+    "vars" = "colnames(env.pa[i])",
+    "n_meta" = "length(a.narm)",
+    "data_type" = "obj_name[cnt]",
+    "distance" = '"BrayCurtis"'
+  )  
+
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+
+permdf <- 
+  bind_rows(permanova_aitch, permanova_bray) %>% 
+  dplyr::mutate(vars = as.character(vars)) %>%
+  dplyr::mutate(R2 = R2 * 100) %>%
+  group_by(data_type, distance) %>%
+  mutate(FDR = p.adjust(p_value, method = 'BH')) %>%
+  ungroup()
 
 
-####################  VARS  - For Plotting & Confounder Analysis #################### 
-permdf <- env.pa_perm
-# Multiple comparison correction using Benjamini Hochberg Method
-permdf$FDR <- p.adjust(permdf$`Pr(>F)`, method = 'BH')
-rownames(permdf) <- NULL
-colnames(permdf)[1] <- "vars"
-colnames(permdf)[8] <- "n_meta"
-permdf$R2 <- permdf$R2*100
-
-
-## Add Metadata catagory column
+## Add Metadata category column
 permdf <-
   mutate(permdf,
          metacat = if_else(
@@ -136,7 +213,7 @@ permdf <-
            )
          ))
 
-write.csv(permdf, file = 'files/permanova_data.csv')
+write.csv(permdf, file = paste0('files/permanova_analysis_', Sys.Date(), '.csv'))
 
 # FILTERING FOR FDR SIGNIFICANT
 permdfsig <- filter(permdf, FDR <= 0.05)

@@ -13,10 +13,12 @@ source("src/stats_funcs.R")
 alpha_diversity_summary <- function(cohort){
   
   load_alphadiv_colors()
-  x <- c(dat.species, dat.path, dat.ec, dat.KOs,
-         dat.path.slim, dat.ec.slim, dat.KOs.slim, dat.EGGNOGs.slim, dat.PFAMs.slim)
-  z <- c("Species", "Pathways", "Enzymes", "KOs",
-         "Pathways.slim", "Enzymes.slim", "KOs.slim", "Eggnogs.slim", "Pfams.slim")
+  # x <- c(dat.species, dat.path, dat.ec, dat.KOs,
+  #        dat.path.slim, dat.ec.slim, dat.KOs.slim, dat.EGGNOGs.slim, dat.PFAMs.slim)
+  # z <- c("Species", "Pathways", "Enzymes", "KOs",
+  #        "Pathways.slim", "Enzymes.slim", "KOs.slim", "Eggnogs.slim", "Pfams.slim")
+  x <- c(dat.species)
+  z <- c("Species")
 
   # --------------------------------------------------- 
   #         Alpha Diversity Plotting Loop
@@ -121,7 +123,7 @@ alpha_diversity_summary <- function(cohort){
     ggsave(alpha_cow, filename =
              paste0("data/Community_Composition/Alpha_Diversity_Analysis/AlphaDiversity_BoxPlot_",  
                     z[cnt], "_", cohort, "_Summary.svg"),
-           height = 5, width =9)
+           height = 5, width = 7)
     
     cnt <- cnt + 1
     

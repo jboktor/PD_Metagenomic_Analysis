@@ -1,4 +1,4 @@
-## Configure enviornment
+## Configure environment
 
 #### Install Bioconductor Packages
 install.packages("BiocManager")
@@ -39,7 +39,6 @@ install.packages(
     "viridis",
     "foreach",
     "doParallel" ,
-    "parallel",
     "ggbeeswarm",
     "FSA",
     "ggpubr",
@@ -75,10 +74,15 @@ install.packages(
     "tidymodels",
     "vip",
     "Rcpp",
-    "mRMRe"
+    "mRMRe",
+    "shinydashboard",
+    "rbiom",
+    "githubinstall",
+    "wesanderson"
   )
 )
 
+# install.packages("lightgbm", repos = "https://cran.r-project.org")
 
 #### Install Other Github available Packages
 install.packages("remotes")

@@ -55,7 +55,7 @@ library(MMUPHin)
 library(fantaxtic)
 library(igraph)
 library(slam)
-library(curatedMetagenomicData)
+# library(curatedMetagenomicData)
 
 library(scales)
 library(DirichletMultinomial)
@@ -78,9 +78,18 @@ library(tidymodels)
 library(vip)
 library(Rcpp)
 library(mRMRe)
+library(ranger)
+# library(lightgbm)
+# library(snm)
 
 library(rsconnect)
-library(phylosmith)
+# library(phylosmith)
 
 library(lazyeval)
+
+# library(rbiom)
+library(ape)
+# library(wesanderson)
+
+
 

@@ -8,13 +8,15 @@ beta_diversity_summary <- function(cohort, dist = "Aitchisons"){
   
   load_betadiv_colors() 
   
-  x <- c(dat.species, dat.path, dat.ec, dat.KOs,
-         # dat.EGGNOGs, dat.PFAMs,
-         dat.path.slim, dat.ec.slim, dat.KOs.slim, dat.EGGNOGs.slim, dat.PFAMs.slim)
-
-  z <- c("Species", "Pathways", "Enzymes", "KOs",
-         # "Eggnogs", "Pfams",
-         "Pathways.slim", "Enzymes.slim", "KOs.slim", "Eggnogs.slim", "Pfams.slim")
+  # x <- c(dat.species, dat.path, dat.ec, dat.KOs,
+  #        dat.path.slim, dat.ec.slim, dat.KOs.slim, dat.EGGNOGs.slim, dat.PFAMs.slim)
+  # 
+  # z <- c("Species", "Pathways", "Enzymes", "KOs",
+  #        "Pathways.slim", "Enzymes.slim", "KOs.slim", "Eggnogs.slim", "Pfams.slim")
+  
+  x <- c(dat.species)
+  
+  z <- c("Species")
   
   # --------------------------------------------------- 
   # Aitchisons PCoA/Ridgeline/Violin Plots Loop 
@@ -55,7 +57,7 @@ beta_diversity_summary <- function(cohort, dist = "Aitchisons"){
     df12$donor_group <- factor(df12$donor_group, levels=c("PC", "PD", "HC"))
     
     p <- ggplot(df12, aes(Axis.1, Axis.2, fill = description, color=description))
-    p <- p + geom_point(shape=21, size=5, alpha=0.7)
+    p <- p + geom_point(shape=21, size=3, alpha=0.7)
     ord <- p + 
       theme_bw() + 
       labs(fill="Donor Group") +
@@ -149,7 +151,7 @@ beta_diversity_summary <- function(cohort, dist = "Aitchisons"){
     
     if (cohort == "Merged"){
       beesize <- 0.2
-      beescale <- 0.3
+      beescale <- 0.2
     } else {
       beesize <- 0.3
       beescale <- 0.5
@@ -163,11 +165,15 @@ beta_diversity_summary <- function(cohort, dist = "Aitchisons"){
       labs(fill="Group") +
       scale_color_manual(values = cols.pdpchc) +
       scale_fill_manual(values = cols.pdpchc) +
+      scale_x_discrete(labels = c("Population Control" = "Population \nControl",
+                                  "PD Patient" = "Parkinson's \nDisease", 
+                                  "Household Control" = "Household \nControl")) +
       stat_compare_means(comparisons = my_comparisons, label = "p.signif", tip.length = 0.02, step.increase = 0) + 
-      ggtitle(paste0(dist_label," Distance to Population Control\n", z[cnt], " abundance")) +
+      ggtitle(paste0(" Distance to Population Control\n", z[cnt], " Abundance")) +
       theme(plot.title = element_text(hjust = 0.5),
             panel.grid = element_blank(),
             axis.title.x=element_blank(),
+            axis.text.x = element_text(angle=45, hjust=1),
             legend.position = "none")
 
     
@@ -176,10 +182,11 @@ beta_diversity_summary <- function(cohort, dist = "Aitchisons"){
     # --------------------------------------------------- 
     cat(paste0("Assembling summary plots for: " , z[cnt], "\n"))
     ord.plot <- ord + theme(legend.position = "none")
-    cow1 <- cowplot::plot_grid(r1, NULL, ord.plot, r2, nrow = 2, ncol = 2, rel_heights = c(1, 5), rel_widths = c(5, 1),  align = "vh")
+    cow1 <- cowplot::plot_grid(r1, NULL, ord.plot, r2, nrow = 2, ncol = 2, rel_heights = c(1, 3.25), rel_widths = c(5, 1),
+                               align = "vh", axis="tblr")
     cow2 <- cowplot::plot_grid(v, cow1, nrow = 1, rel_widths = c(1, 2.75), align = "h")
     print(cow2)
-    cow2
+
     ggsave(plot = cow2, 
            filename = paste0(
              "data/Community_Composition/Beta_Diversity_Analysis/",
@@ -188,7 +195,7 @@ beta_diversity_summary <- function(cohort, dist = "Aitchisons"){
              dist_label,
              ".svg"
            ),
-           width = 13, height = 9)
+           width = 8, height = 6)
     
     cnt <- cnt + 1
   }
@@ -228,9 +235,7 @@ dysbiosis_score <- function(obj, dist = "Aitchisons"){
     filter(as.character(donor_A) != as.character(donor_B)) %>% 
     # Select distance to healthy population controls
     # filter(group_A == "PC")
-    filter(group_A == "PC")
-  
-  
+    filter(group_A == "HC")
   
   #' Calculating Dysbiosis score:
   #' Determine median value of a given sample to all 

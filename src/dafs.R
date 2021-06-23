@@ -15,16 +15,16 @@ wkd <- getwd()
 #####                              All Cohorts                                #### 
 #--------------------------------------------------------------------------------
 remove_dats()
-load_all_cohorts()
+load_data("Merged")
 
-# Metadata Selection
-corr.meta.clinical <-
-  dat.species %>% 
-  subset_samples(donor_id %ni% low_qc[[1]]) %>% 
-  process_meta(cohort = "Merged") %>%
-  select(donor_id, contains(c(motor_severity_scores_summary,
-      clinical_variables))) %>% 
-  column_to_rownames(var = "donor_id")
+# # Metadata Selection
+# corr.meta.clinical <-
+#   dat.species %>% 
+#   subset_samples(donor_id %ni% low_qc[[1]]) %>% 
+#   process_meta(cohort = "Merged") %>%
+#   select(donor_id, contains(c(motor_severity_scores_summary,
+#       clinical_variables))) %>% 
+#   column_to_rownames(var = "donor_id")
 
 #-------------------------
 #####  Species #### 
@@ -53,8 +53,7 @@ fit_models(dat = dat.object,
            df_input_data_pdhc = df_input_data_pdhc, 
            df_input_data_pdpc = df_input_data_pdpc,
            cores = 1,
-           plot_scatter = T, 
-           cohort = "TBC")
+           plot_scatter = T)
 
 #-------------------------
 #####  Genera #### 
@@ -730,7 +729,7 @@ dat.object <- maaslin_prep(dat.KOs.slim)
 dat_pdpc = subset_samples(dat.object, donor_group !="HC")
 variance_plot(dat_pdpc)
 df_input_data_pdpc <- dat_pdpc %>% 
-  microbiome::transform("compositional") %>% 
+  microbiome::transform("compositional") %>% # TROUBLE!
   variance_filter(filter.percent = 0.2)
 dat_pdhc = subset_samples(dat.object, paired !="No")
 variance_plot(dat_pdhc)
@@ -873,7 +872,7 @@ fit_models(dat = dat.object,
 #--------------------------------------------
 
 remove_dats()
-load_all_cohorts()
+load_data("Merged")
 
 plot_dafs(obj.name = "Phylum", obj = dat.phylum, cohort = "Merged")
 plot_dafs(obj.name = "Genera", obj = dat.genus, cohort = "Merged")
@@ -881,28 +880,22 @@ plot_dafs(obj.name = "Species", obj = dat.species, cohort = "Merged")
 plot_daf_summary(obj.name = "Species", obj = dat.species, cohort = "Merged")
 
 plot_dafs(obj.name = "Pathways.slim", obj = dat.path.slim, cohort = "Merged")
-plot_daf_summary(obj.name = "Pathways.slim", obj = dat.path.slim, cohort = "Merged", 
-                 repelyup = 0, repelydn = 0)
+plot_daf_summary(obj.name = "Pathways.slim", obj = dat.path.slim, cohort = "Merged", top = 15)
 
 plot_dafs(obj.name = "Enzymes.slim", obj = dat.ec.slim, cohort = "Merged")
-plot_daf_summary(obj.name = "Enzymes.slim", obj = dat.ec.slim, cohort = "Merged", 
-                 repelyup = 0, repelydn = 0)
+plot_daf_summary(obj.name = "Enzymes.slim", obj = dat.ec.slim, cohort = "Merged", top = 20)
 
 plot_dafs(obj.name = "KOs.slim", obj = dat.KOs.slim, cohort = "Merged")
-plot_daf_summary(obj.name = "KOs.slim", obj = dat.KOs.slim, cohort = "Merged", 
-                 repelyup = 0.0025, repelydn = 0)
+plot_daf_summary(obj.name = "KOs.slim", obj = dat.KOs.slim, cohort = "Merged", top = 15)
 
 plot_dafs(obj.name = "GOs.slim", obj = dat.GOs.slim, cohort = "Merged", tag = "")
-plot_daf_summary(obj.name = "GOs.slim", obj = dat.GOs.slim, cohort = "Merged", 
-                 repelyup = 0.001, repelydn = 0.001)
+plot_daf_summary(obj.name = "GOs.slim", obj = dat.GOs.slim, cohort = "Merged", top = 15)
 
 plot_dafs(obj.name = "EGGNOGs.slim", obj = dat.EGGNOGs.slim, cohort = "Merged")
-plot_daf_summary(obj.name = "EGGNOGs.slim", obj = dat.EGGNOGs.slim, cohort = "Merged", 
-                 repelyup = 0.002, repelydn = 0.002)
+plot_daf_summary(obj.name = "EGGNOGs.slim", obj = dat.EGGNOGs.slim, cohort = "Merged", top = 20)
 
 plot_dafs(obj.name = "PFAMs.slim", obj = dat.PFAMs.slim, cohort = "Merged")
-plot_daf_summary(obj.name = "PFAMs.slim", obj = dat.PFAMs.slim, cohort = "Merged", 
-                 repelyup = 0.001, repelydn = 0.001)
+plot_daf_summary(obj.name = "PFAMs.slim", obj = dat.PFAMs.slim, cohort = "Merged", top = 15)
 
 
 #--------------------------------------------
@@ -910,7 +903,8 @@ plot_daf_summary(obj.name = "PFAMs.slim", obj = dat.PFAMs.slim, cohort = "Merged
 #--------------------------------------------
 
 remove_dats()
-load_rush()
+load_data("TBC")
+
 
 plot_dafs(obj.name = "Phylum", obj = dat.phylum, cohort = "TBC")
 plot_dafs(obj.name = "Genera", obj = dat.genus, cohort = "TBC")
@@ -947,7 +941,8 @@ plot_daf_summary(obj.name = "PFAMs.slim", obj = dat.PFAMs.slim, cohort = "TBC",
 #--------------------------------------------
 
 remove_dats()
-load_rush()
+load_data("RUSH")
+
 
 plot_dafs(obj.name = "Phylum", obj = dat.phylum, cohort = "RUSH")
 plot_dafs(obj.name = "Genera", obj = dat.genus, cohort = "RUSH")
