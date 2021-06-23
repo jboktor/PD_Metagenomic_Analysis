@@ -7,7 +7,7 @@
 
 decode_rfriendly_rows <- function(df, passed_column) {
   features <- rlang::sym(passed_column)
-  df %>% 
+  df.out <- df %>% 
     dplyr::mutate(fullnames = gsub("\\.gc.", ":", !!features)) %>% 
     dplyr::mutate(fullnames = gsub("\\.gsqrr.", "\\]", fullnames)) %>% 
     dplyr::mutate(fullnames = gsub("\\.gsqrl.", "\\[", fullnames)) %>% 
@@ -21,6 +21,7 @@ decode_rfriendly_rows <- function(df, passed_column) {
     dplyr::mutate(fullnames = gsub("\\.gh.", "-", fullnames)) %>% 
     dplyr::mutate(fullnames = gsub("\\.gd.", "/", fullnames)) %>% 
     dplyr::mutate(fullnames = gsub("feat_", "", fullnames))
+  return(df.out)
 }
 
 #-------------------------------------------------------------------------------
@@ -48,10 +49,13 @@ boxplot_all <- function(df, x, y, cols = group.cols, title = blank.title, ylabel
     theme_classic() +
     ggtitle(title) +
     labs(y = ylabel) +
+    scale_x_discrete(labels= c("PC" = "Population \nControls", 
+                               "PD" ="Parkinson's \nDisease",  "HC" = "Household \nControls")) +
     scale_color_manual(values = cols, name ="Group") +
     scale_fill_manual(values = cols, name ="Group") +
     theme(plot.title = element_text(hjust = 0.5),
           axis.title.x = element_blank(),
+          legend.position = "None",
           panel.grid.major.y = element_blank())
   
 }
@@ -91,6 +95,22 @@ plot_feature <- function(obj, feature){
               ylabel= paste(unique(dm$rowname), "Abundance"))
 }
 
+#-----------------------------------------------------------------------------------------------------------
+color_loop_generator <- function(names_col){
+  # Init
+  accent_pal <- 
+    c('#7fc97f','#beaed4','#fdc086','#ffff99',
+      '#386cb0','#f0027f','#bf5b17','#666666')
+  color_output <- c()
+  pal_length <- length(accent_pal)
+  feats <- unique(names_col)
+  n_cols <- length(feats)
+  color_output <- c(rep(accent_pal, floor(n_cols/pal_length)), 
+                    accent_pal[1:(n_cols %% pal_length)])
+  names(color_output) <- feats
+  
+  return(color_output)
+}
 #-----------------------------------------------------------------------------------------------------------
 cat("functions loaded ..\n")
 

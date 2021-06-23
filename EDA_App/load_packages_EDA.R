@@ -32,7 +32,6 @@ library(shinyWidgets)
 library(shinydashboard)
 library(DT)
 library(plotly)
-# library(rsconnect)
 library(htmlwidgets)
 
 cat("packages loaded ..\n")
