@@ -9,9 +9,9 @@ load("files/low_quality_samples.RData")
 #                                  TBC
 #--------------------------------------------------------------------------------
 remove_dats()
-load_tbc()
+load_data("TBC")
 
-dys.tbc <- dysbiosis_score(dat.EGGNOGs.slim, dist = "bray")
+dys.tbc <- dysbiosis_score(dat.KOs.slim, dist = "bray")
 # dys.tbc <- dysbiosis_score(dat.species, dist = "Aitchisons")
 
 met <- meta(dat.species) %>%
@@ -23,9 +23,9 @@ dys.df.tbc <- left_join(dys.tbc, met, by = "donor_id")
 #--------------------------------------------------------------------------------
 
 remove_dats()
-load_rush()
+load_data("RUSH")
 
-dys.rush <- dysbiosis_score(dat.EGGNOGs.slim, dist = "bray")
+dys.rush <- dysbiosis_score(dat.KOs.slim, dist = "bray")
 # dys.rush <- dysbiosis_score(dat.species, dist = "Aitchisons")
 
 met <- meta(dat.species) %>%
@@ -41,7 +41,7 @@ dys.df <- dplyr::bind_rows(dys.df.tbc, dys.df.rush)
 
 dysbiosis_thres <- 
   dys.df %>% 
-  filter(group == "PC") %>%
+  filter(group == "HC") %>%
   dplyr::group_by(cohort) %>% 
   dplyr::summarise(quant = quantile(median, na.rm = T, probs = 0.9))
 

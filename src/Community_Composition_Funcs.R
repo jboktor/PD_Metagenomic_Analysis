@@ -80,7 +80,8 @@ feature_accumulation_plot <- function(dat, featuretype="Species", reads, cohort)
           panel.grid = element_blank())
   
   ggsave(p1, filename = 
-           paste0("data/Community_Composition/Rarefaction_Plots/Rarefaction_Plot_", cohort, "_", featuretype, ".svg"),
+           paste0("data/Community_Composition/Rarefaction_Plots/Rarefaction_Plot_", cohort, "_", 
+                  featuretype, "Rarefied.svg"),
          width = 4, height = 3)
   
   return(p1)
@@ -181,13 +182,22 @@ DMM_fit <- function(datObj, nmax){
   #' Function fits a DMM model to a given phlyoseq Obj
   #' Input Phyloseq Obj and the max number of clusters to fit
   #' Outputs' Laplace value and Model Fit plot
-  
+
+  # # TROUBLE
+  datObj <- dat.path.slim.SNM #dat.species
+  nmax <- 3
+
   # Add prevalence threshold
-  dat.DMM <- datObj %>% 
-    core(detection = 0, prevalence = 0.1)
-  # Calculate Pseudocounts 
-  count <- PseudoCounts(dat.DMM, reads) %>% 
+  dat.DMM <- datObj %>%
+    subset_samples(donor_id %ni% low_qc[[1]]) %>% 
+    core(detection = 0, prevalence = 0.01)
+  # Calculate Pseudocounts
+  # count <- pseudoCounts(dat.DMM) %>%
+  #   t() %>% as.matrix()
+  count <- dat.DMM %>%
+    abundances() %>%
     t() %>% as.matrix()
+
   # Fit the DMM model. Set the maximum allowed number of community types to 6 to speed up the analysis
   set.seed(42)
   fit <- lapply(1:nmax, dmn, count = count, verbose=TRUE)

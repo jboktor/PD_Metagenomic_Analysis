@@ -7,8 +7,8 @@
 
 
 Anthro <- c("sex", "host_age", "host_body_mass_index")
-GI <- c("bristol_stool_scale", "bowl_movments_per_day", 
-        "GI_symptom_severity")
+GI <- c("bristol_stool_scale", "bowl_movments_per_day")
+GI_all <- c(GI, "GI_symptom_severity")
 smoke <-
   c("cigarette_smoked_ever",
     "time_since_last_cigarette_smoke",
@@ -38,7 +38,7 @@ pd_drugs  <-
     "MAO_B_inhibitors",
     "carbidopa",
     "levodopa",
-    "levodopa_daily_doseage",
+    # "levodopa_daily_doseage",
     "ropinirole",
     "mirapex",
     "dopamine_agonists",
@@ -201,7 +201,8 @@ clinical_variables <-
     "thought_disorder_scale",
     "year_of_diagnosis",
     "year_of_onset",
-    "disease_duration")
+    "disease_duration",
+    "age_of_onset")
 
 summary_metadata <- c(
   other_metadata,
@@ -225,7 +226,8 @@ summary_metadata <- c(
 
 process_meta <- function(dat, cohort, verbose = F){
   
-  if (cohort == "TBC"){
+  if (cohort == "TBC")
+    {
 
     testable_meta <- c(
       other_metadata,
@@ -237,7 +239,7 @@ process_meta <- function(dat, cohort, verbose = F){
       smoke,
       general_drugs,
       pd_drugs,
-      motor_severity_scores,
+      # motor_severity_scores,
       mdsupdrs_I.II,
       supplements,
       diet,
@@ -270,7 +272,7 @@ process_meta <- function(dat, cohort, verbose = F){
     # #transform BMI into discrete groups 
     env$host_body_mass_index <- as.numeric(env$host_body_mass_index)
     env$host_body_mass_index[which(env$host_body_mass_index < 18.5)] <- 0
-    env$host_body_mass_index[which(env$host_body_mass_index > 35 )] <- 4
+    env$host_body_mass_index[which(env$host_body_mass_index >= 35 )] <- 4
     env$host_body_mass_index[which(env$host_body_mass_index < 35 & env$host_body_mass_index >= 30)] <- 3
     env$host_body_mass_index[which(env$host_body_mass_index < 30  & env$host_body_mass_index >= 25)] <- 2
     env$host_body_mass_index[which(env$host_body_mass_index < 25 & env$host_body_mass_index >= 18.5)] <- 1
@@ -317,11 +319,13 @@ process_meta <- function(dat, cohort, verbose = F){
     if (verbose == T){
       print(str(env))
     }
-    cat ("\n Metadata Processing complete \n\n")
+    cat ("\n Metadata Processing Complete \n\n")
     
-  } else if (cohort == "RUSH") {
+  } else if (cohort == "Rush") 
+    {
     
     testable_meta <- c(
+      "paired",
       grouping,
       Anthro,
       other_metadata)
@@ -353,7 +357,7 @@ process_meta <- function(dat, cohort, verbose = F){
     # #transform BMI into discrete groups 
     env$host_body_mass_index <- as.numeric(env$host_body_mass_index)
     env$host_body_mass_index[which(env$host_body_mass_index < 18.5)] <- 0
-    env$host_body_mass_index[which(env$host_body_mass_index > 35 )] <- 4
+    env$host_body_mass_index[which(env$host_body_mass_index >= 35 )] <- 4
     env$host_body_mass_index[which(env$host_body_mass_index < 35 & env$host_body_mass_index >= 30)] <- 3
     env$host_body_mass_index[which(env$host_body_mass_index < 30  & env$host_body_mass_index >= 25)] <- 2
     env$host_body_mass_index[which(env$host_body_mass_index < 25 & env$host_body_mass_index >= 18.5)] <- 1
@@ -363,16 +367,34 @@ process_meta <- function(dat, cohort, verbose = F){
     if (verbose == T){
       print(str(env))
     }
-    cat ("\n Metadata Processing complete \n\n")
+    cat ("\n Metadata Processing Complete \n\n")
+  } else if (cohort == "Merged_ML") 
+    {
     
-  } else if (cohort == "Merged") {
+    testable_meta <- c("donor_id", "donor_group", "description", "PD", "cohort", "paired")
+    # Pull metadata list from Phyloseq Obj
+    env <- get_variable(dat, testable_meta)
+    # Make all data characters
+    env[] <- lapply(env, as.character)
+    # Replace "not provided" entries as NA
+    env[env == "not provided" ] <- NA
+    env[env == "not collected" ] <- NA
+    #  Make all character variables into Factors
+    env <- env %>% mutate_if(is.character, as.factor)
+    
+    if (verbose == T){
+      print(str(env))
+    }
+    cat ("\nML Metadata Processing Complete \n")
+  } else if (cohort == "Merged") 
+    {
     
     # Uses summary of motor scores
     testable_meta <- c(
       other_metadata,
       grouping,
       Anthro,
-      GI,
+      GI_all,
       nonstarters,
       allergy,
       smoke,
@@ -411,7 +433,7 @@ process_meta <- function(dat, cohort, verbose = F){
     # #transform BMI into discrete groups 
     env$host_body_mass_index <- as.numeric(env$host_body_mass_index)
     env$host_body_mass_index[which(env$host_body_mass_index < 18.5)] <- 0
-    env$host_body_mass_index[which(env$host_body_mass_index > 35 )] <- 4
+    env$host_body_mass_index[which(env$host_body_mass_index >= 35 )] <- 4
     env$host_body_mass_index[which(env$host_body_mass_index < 35 & env$host_body_mass_index >= 30)] <- 3
     env$host_body_mass_index[which(env$host_body_mass_index < 30  & env$host_body_mass_index >= 25)] <- 2
     env$host_body_mass_index[which(env$host_body_mass_index < 25 & env$host_body_mass_index >= 18.5)] <- 1
@@ -452,6 +474,26 @@ process_meta <- function(dat, cohort, verbose = F){
     env[env == "total_anosmia"] <- 5
     env$smell_score_upsit <- as.numeric(env$smell_score_upsit)
     
+    # Remove responses to PD specific medications for within PD only comparisons
+    nonPD <- which(env$PD == "No")
+    env$MAO_B_inhibitors[nonPD] <- NA
+    env$carbidopa[nonPD] <- NA
+    env$levodopa[nonPD] <- NA
+    env$ropinirole[nonPD] <- NA
+    env$mirapex[nonPD] <- NA
+    env$dopamine_agonists[nonPD] <- NA
+    env$rasagiline[nonPD] <- NA
+    env$selegiline[nonPD] <- NA
+
+    # env %>% 
+    #   filter(PD == "No") %>% 
+    #   select(pd_drugs) %>% 
+    #   glimpse()
+    # env %>% 
+    #   filter(PD == "Yes") %>% 
+    #   select(pd_drugs) %>% 
+    #   glimpse()
+    
     # Metadata to convert to numeric  
     env <- 
       env %>% 
@@ -467,32 +509,18 @@ process_meta <- function(dat, cohort, verbose = F){
     if (verbose == T){
       print(str(env))
     }
-    cat ("\n Metadata Processing complete \n\n")
+    cat ("\n Metadata Processing Complete \n\n")
   }
   
   # load env into global enviornment
   assign("env",env,envir = .GlobalEnv)
-  # assign("Anthro", Anthro, envir = .GlobalEnv)
-  # assign("GI", GI, envir = .GlobalEnv)
-  # assign("smoke", smoke, envir = .GlobalEnv)
-  # assign("nonstarters", nonstarters, envir = .GlobalEnv)
-  # assign("allergy", allergy, envir = .GlobalEnv)
-  # assign("general_drugs", general_drugs, envir = .GlobalEnv)
-  # assign("pd_drugs", pd_drugs, envir = .GlobalEnv)
-  # assign("supplements", supplements, envir = .GlobalEnv)
-  # assign("diet", diet, envir = .GlobalEnv)
-  # assign("grouping", grouping, envir = .GlobalEnv)
-  # assign("other_metadata", other_metadata, envir = .GlobalEnv)
 
 }
 
-#############################################################################
 
-##################           TRIM METADATA FUNC           ################## 
-
-#############################################################################
-
-
+#----------------------------------------------------------------------------
+##--------------           TRIM METADATA FUNCTION           --------------
+#----------------------------------------------------------------------------
 trim_meta <- function(env, min_ratio){
   if (typeof(env) != "list"){
     stop("Please input preprocessed metdata list \n RUN process_meta() function first")
@@ -503,7 +531,7 @@ trim_meta <- function(env, min_ratio){
   cat("List of Metadata below filtering threshold: \n")
   for (i in 1:length(env)) {
     p <- na.omit(env[, i])
-    x <- count(p)
+    x <- plyr::count(p)
     if (length(x$x) == 2) {
       a <- min(x$freq)
       b <- sum(x$freq)
@@ -659,7 +687,7 @@ process_meta_study_design_plot <- function(dat){
   assign("grouping", grouping, envir = .GlobalEnv)
   assign("other_metadata", other_metadata, envir = .GlobalEnv)
   
-  cat ("Processing complete : \n\n")
+  cat ("Processing Complete : \n\n")
 }
 
 

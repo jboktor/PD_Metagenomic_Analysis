@@ -19,9 +19,9 @@ source("src/miscellaneous_funcs.R")
 process_meta_study_design_plot(dat)
 trim_meta(env)
 
-env$Paired <- as.character(env$Paired)
-env[which(env$Paired != "No"),"Paired"] <- "Yes"
-env$Paired <- factor(env$Paired)
+env$paired <- as.character(env$paired)
+env[which(env$paired != "No"),"paired"] <- "Yes"
+env$paired <- factor(env$paired)
 
 
 ### Manual Colors:

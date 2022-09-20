@@ -14,9 +14,16 @@ beta_diversity_summary <- function(cohort, dist = "Aitchisons"){
   # z <- c("Species", "Pathways", "Enzymes", "KOs",
   #        "Pathways.slim", "Enzymes.slim", "KOs.slim", "Eggnogs.slim", "Pfams.slim")
   
-  x <- c(dat.species)
   
   z <- c("Species")
+  if (cohort == "TBC") {
+    x <- c(phyloseq_objs_rare_TBC[["Species"]])
+  } else if (cohort == "Rush"){
+    x <- c(phyloseq_objs_rare_Rush[["Species"]])
+  } else if (cohort == "Merged"){
+    x <- c(phyloseq_objs_rare[["Species"]])
+  }
+  
   
   # --------------------------------------------------- 
   # Aitchisons PCoA/Ridgeline/Violin Plots Loop 
@@ -24,9 +31,6 @@ beta_diversity_summary <- function(cohort, dist = "Aitchisons"){
   
   cnt <- 1
   for (i in x){
-    load("files/low_quality_samples.RData")
-    i <- i %>% 
-      subset_samples(donor_id %ni% low_qc[[1]])
     
     if (dist == "Aitchisons"){
       obj_dist <- 
@@ -168,7 +172,7 @@ beta_diversity_summary <- function(cohort, dist = "Aitchisons"){
       scale_x_discrete(labels = c("Population Control" = "Population \nControl",
                                   "PD Patient" = "Parkinson's \nDisease", 
                                   "Household Control" = "Household \nControl")) +
-      stat_compare_means(comparisons = my_comparisons, label = "p.signif", tip.length = 0.02, step.increase = 0) + 
+      # stat_compare_means(comparisons = my_comparisons, label = "p.signif", tip.length = 0.02, step.increase = 0) + 
       ggtitle(paste0(" Distance to Population Control\n", z[cnt], " Abundance")) +
       theme(plot.title = element_text(hjust = 0.5),
             panel.grid = element_blank(),
@@ -193,7 +197,7 @@ beta_diversity_summary <- function(cohort, dist = "Aitchisons"){
              z[cnt], "_",
              cohort, "_",
              dist_label,
-             ".svg"
+             "_Rarefied.svg"
            ),
            width = 8, height = 6)
     
@@ -207,8 +211,6 @@ dysbiosis_score <- function(obj, dist = "Aitchisons"){
   
   #' Function to calculate dysbiosis via the median distance to 
   #' population control samples 
-  obj <- obj %>% 
-    subset_samples(donor_id %ni% low_qc[[1]])
   
   if (dist == "Aitchisons"){
     obj_dist <- microbiome::transform(obj, "clr") 

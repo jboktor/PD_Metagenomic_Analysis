@@ -1,7 +1,7 @@
 # Load Phyloseq Objects
 
 load_data <- function(folder){
-  #' folders include: TBC, RUSH, SHANGHAI, Merged, Merged_ML
+  #' folders include: TBC, RUSH, SHANGHAI, Merged, Merged_ML, Merged_ML_Rarefied
 
   #### Taxa
   load(paste0("files/Phyloseq_", folder, "/Species_PhyloseqObj.RData"))

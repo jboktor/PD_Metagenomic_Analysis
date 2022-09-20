@@ -19,9 +19,9 @@ source("src/miscellaneous_funcs.R")
 process_meta_study_design_plot(dat)
 trim_meta_by_NA(env)
 
-env$Paired <- as.character(env$Paired)
-env[which(env$Paired != "No"),"Paired"] <- "Yes"
-env$Paired <- factor(env$Paired)
+env$paired <- as.character(env$paired)
+env[which(env$paired != "No"),"paired"] <- "Yes"
+env$paired <- factor(env$paired)
 
 
 ### Manual Colors:
@@ -173,7 +173,7 @@ permdf.metaplot$vars <- factor(permdf.metaplot$vars, levels = y.axis.order)
 
 permdf.metaplot$FDR.symbol <- sig.symbol.generator(permdf.metaplot$FDR)
 permdf.metaplotA <- permdf.metaplot
-permdf.metaplotA[permdf.metaplot$vars != "Paired", "FDR.symbol"] <- ""
+permdf.metaplotA[permdf.metaplot$vars != "paired", "FDR.symbol"] <- ""
 
 p2a <- ggplot() +
   geom_col(data=permdf.metaplotA, aes(x=R2, y=vars, fill=metacat)) +

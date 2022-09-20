@@ -10,7 +10,6 @@ source("src/Metadata_prep_funcs.R")
 #set file path 
 wkd <- getwd()
 
-
 ## Add prevalence shift on all samples prior to partioning 
 dat <- core(dat, detection = 0, prevalence = 0.1)
 

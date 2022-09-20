@@ -52,7 +52,6 @@ heatmap_cohort_groups <- function(cohort_group_summary){
   return(heatmap)
 }
 
-
 ml_heatmap_summary <- function(ml_summary){
   ml_summary %>% 
     mutate(model_perf = coalesce(mean, .estimate)) %>% 
@@ -64,8 +63,9 @@ ml_heatmap_summary <- function(ml_summary){
     labs(x = "Training set", y = "Test set", fill = "AUROC") +
     geom_text(aes(label=round(roc_auc, digits = 2)), size=3, 
               vjust = 0.77, color = "white") +
-    scale_fill_viridis_c(option = "magma", begin = .9, end = 0, 
-                         na.value = "transparent") +
+    scale_fill_viridis_c(option = "magma", limits = c(0.5, 1), direction = 1, 
+                         begin = 0, end = 1,
+                         oob = scales::squish) +
     guides(fill = guide_colourbar(barwidth = 1, barheight = 7)) +
     theme(panel.border = element_blank(),
           panel.background = element_blank(),

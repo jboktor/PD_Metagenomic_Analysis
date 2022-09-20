@@ -43,6 +43,17 @@ load_betadiv_colors <- function(){
   assign("cols.pdpchc.rim", cols.pdpchc.rim, envir = .GlobalEnv)
 }
 
+colormash <- c(
+  # Set 1
+  '#e41a1c', '#377eb8', '#4daf4a', '#984ea3',
+  '#ff7f00', '#ffff33', '#a65628', '#f781bf','#999999',
+  # Accent
+  '#7fc97f','#beaed4','#fdc086','#ffff99',
+  '#386cb0','#f0027f','#bf5b17','#666666',
+  # Dark
+  '#1b9e77','#d95f02','#7570b3','#e7298a',
+  '#66a61e','#e6ab02','#a6761d','#666666')
+
 #_______________________________________________________________________________-
 
 my_clean_theme <- function() {
@@ -54,6 +65,35 @@ my_clean_theme <- function() {
       plot.margin = unit(c(1, 1, 1, 2), "cm")
     )
   return(th)
+}
+
+my_clean_theme2 <- function() {
+  th <- ggplot2::theme_bw() +
+    theme(
+      panel.grid = element_blank(),
+      strip.background = element_rect(fill = "white"),
+      plot.title = element_text(hjust = 0.5),
+      plot.margin = unit(c(0.4, 0.4, 0.4, 0.4), "cm")
+    )
+  return(th)
+}
+
+
+#_______________________________________________________________________________
+# Save legend and plot as separate files to fix width:
+save_me_cleanly <- function(ggobj, filename, plot_w, plot_h, leg_w, leg_h, 
+                            filetype = ".svg"){
+  
+  # require(cowplot)
+  # require(ggpubr)
+  
+  my_legend <- get_legend(ggobj) %>% as_ggplot()
+  ggobj_out <- ggobj + theme(legend.position = "none")
+  plot_filename <- paste0(filename, filetype)
+  legend_filename <- paste0(filename, "__Legend", filetype)
+  
+  ggsave(ggobj_out, filename = plot_filename, width = plot_w, height = plot_h)
+  ggsave(my_legend, filename = legend_filename, width = leg_w, height = leg_h)
 }
 
 #_______________________________________________________________________________
@@ -398,10 +438,16 @@ boxplot_all <- function(df, x, y, cols = group.cols, title = blank.title, ylabel
   
 }
 
-boxplot_all_facet <- function(df, x, y, cols = group.cols, title = blank.title, ylabel = blank.ylabel){
-  
+boxplot_all_facet <-
+  function(df,
+           x,
+           y,
+           cols = c("PC" = "#ed7d31", "PD" = "#bfbfbf", "HC" = "#5b9bd5"),
+           title = blank.title,
+           ylabel = blank.ylabel) {
+    
   blank.title = " "; blank.ylabel = " "
-  group.cols = c("PC"= "#ed7d31", "PD" = "#bfbfbf", "HC" = "#5b9bd5")
+  # group.cols = c("PC"= "#ed7d31", "PD" = "#bfbfbf", "HC" = "#5b9bd5")
   ###' Basic all group boxplot function with a cohort facet wrap
   
   set.seed(123)
@@ -414,13 +460,14 @@ boxplot_all_facet <- function(df, x, y, cols = group.cols, title = blank.title, 
     ggtitle(title) +
     labs(y = ylabel) +
     facet_wrap(~cohort) +
-    scale_color_manual(values = cols, name ="Group") +
-    scale_fill_manual(values = cols, name ="Group") +
+    scale_color_manual(values = cols, name = NULL) +
+    scale_fill_manual(values = cols, name = NULL) +
     theme(plot.title = element_text(hjust = 0.5),
           axis.title.x = element_blank(),
           panel.grid.major.y = element_blank())
   
 }
+
 
 #_______________________________________________________________________________
 
@@ -814,13 +861,10 @@ pseudoCounts <- function(obj){
   for (i in colnames(psudocnts)){
     donor_reads <- reads[[which(reads$donor_id == i), "total_reads"]] %>% as.numeric()
     psudocnts[i] <- psudocnts[i] * donor_reads
-    # print(donor_reads)
-    # print(psudocnts[i])
   }
   cat("Pseudocount Transformation Complete\n")
   return(psudocnts)
 }
-
 
 #_______________________________________________________________________________
 
@@ -1113,7 +1157,7 @@ corr_heatmap <- function(corr.df){
                                    levels = unique(corr.df.trim$feature)[feature.order] )) %>% 
     dplyr::mutate(metadata = factor(metadata, 
                                     ordered = TRUE,
-                                    levels = unique(corr.df.trim$metadata)[metadata.order] )) 
+                                    levels = unique(corr.df.trim$metadata)[metadata.order] ))
   
   ### Plot Heatmap
   h1 <- 
@@ -1210,20 +1254,21 @@ prevalence_filter <- function(datObj, threshold = 0.1){
 
 enrichment_formula <- function(N, n, m, k){
   
-  #' N : the number of total metabolites in both the study and pathway library
-  #' n : the number of significant metabolites in both the study and pathway library
-  #' m : the number of detected metabolites in the pathway
-  #' k : number of significant metabolites in the pathway
+  #' N : the number of total features in both the study and pathway library
+  #' n : the number of significant features in both the study and pathway library
+  #' m : the number of detected features in the pathway
+  #' k : number of significant features in the pathway
   
-  cat("number of total metabolites: ", N, "\n")
-  cat("number of total significant metabolites: ", n, "\n")
-  cat("number of detected metabolites in the pathway: ", m, "\n")
-  cat("number of significant metabolites in the pathway: ", k, "\n")
+  cat("number of total features: ", N, "\n")
+  cat("number of total significant features: ", n, "\n")
+  cat("number of detected features in pathway: ", m, "\n")
+  cat("number of significant features in the pathway: ", k, "\n")
   
   i <- seq(from = 0, to = k, by = 1)
-  binomal_coefs <- sum((choose(m, i)*choose((N-m), (n-i)) ) / choose(N, n))
-  output <- 1 - binomal_coefs
+    binomal_coefs <- gmp::asNumeric(sum( div.bigz((chooseZ(m, i)*chooseZ((N-m), (n-i)) ), chooseZ(N, n)) ))
+  output <- -log10(1-binomal_coefs)
   return(output)
 }
 # _______________________________________________________________________________
+
 

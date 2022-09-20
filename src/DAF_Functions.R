@@ -19,13 +19,11 @@ fit_models <- function(dat, dat_pdpc, dat_pdhc, obj.name = "Species",
   
   df_input_metadata_pdpc <- 
     process_meta(dat_pdpc, cohort = cohort) %>% 
-    dplyr::mutate(description = factor(description, levels = c("PD Patient", "Population Control"))) %>% 
-    column_to_rownames(var = "donor_id")
+    dplyr::mutate(description = factor(description, levels = c("PD Patient", "Population Control")))
   
   df_input_metadata_pdhc <- 
     process_meta(dat_pdhc, cohort = cohort) %>% 
-    dplyr::mutate(description = factor(description, levels = c("PD Patient", "Household Control"))) %>% 
-    column_to_rownames(var = "donor_id")
+    dplyr::mutate(description = factor(description, levels = c("PD Patient", "Household Control")))
   
   if (cohort == "Merged"){
     random_effects_pdpc <- "cohort"
@@ -58,6 +56,36 @@ fit_models <- function(dat, dat_pdpc, dat_pdhc, obj.name = "Species",
     min_prevalence = 0,
     random_effects = random_effects_pdhc,
     fixed_effects = c("description"),
+    analysis_method = "LM",
+    normalization = "NONE",
+    transform = "AST",
+    cores = cores,
+    plot_scatter = plot_scatter
+  )
+}
+
+
+
+fit_models_meta <- function(dat, obj.name = "Species", 
+                       df_input_data, cores, plot_scatter = F, 
+                       cohort = "Meta"){
+  
+  #' function to run MaAsLin2 mixed models
+  #' Input variance and qc trimmed abundance data tables
+  #' Outputs MaAsLin2 analysis in a specific feature folder
+  
+  df_input_metadata <- 
+    process_meta(dat, cohort = "Merged_ML") #%>% 
+    # dplyr::mutate(description = factor(description, levels = c("PD Patient", "Population Control")))
+  
+
+  fit_data = Maaslin2(
+    input_data = df_input_data,
+    input_metadata = df_input_metadata,
+    output = paste0(wkd, "/data/MaAsLin2_Analysis/", cohort, "/", obj.name, "_maaslin2_output"), 
+    random_effects = "cohort",
+    fixed_effects = c("PD"),
+    min_prevalence = 0,
     analysis_method = "LM",
     normalization = "NONE",
     transform = "AST",
@@ -329,8 +357,8 @@ generalized_fold_change <- function(pd_abundance, ctrl_abundances) {
 gfc_plot <- function(df, manual_colors, alfa = 0.5){
   ######' Generalized Fold Change (gFC) BarPlot ######
   p <- ggplot(data=df, aes(x=gFC, y= feature, fill = direction)) +
-    geom_point(aes(fill=direction), shape=21, size=3, alpha = alfa) +
     geom_segment(aes(x=0, xend=gFC, y=feature, yend=feature, color=direction)) +
+    geom_point(aes(fill=direction), shape=21, size=3, alpha = alfa) +
     theme_minimal() +
     xlim(-max(abs(df$gFC)), max(abs(df$gFC))) +
     labs(x="Average Difference") +
@@ -388,7 +416,7 @@ daf_boxplots <- function(df, fill_cols, rim_cols, alfa = 0.5, obj.name){
   set.seed(123)
   p <- ggplot(data=df, aes(x=value, y= Var2)) +
     geom_boxplot(aes(fill = group), alpha = alfa, outlier.alpha = 0, width = 0.8) +
-    geom_point(aes(fill=group, color=group), position = position_jitterdodge(jitter.width = .2), shape=21, size=1, alpha = 0.9) +
+    geom_point(aes(fill=group, color=group), position = position_jitterdodge(jitter.width = .2), shape=21, size=1, alpha = 0.7) +
     theme_minimal() +
     ggtitle(paste0("Differential Abundance: ", obj.name)) +
     geom_text(aes(x= max(value) + max(value)*0.15, 
@@ -616,24 +644,24 @@ plot_dafs <- function(obj.name, obj, cohort = "TBC", tag = ""){
   load("files/low_quality_samples.RData")
 
   # # TROUBLE
-  # obj.name = "GOs.slim"
-  # obj = dat.object
+  # obj.name = "Species"
+  # obj = dat.species
   # cohort = "Merged"
   
-  obj <- obj %>% 
+  obj_processed <- obj %>% 
     subset_samples(donor_id %ni% low_qc[[1]])
   
   abund_rename <-
-    obj %>% 
+    obj_processed %>% 
     abundances() %>% 
     as.data.frame() %>% 
     rownames_to_column() %>% 
     decode_rfriendly_rows(passed_column = "rowname") %>% 
     column_to_rownames(var = "fullnames") %>%
-    select(-rowname) %>% 
+    dplyr::select(-rowname) %>% 
     otu_table(taxa_are_rows=T)
-  my_sample_data <- meta(obj) %>% sample_data()
-  obj <- phyloseq(abund_rename, my_sample_data)
+  my_sample_data <- meta(obj_processed) %>% sample_data()
+  obj_processed <- phyloseq(abund_rename, my_sample_data)
   
   
   ## Color Schemes
@@ -644,7 +672,7 @@ plot_dafs <- function(obj.name, obj, cohort = "TBC", tag = ""){
   cols.pdhc.rim <- c("PD"= "#494949", "HC" = "#2e75b5")
 
   # Normalization and Transformation
-  dat_obj <- microbiome::transform(obj, "compositional")
+  dat_obj <- microbiome::transform(obj_processed, "compositional")
   otu_table(dat_obj) <- asin(sqrt(otu_table(dat_obj)))
   
   # PD v PC
@@ -659,14 +687,14 @@ plot_dafs <- function(obj.name, obj, cohort = "TBC", tag = ""){
     filter(value == "Population Control")
   Maas.pd.pc.sig <- Maas.pd.pc %>% filter(qval < 0.25) %>% 
     decode_rfriendly_rows(passed_column = "feature") %>% 
-    select(-feature) %>%
+    dplyr::select(-feature) %>%
     dplyr::rename("feature"="fullnames")
   
   Maas.pd.hc <- read_tsv(paste0("data/MaAsLin2_Analysis/",  cohort, "/", obj.name, "_PDvHC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
     filter(value == "Household Control")
   Maas.pd.hc.sig <- Maas.pd.hc %>% filter(qval < 0.25) %>% 
     decode_rfriendly_rows(passed_column = "feature") %>% 
-    select(-feature) %>%
+    dplyr::select(-feature) %>%
     dplyr::rename("feature"="fullnames")
   
   #--------------------------------------
@@ -863,7 +891,7 @@ plot_dafs <- function(obj.name, obj, cohort = "TBC", tag = ""){
   
   # Setting plot length variables - 
   top_len <- length(unique(PDovrPC.BP$feature)) + 2
-  bottom_len <- length(unique(PDovrHC.BP$feature)) + 2.5
+  bottom_len <- length(unique(PDovrHC.BP$feature)) + 2.1
   DAF_part1 <- cowplot::plot_grid(g1a, h1a, nrow = 2, align = "hv", labels = "AUTO",
                                   rel_heights = c(top_len, bottom_len))
   DAF_part2 <- cowplot::plot_grid(g2a, g3a, g0a, h2a, h3a, h0a, nrow = 2, ncol=3, align = "h", 
@@ -882,7 +910,7 @@ plot_dafs <- function(obj.name, obj, cohort = "TBC", tag = ""){
 #-------------------------------------------------------------------------------
 
 plot_daf_summary <- function(obj.name, obj, cohort = "TBC", tag = "", 
-                             repelyup = 0, repelydn = 0){
+                             repelyup = 0, repelydn = 0, top=10){
   
   # # TROUBLESHOOTING
   # obj.name = "KOs.slim"
@@ -921,7 +949,7 @@ plot_daf_summary <- function(obj.name, obj, cohort = "TBC", tag = "",
   # Join MaAsLin stats to select most significant features
   q.stats <- left_join(Maas.pd.pc, Maas.pd.hc, by = "feature") %>% 
     dplyr::mutate(q.average = (qval.x + qval.y)/2 ) %>% 
-    select(feature, q.average)
+    dplyr::select(feature, q.average)
   
   #--------------------------------------------------------------------------
   #                              PD v PC gFC
@@ -1005,13 +1033,13 @@ plot_daf_summary <- function(obj.name, obj, cohort = "TBC", tag = "",
   obj.plot.label <- 
     obj.plot %>% 
     dplyr::filter(group != "None") %>% 
-    top_n(10, wt=-q.average) %>% 
+    top_n(top, wt=-q.average) %>% 
     decode_rfriendly_rows(passed_column = "feature")
   
   pal.color <-
     c(
       "BOTH" = "#2ca02c",
-      "PD" = "#bfbfbf",
+      # "PD" = "#bfbfbf",
       "PC" = "#ed7d31",
       "HC" = "#5b9bd5"
     )
@@ -1034,12 +1062,12 @@ plot_daf_summary <- function(obj.name, obj, cohort = "TBC", tag = "",
     geom_abline(intercept = 0, slope = -1, linetype = 3, color = "darkgrey") +
     geom_vline(xintercept = 0, linetype = 1, color = "grey") +
     geom_hline(yintercept = 0, linetype = 1, color = "grey") +
-    labs(x = expression(paste("log"[10] * '(PD/HC)')),
-         y = expression(paste("log"[10] * '(PD/PC)')),
+    labs(x = expression(paste("log"[2] * '[(mean PD + 1)/(mean HC + 1)]')),
+         y = expression(paste("log"[2] * '[(mean PD + 1)/(mean PC + 1)]')),
          title = obj.name,
-         color = "Feature \nAssociation") +
+         color = "Association\nReference\nGroup") +
     scale_color_manual(values = pal.color) +
-    geom_text_repel(data = obj.plot.label,
+    geom_label_repel(data = obj.plot.label,
                     aes(x = hc_mean_l2fc, y = pc_mean_l2fc, label = fullnames), 
                     segment.alpha = 0.5,
                     segment.size = 0.2, 
@@ -1055,8 +1083,8 @@ plot_daf_summary <- function(obj.name, obj, cohort = "TBC", tag = "",
   
   print(gFC_diff_plot)
 
-  ggsave(gFC_diff_plot, filename = paste0("data/DAF_Analysis/", cohort, "/DAF_", obj.name, tag, ".png"),
-         width = 6, height = 5)
+  ggsave(gFC_diff_plot, filename = paste0("data/DAF_Analysis/", cohort, "/DAF_summary_", obj.name, tag, ".svg"),
+         width = 6.5, height = 5)
 }
 
 

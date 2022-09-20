@@ -1,4 +1,4 @@
-### QC_Seq_Depth Analysis
+### Community Composition Analysis
 
 rm(list = ls())
 source("src/load_packages.R")
@@ -8,32 +8,60 @@ source("src/metadata_prep_funcs.R")
 source("src/community_composition_funcs.R")
 source("src/alpha_diversity.R")
 source("src/beta_diversity.R")
-load("files/low_quality_samples.RData")
+source("src/stats_funcs.R")
+
+
+ps <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean.rds")
+
+ps$Species %>%
+  # subset_samples(cohort == "TBC") %>%
+  meta() %>%
+  as.data.frame() %>%
+  filter(donor_group == "PC") %>% 
+  # filter(paired != "No") %>% 
+  count()
+  count(n)
+  
+
+  count(donor_group)
+  colnames()
+#   select(host_subject_id, tube_id, collection_timestamp) %>% 
+#   write.csv(file = "files/TBC-PD-Sample-IDs.csv")
+
+
+# load("files/low_quality_samples.RData")
+# load("files/Phyloseq_Merged_ML_Rarefied.RData") #phyloseq_objs_rare
+# phyloseq_objs_rare %<>% 
+#   purrr::map(~.x %>% subset_samples(cohort %in%  c("TBC", "Rush")) %>% 
+#                subset_samples(donor_id %ni% low_qc[[1]]))
+phyloseq_objs_rare <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean_rarefied.rds")
+phyloseq_objs_rare_TBC <- phyloseq_objs_rare %>% 
+  purrr::map(~.x %>% subset_samples(cohort == "TBC" ))
+phyloseq_objs_rare_Rush <- phyloseq_objs_rare %>% 
+  purrr::map(~.x %>% subset_samples(cohort == "Rush" ))
+
+phyloseq_objs_rare$Species %>% process_meta(cohort = 'Merged') %>% 
+  dplyr::summarise(hy_stage_iqr = mad(hy_stage, na.rm = T))
 
 #------------------------------------------
 #             Alpha/Beta Diversity
 #------------------------------------------
 
-remove_dats()
-load_tbc()
-# alpha_diversity_summary("TBC")
+alpha_diversity_summary("TBC")
 withCallingHandlers(beta_diversity_summary("TBC"), warning=function(w){invokeRestart("muffleWarning")})
 withCallingHandlers(beta_diversity_summary("TBC", dist = "bray"), warning=function(w){invokeRestart("muffleWarning")})
 withCallingHandlers(beta_diversity_summary("TBC", dist = "jaccard"), warning=function(w){invokeRestart("muffleWarning")})
 
-remove_dats()
-load_rush()
-# alpha_diversity_summary("RUSH")
-withCallingHandlers(beta_diversity_summary("RUSH"), warning=function(w){invokeRestart("muffleWarning")})
-withCallingHandlers(beta_diversity_summary("RUSH", dist = "bray"), warning=function(w){invokeRestart("muffleWarning")})
-withCallingHandlers(beta_diversity_summary("RUSH", dist = "jaccard"), warning=function(w){invokeRestart("muffleWarning")})
+alpha_diversity_summary("Rush")
+withCallingHandlers(beta_diversity_summary("Rush"), warning=function(w){invokeRestart("muffleWarning")})
+withCallingHandlers(beta_diversity_summary("Rush", dist = "bray"), warning=function(w){invokeRestart("muffleWarning")})
+withCallingHandlers(beta_diversity_summary("Rush", dist = "jaccard"), warning=function(w){invokeRestart("muffleWarning")})
 
-remove_dats()
-load_all_cohorts()
-# alpha_diversity_summary("Merged")
+alpha_diversity_summary("Merged")
 withCallingHandlers(beta_diversity_summary("Merged"), warning=function(w){invokeRestart("muffleWarning")})
 withCallingHandlers(beta_diversity_summary("Merged", dist = "bray"), warning=function(w){invokeRestart("muffleWarning")})
 withCallingHandlers(beta_diversity_summary("Merged", dist = "jaccard"), warning=function(w){invokeRestart("muffleWarning")})
+
 
 #----------------------------------------------
 #  Plot Rarefaction Curves per group
@@ -47,6 +75,7 @@ withCallingHandlers(beta_diversity_summary("Merged", dist = "jaccard"), warning=
 remove_dats()
 load_tbc()
 reads <- load_reads("TBC")
+load("files/Phyloseq_Merged_ML_Rarefied.RData") #phyloseq_objs_rare
 acc.1.TBC <- feature_accumulation_plot(dat.species, featuretype = "Species", reads, cohort = "TBC")
 acc.2.TBC <- feature_accumulation_plot(dat.genus, featuretype = "Genera", reads, cohort = "TBC")
 acc.3.TBC <- feature_accumulation_plot(dat.path.slim, featuretype = "Pathways", reads, cohort = "TBC")
@@ -79,12 +108,10 @@ acc.6.Merged <- feature_accumulation_plot(dat.EGGNOGs.slim, featuretype = "Eggno
 ################################################################################################
 #################################  Plot Abundance Bars by group #################################  
 
-remove_dats()
-load_all_cohorts()
+phyloseq_objs <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean.rds")
 
 dat.obj <- 
-  dat.genus %>% 
-  subset_samples(donor_id %ni% low_qc[[1]]) %>%
+  phyloseq_objs[["Genus"]] %>% 
   core(detection = 0, prevalence = 0.1)
 
 # Create Metadata Column for Cohort x Donor Group

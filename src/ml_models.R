@@ -1,8 +1,5 @@
 # Machine-Learning-Models
 
-source("src/load_packages.R")
-source("src/miscellaneous_funcs.R")
-
 # Packages for xgboost
 # library(glue)
 library(ModelMetrics)
@@ -26,25 +23,30 @@ library(janitor)
 library(remotes)
 # lightgbm and catboost for parsnip
 # remotes::install_github("curso-r/treesnip", dependencies = T) 
-library(treesnip)
+# library(treesnip)
 
-
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 #                           ML Functions
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 
 prep_ml_input <- function(obj){
   all_abund <- abundances(obj) %>% 
+    as.data.frame() %>% 
+    rownames_to_column() %>% 
+    decode_rfriendly_rows(passed_column = "rowname") %>% 
+    select(-rowname) %>% 
+    column_to_rownames(var = "fullnames") %>% 
     t() %>% as.data.frame() %>% 
     rownames_to_column("donor_id")
   all_meta <- process_meta(obj, cohort = "Merged_ML") %>% 
     dplyr::select(donor_id, PD, cohort, paired) %>% 
+    dplyr::mutate(PD = factor(levels = c("Yes", "No"), PD)) %>% 
     dplyr::mutate(PDxcohort = paste(PD, cohort, sep = "_"))
   ml_input <- inner_join(all_meta, all_abund) %>% 
     as_tibble()
   return(ml_input)
 }
-#---------------------------------------
+#______________________________________
 
 prep_mRMR_input <- function(obj){
   
@@ -62,30 +64,62 @@ prep_mRMR_input <- function(obj){
   return(mRMR_input)
 }
 
-#---------------------------------------
+#______________________________________
 #             mRMRe wrapper 
-#---------------------------------------
+#______________________________________
 
 feature_selection <- function(df, n_features, n_algorithm = 1){
   
   mdat <- mRMR.data(data = data.frame(df))
   mRMR <- mRMR.ensemble(data = mdat, target_indices = 1, 
-                        feature_count = n_features, solution_count = n_algorithm)
+                        feature_count = n_features, 
+                        method = "bootstrap", bootstrap_count = 3,
+                        solution_count = n_algorithm)
   selections <- df[, solutions(mRMR)$`1`] %>% colnames()
   return(selections)
 }
 
+#______________________________________
+#            AUROC filter method 
+#______________________________________
 
-#--------------------------------------------------------------------------------
+feature_selection_auroc <- function(df, n_features, subgroup, data_type){
+  
+  feats <- df %>% 
+    # select features
+    dplyr::filter(data_level == data_type) %>%
+    dplyr::filter(study == subgroup) %>%
+    dplyr::mutate(auroc_center = auroc - 0.5) %>% 
+    slice_max(order_by = abs(auroc_center), n = n_features) %>% 
+    # # r-friendly feature names
+    # mutate(feature = gsub(":", ".gc.", feature)) %>% 
+    # mutate(feature = gsub("\\|", ".gp.", feature)) %>% 
+    # mutate(feature = gsub(" ", ".gs.", feature)) %>% 
+    # mutate(feature = gsub("-", ".gh.", feature)) %>% 
+    # mutate(feature = gsub("/", ".gd.", feature)) %>% 
+    # mutate(feature = gsub("\\]", ".gsqrr.", feature)) %>% 
+    # mutate(feature = gsub("\\[", ".gsqrl.", feature)) %>% 
+    # mutate(feature = gsub("\\)", ".gpr.", feature)) %>% 
+    # mutate(feature = gsub("\\(", ".gpl.", feature)) %>% 
+    # mutate(feature = gsub(",", ".gm.", feature)) %>% 
+    # mutate(feature = gsub("\\+", ".gplus.", feature)) %>% 
+    # mutate(feature = gsub("\\'", ".gpar.", feature)) %>% 
+    # mutate(feature = if_else(data_level %ni% c("Species", "Genus", "Phylum"), 
+    #                          paste0("feat_", feature), feature)) %>% 
+    dplyr::select(feature)
+  return(feats$feature)
+}
+
+#_______________________________________________________________________________
 #                       Tidymodels LASSO 
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 
 lasso_model <- function(train, test){
   
   # # TROUBLE
   # train = ml_input_A
   # test = ml_input_B
-  
+
   combined <- bind_rows(train, test)
   ind <- list(
     analysis = seq(nrow(train)),
@@ -94,9 +128,7 @@ lasso_model <- function(train, test){
   ml_train <- training(splits)
   ml_test <- testing(splits)
   
-  # # Generate 10-fold CV model with 5 repetitions, stratified by PD status 
-  # cv_splits <- rsample::bootstraps(ml_train, v = 10, repeats = 5, strata = PD)
-  # Generate Grid of bootstrapped testing values for training 
+  # # Generate 10-fold CV model with 5 repetitions, stratified by PD status
   set.seed(42)
   boot_splits <- rsample::bootstraps(ml_train, times = 50, strata = PDxcohort)
   
@@ -109,16 +141,16 @@ lasso_model <- function(train, test){
     update_role(cohort, new_role = "cohort") %>% 
     update_role(paired, new_role = "paired") %>%
     update_role(PDxcohort, new_role = "PDxcohort") %>%
-    step_zv(all_numeric(), -all_outcomes()) %>% 
+    step_nzv(all_numeric(), -all_outcomes()) %>%
     step_normalize(all_numeric(), -all_outcomes())
   
   wf <- workflow() %>% 
     add_recipe(ml_recipe) %>% 
     add_model(tune_spec)
   
-  #-----------------------------------------------------
+  #_____________________________________________________
   #                TUNE LASSO MODEL  
-  #-----------------------------------------------------
+  #_____________________________________________________
   # Create a grid of penalty values to test
   lambda_grid <- grid_regular(penalty(), levels = 50)
   # ctrl <- control_grid(save_pred = TRUE, verbose = TRUE)
@@ -145,13 +177,13 @@ lasso_model <- function(train, test){
     theme(legend.position = "none")
   print(model_performance)
   
-  # Filtering ROCAUC valued from optimal 5x10fold CV model
+  # Extract metrics from optimal models (average of N bootstraps)
   train_metrics <- 
     lasso_grid %>% 
     collect_metrics() %>% 
     filter(penalty == best_aucroc$penalty)
   
-  # Finalize trained workflow - use on hold out test sets
+  # Finalize and fit workflow with tuned parameters
   train_lasso <-
     wf %>%
     finalize_workflow(best_aucroc) %>%
@@ -171,7 +203,7 @@ lasso_model <- function(train, test){
   print(conf_matrix)
   
   output <- list(
-    "cv_tune_model" = lasso_grid,
+    "bootstrap_tune_model" = lasso_grid,
     "train_lasso" = train_lasso,
     "test_lasso" = test_lasso,
     "train_metrics" = train_metrics,
@@ -181,9 +213,9 @@ lasso_model <- function(train, test){
 }
 
 
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 #                   Tidymodels RANDOM FOREST 
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 
 rf_model <- function(train, test){
   
@@ -202,7 +234,7 @@ rf_model <- function(train, test){
   # Generate Grid of bootstrapped testing values for training 
   set.seed(42)
   boot_splits <- rsample::bootstraps(ml_train, times = 25, strata = PDxcohort)
-  
+
   # Define tunable RF model
   ranger_spec <-
     rand_forest(mtry = tune(), min_n = tune(), trees = 1000) %>% 
@@ -221,13 +253,13 @@ rf_model <- function(train, test){
     add_recipe(ml_recipe) %>% 
     add_model(ranger_spec)
   
-  #-----------------------------------------------------
+  #_____________________________________________________
   #                TUNE RF MODEL  
-  #-----------------------------------------------------
+  #_____________________________________________________
 
   doParallel::registerDoParallel()
   set.seed(42)
-  ranger_tune <- tune_grid(wf, resamples = boot_splits, grid = 50)
+  ranger_tune <- tune_grid(wf, resamples = boot_splits, grid = 25)
   
   # select optimal penalty by filtering largest rocauc
   best_aucroc <- select_best(ranger_tune, "roc_auc")
@@ -235,14 +267,14 @@ rf_model <- function(train, test){
   # visualize model metrics of grid 
   print(autoplot(ranger_tune))
   
-  # Filtering ROCAUC valued from optimal 5x10fold CV model
+  # Extract metrics from optimal models (average of N bootstraps)
   train_metrics <- 
     ranger_tune %>% 
     collect_metrics() %>% 
     filter(mtry == best_aucroc$mtry,
            min_n == best_aucroc$min_n)
   
-  # Finalize trained workflow - use on hold out test sets
+  # Finalize and fit workflow with tuned parameters
   train_rf <-
     wf %>%
     finalize_workflow(best_aucroc) %>%
@@ -272,9 +304,9 @@ rf_model <- function(train, test){
 }
 
 
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 #                       Tidymodels XGBoost 
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 
 
 xgb_model <- function(train, test){
@@ -297,12 +329,12 @@ xgb_model <- function(train, test){
   
   set.seed(42)
   # Generate Grid of bootstrapped testing values for training 
-  boot_splits <- rsample::bootstraps(ml_train, times = 50, strata = PDxcohort)
+  boot_splits <- rsample::bootstraps(ml_train, times = 25, strata = PDxcohort)
   
   # Define tunable model
   xgboost_spec <- 
     boost_tree(
-      trees = tune(),
+      trees = 1000,
       min_n = tune(),
       tree_depth = tune(),
       learn_rate = tune(),
@@ -325,20 +357,20 @@ xgb_model <- function(train, test){
     add_recipe(ml_recipe) %>% 
     add_model(xgboost_spec)
   
-  #-----------------------------------------------------
+  #_____________________________________________________
   #                TUNE MODEL  
-  #-----------------------------------------------------
+  #_____________________________________________________
   
   xgb_grid <-
     grid_max_entropy(
-      trees(),
+      # trees = 1000,
       min_n(),
       learn_rate(),
       loss_reduction(),
       sample_size = sample_prop(),
       tree_depth(),
       finalize(mtry(), ml_train),
-      size = 100
+      size = 25
     )
   
   doParallel::registerDoParallel()
@@ -359,7 +391,7 @@ xgb_model <- function(train, test){
     facet_wrap(~ parameter, scales = "free_x", nrow = 2)
   print(xgb_tune.plot)
   
-  # Filtering ROCAUC valued from optimal 5x10fold CV model
+  # Extract metrics from optimal models (average of N bootstraps)
   train_metrics <- 
     xgb_tune %>% 
     collect_metrics() %>% 
@@ -397,9 +429,9 @@ xgb_model <- function(train, test){
 }
 
 
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 #                       Tidymodels LightGBM 
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 
 
 lgbm_model <- function(train, test){
@@ -450,9 +482,9 @@ lgbm_model <- function(train, test){
     add_recipe(ml_recipe) %>% 
     add_model(lgbm_spec)
   
-  #-----------------------------------------------------
+  #_____________________________________________________
   #                TUNE MODEL  
-  #-----------------------------------------------------
+  #_____________________________________________________
   
   lgbm_grid <-
     grid_max_entropy(
@@ -484,7 +516,7 @@ lgbm_model <- function(train, test){
     facet_wrap(~ parameter, scales = "free_x", nrow = 2)
   print(lgbm_tune.plot)
   
-  # Filtering ROCAUC valued from optimal training model
+  # Extract metrics from optimal models (average of N bootstraps)
   train_metrics <- 
     lgbm_tune %>% 
     collect_metrics() %>% 
@@ -523,9 +555,9 @@ lgbm_model <- function(train, test){
 
 
 
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 #                      Feature Selection Function
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 
 mRMR_selection <- function(input, feats){
   cat("Running mRMR feature selection .. \n")
@@ -536,9 +568,9 @@ mRMR_selection <- function(input, feats){
 }
 
 
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 #                      ML Cohort Cross Testing
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 
 ml_summary <- function(obj_A,
                        obj_B,
@@ -549,16 +581,26 @@ ml_summary <- function(obj_A,
                        model_type = "lasso") {
 
   
+  # TROUBLE
+  # obj_A = Shanghai
+  # obj_B = TBC
+  # label_A = "Shanghai"
+  # label_B = "TBC"
+  # analysis = "S2S"
+  # model_type = "lasso"
+  # featSelection = feats[["mRMR_Shanghai"]]
+  # featSelection = feats[["featSelect_Shanghai"]]
+  
   ml_input_A <- prep_ml_input(obj_A)
   ml_input_B <- prep_ml_input(obj_B)
   
   if(!is.null(featSelection)){
     cat("Selecting mRMR features .. \n")
     ml_input_A <- ml_input_A %>% 
-      dplyr::select(donor_id, PD, cohort, PDxcohort, paired, matches(featSelection))
+      dplyr::select(donor_id, PD, cohort, PDxcohort, paired, one_of(featSelection))
     cat("Features selected from A: ", ncol(ml_input_A)-5, "\n")
     ml_input_B <- ml_input_B %>% 
-      dplyr::select(donor_id, PD, cohort, PDxcohort, paired, matches(featSelection))
+      dplyr::select(donor_id, PD, cohort, PDxcohort, paired, one_of(featSelection))
     cat("Features selected from B: ", ncol(ml_input_B)-5, "\n")
   }
   
@@ -585,9 +627,9 @@ ml_summary <- function(obj_A,
 
 
 
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 #                      LASSO Cohort Cross Testing TRIMMED FUNCTION
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 
 lasso_cohort_summary_trim <- function(ml_input_A, ml_input_B, 
                                  label_A, label_B, analysis, featSelection = NULL){
@@ -606,9 +648,9 @@ lasso_cohort_summary_trim <- function(ml_input_A, ml_input_B,
 }
 
 
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 #                      Study to Study Transfer
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 
 ml_s2s <- function(Shanghai,
                    TBC,
@@ -616,32 +658,51 @@ ml_s2s <- function(Shanghai,
                    Bonn,
                    model_type = "lasso",
                    featSelection = NULL,
-                   nfeats = 100) {
+                   nfeats = 100, 
+                   data_type = data_type) {
   
-  feats <- vector("list", length = 3)
+  # ## TROUBLE
+  # Shanghai = obj_Shanghai
+  # TBC = obj_TBC
+  # Rush = obj_Rush
+  # Bonn = obj_Bonn
+  # model_type = "lasso"
+  # data_type = "KOs.slim"
+  # nfeats = 100
+  # featSelection = T
   
+  #____________________________________________________________________________
+  #                        SWAP FOR RAREFIED DATA ------
+  # load("data/Machine_Learning_Analysis/feature_AUROCs/feature_slim_AUROCs.RData")
+  load("data/Machine_Learning_Analysis/feature_AUROCs/feature_slim_AUROCs_Rarefied.RData")
+  #____________________________________________________________________________
+  
+  feats <- vector("list", length = 4)
+
   if(!is.null(featSelection)){
     featselectStart <- Sys.time()
-    mRMR_Shanghai <-
-      feature_selection(df = prep_mRMR_input(Shanghai), n_features = nfeats, n_algorithm = 1)
-    mRMR_TBC <-
-      feature_selection(df = prep_mRMR_input(TBC), n_features = nfeats, n_algorithm = 1)
-    mRMR_Rush <-
-      feature_selection(df = prep_mRMR_input(Rush), n_features = nfeats, n_algorithm = 1)
-    mRMR_Bonn <-
-      feature_selection(df = prep_mRMR_input(Bonn), n_features = nfeats, n_algorithm = 1)
+    featSelect_Shanghai <- feature_selection_auroc(df = aucs, n_features = nfeats,
+                                       subgroup = "Shanghai", data_type = data_type)[1:nfeats]
+    featSelect_TBC <- feature_selection_auroc(df = aucs, n_features = nfeats,
+                                        subgroup = "TBC", data_type = data_type)[1:nfeats]
+    featSelect_Rush <- feature_selection_auroc(df = aucs, n_features = nfeats,
+                                         subgroup = "Rush", data_type = data_type)[1:nfeats]
+    featSelect_Bonn <- feature_selection_auroc(df = aucs, n_features = nfeats,
+                                         subgroup = "Bonn", data_type = data_type)[1:nfeats]
+    # MRMR methods
+      # feature_selection(df = prep_mRMR_input(Bonn), n_features = nfeats, n_algorithm = 1)
     
-    feats[[1]] <- mRMR_Shanghai
-    feats[[2]] <- mRMR_TBC
-    feats[[3]] <- mRMR_Rush
-    feats[[4]] <- mRMR_Bonn
-    names(feats) <- c("mRMR_Shanghai", "mRMR_TBC", "mRMR_Rush", "mRMR_Bonn")
+    feats[[1]] <- featSelect_Shanghai
+    feats[[2]] <- featSelect_TBC
+    feats[[3]] <- featSelect_Rush
+    feats[[4]] <- featSelect_Bonn
+    names(feats) <- c("featSelect_Shanghai", "featSelect_TBC", "featSelect_Rush", "featSelect_Bonn")
     
     featselectEnd <- Sys.time()
-    cat("\nfeature selection complete : ", 
-        featselectEnd - featselectStart,
+    cat("\nfeature selection complete : ", featselectEnd - featselectStart,
         attr(featselectEnd - featselectStart, "units"), "\n")
-  } 
+  }
+  rm(aucs)
   
   modelsStart <- Sys.time()
   # Study to Study Transfer
@@ -653,7 +714,7 @@ ml_s2s <- function(Shanghai,
       label_B = "TBC",
       analysis = "S2S",
       model_type = model_type,
-      featSelection = feats[["mRMR_Shanghai"]]
+      featSelection = feats[["featSelect_Shanghai"]]
     )
   s2s_Shanghai_x_Rush <-
     ml_summary(
@@ -663,7 +724,7 @@ ml_s2s <- function(Shanghai,
       label_B = "Rush",
       analysis = "S2S",
       model_type = model_type,
-      featSelection = feats[["mRMR_Shanghai"]]
+      featSelection = feats[["featSelect_Shanghai"]]
     )
   s2s_Shanghai_x_Bonn <-
     ml_summary(
@@ -673,7 +734,7 @@ ml_s2s <- function(Shanghai,
       label_B = "Bonn",
       analysis = "S2S",
       model_type = model_type,
-      featSelection = feats[["mRMR_Shanghai"]]
+      featSelection = feats[["featSelect_Shanghai"]]
       )
   
   s2s_TBC_x_Shanghai <-
@@ -684,7 +745,7 @@ ml_s2s <- function(Shanghai,
       label_B = "Shanghai",
       analysis = "S2S",
       model_type = model_type,
-      featSelection = feats[["mRMR_TBC"]]
+      featSelection = feats[["featSelect_TBC"]]
     )
   s2s_TBC_x_Rush <-
     ml_summary(
@@ -694,7 +755,7 @@ ml_s2s <- function(Shanghai,
       label_B = "Rush",
       analysis = "S2S",
       model_type = model_type,
-      featSelection = feats[["mRMR_TBC"]]
+      featSelection = feats[["featSelect_TBC"]]
     )
   s2s_TBC_x_Bonn <-
     ml_summary(
@@ -704,7 +765,7 @@ ml_s2s <- function(Shanghai,
       label_B = "Bonn",
       analysis = "S2S",
       model_type = model_type,
-      featSelection = feats[["mRMR_TBC"]]
+      featSelection = feats[["featSelect_TBC"]]
     )
   
   s2s_Rush_x_Shanghai <-
@@ -715,7 +776,7 @@ ml_s2s <- function(Shanghai,
       label_B = "Shanghai",
       analysis = "S2S",
       model_type = model_type,
-      featSelection =  feats[["mRMR_Rush"]]
+      featSelection =  feats[["featSelect_Rush"]]
     )
   s2s_Rush_x_TBC <-
     ml_summary(
@@ -725,7 +786,7 @@ ml_s2s <- function(Shanghai,
       label_B = "TBC",
       analysis = "S2S",
       model_type = model_type,
-      featSelection =  feats[["mRMR_Rush"]]
+      featSelection =  feats[["featSelect_Rush"]]
     )
   s2s_Rush_x_Bonn <-
     ml_summary(
@@ -735,7 +796,7 @@ ml_s2s <- function(Shanghai,
       label_B = "Bonn",
       analysis = "S2S",
       model_type = model_type,
-      featSelection =  feats[["mRMR_Rush"]]
+      featSelection =  feats[["featSelect_Rush"]]
     )
   
   s2s_Bonn_x_TBC <-
@@ -746,7 +807,7 @@ ml_s2s <- function(Shanghai,
       label_B = "TBC",
       analysis = "S2S",
       model_type = model_type,
-      featSelection = feats[["mRMR_Bonn"]]
+      featSelection = feats[["featSelect_Bonn"]]
     )
   s2s_Bonn_x_Rush <-
     ml_summary(
@@ -756,7 +817,7 @@ ml_s2s <- function(Shanghai,
       label_B = "Rush",
       analysis = "S2S",
       model_type = model_type,
-      featSelection = feats[["mRMR_Bonn"]]
+      featSelection = feats[["featSelect_Bonn"]]
     )
   s2s_Bonn_x_Shanghai <-
     ml_summary(
@@ -766,7 +827,7 @@ ml_s2s <- function(Shanghai,
       label_B = "Shanghai",
       analysis = "S2S",
       model_type = model_type,
-      featSelection = feats[["mRMR_Bonn"]]
+      featSelection = feats[["featSelect_Bonn"]]
     )
   
   modelsEnd <- Sys.time()
@@ -782,9 +843,9 @@ ml_s2s <- function(Shanghai,
   return(s2s_summary)
 }
 
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 #                    LOSO - Leave One Study Out
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 
 
 ml_loso <- function(Shanghai,
@@ -797,34 +858,59 @@ ml_loso <- function(Shanghai,
                    noBonn,
                    model_type = "lasso",
                    featSelection = NULL,
-                   nfeats = 100){
+                   nfeats = 100, 
+                   data_type){
   
-  feats <- vector("list", length = 3)
+  
+  # # TROUBLE
+  # Shanghai = obj_Shanghai
+  # noShanghai = obj_noShanghai
+  # TBC = obj_TBC
+  # noTBC = obj_noTBC
+  # Rush = obj_Rush
+  # noRush = obj_noRush
+  # Bonn = obj_Bonn
+  # noBonn = obj_noBonn
+  # model_type = "lasso"
+  # featSelection = TRUE
+  # nfeats = 100
+  
+  #____________________________________________________________________________
+  #                        SWAP FOR RAREFIED DATA ------
+  # load("data/Machine_Learning_Analysis/feature_AUROCs/feature_slim_AUROCs_LODO.RData")
+  load("data/Machine_Learning_Analysis/feature_AUROCs/feature_slim_AUROCs_LODO_Rarefied.RData")
+  #____________________________________________________________________________
+  
+  feats <- vector("list", length = 4)
   
   if(!is.null(featSelection)){
     
     featselectStart <- Sys.time()
-    
-    mRMR_noShanghai <-
-      feature_selection(df = prep_mRMR_input(noShanghai), n_features = nfeats, n_algorithm = 1)
-    mRMR_noTBC <-
-      feature_selection(df = prep_mRMR_input(noTBC), n_features = nfeats, n_algorithm = 1)
-    mRMR_noRush <-
-      feature_selection(df = prep_mRMR_input(noRush), n_features = nfeats, n_algorithm = 1)
-    mRMR_noBonn <-
-      feature_selection(df = prep_mRMR_input(noBonn), n_features = nfeats, n_algorithm = 1)
-    
-    feats[[1]] <- mRMR_noShanghai
-    feats[[2]] <- mRMR_noTBC
-    feats[[3]] <- mRMR_noRush
-    feats[[4]] <- mRMR_noBonn
-    names(feats) <- c("mRMR_noShanghai", "mRMR_noTBC", "mRMR_noRush", "mRMR_noBonn")
+    featSelect_noShanghai <- feature_selection_auroc(df = aucs, n_features = nfeats,
+                                                      subgroup = "no_Shanghai", data_type = data_type)[1:nfeats]
+    featSelect_noTBC <- feature_selection_auroc(df = aucs, n_features = nfeats,
+                                                 subgroup = "no_TBC", data_type = data_type)[1:nfeats]
+    featSelect_noRush <- feature_selection_auroc(df = aucs, n_features = nfeats,
+                                               subgroup = "no_Rush", data_type = data_type)[1:nfeats]
+    featSelect_noBonn <- feature_selection_auroc(df = aucs, n_features = nfeats,
+                                               subgroup = "no_Bonn", data_type = data_type)[1:nfeats]
+    # mRMR_noShanghai <-
+    #   feature_selection(df = prep_mRMR_input(noShanghai), n_features = nfeats, n_algorithm = 1)
+
+    feats[[1]] <- featSelect_noShanghai
+    feats[[2]] <- featSelect_noTBC
+    feats[[3]] <- featSelect_noRush
+    feats[[4]] <- featSelect_noBonn
+    names(feats) <- c("featSelect_noShanghai", "featSelect_noTBC", 
+                      "featSelect_noRush", "featSelect_noBonn")
     
     featselectEnd <- Sys.time()
     cat("\nfeature selection complete : ", 
         featselectEnd - featselectStart,
         attr(featselectEnd - featselectStart, "units"), "\n")
-  } 
+  }
+  print(summary(feats))
+  rm(aucs)
   modelsStart <- Sys.time()
   
   loso_shanghai <-
@@ -835,7 +921,7 @@ ml_loso <- function(Shanghai,
       label_B = "Shanghai",
       analysis = "LOSO",
       model_type = model_type,
-      featSelection =  feats[["mRMR_noShanghai"]]
+      featSelection =  feats[["featSelect_noShanghai"]]
     )
   loso_TBC <-
     ml_summary(
@@ -845,7 +931,7 @@ ml_loso <- function(Shanghai,
       label_B = "TBC",
       analysis = "LOSO",
       model_type = model_type,
-      featSelection =  feats[["mRMR_noTBC"]]
+      featSelection =  feats[["featSelect_noTBC"]]
     )
   loso_Rush <-
     ml_summary(
@@ -855,7 +941,7 @@ ml_loso <- function(Shanghai,
       label_B = "Rush",
       analysis = "LOSO",
       model_type = model_type,
-      featSelection =  feats[["mRMR_noRush"]]
+      featSelection =  feats[["featSelect_noRush"]]
     )
   loso_Bonn <-
     ml_summary(
@@ -865,7 +951,7 @@ ml_loso <- function(Shanghai,
       label_B = "Bonn",
       analysis = "LOSO",
       model_type = model_type,
-      featSelection =  feats[["mRMR_noBonn"]]
+      featSelection =  feats[["featSelect_noBonn"]]
     )
   
   modelsEnd <- Sys.time()
@@ -877,9 +963,9 @@ ml_loso <- function(Shanghai,
 }
 
 
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 #                 LASSO Cohort x Donor Group Cross Testing
-#--------------------------------------------------------------------------------
+#_______________________________________________________________________________
 
 lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelection = NULL){
   
@@ -1052,9 +1138,9 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #     add_recipe(ml_recipe) %>% 
 #     add_model(tune_spec)
 #   
-#   #-----------------------------------------------------
+#   #_____________________________________________________
 #   #                TUNE LASSO MODEL  
-#   #-----------------------------------------------------
+#   #_____________________________________________________
 #   # Create a grid of penalty values to test
 #   lambda_grid <- grid_regular(penalty(), levels = 50)
 #   ctrl <- control_grid(save_pred = TRUE, verbose = TRUE)
@@ -1122,9 +1208,9 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #' 
 #' 
 #' 
-#' #----------------------------------------------------------------------------------------
+#' #_______________________________________________________________________________--------
 #' ###                       RIDGE, LASSO, ENET LOGISTIC REGRESSION                     ###
-#' #----------------------------------------------------------------------------------------
+#' #_______________________________________________________________________________--------
 #' 
 #' 
 #' ridge.lasso.enet.regression.model <- function(obj, comparison = "PDvPC", model.type){
@@ -1226,9 +1312,9 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #'   
 #' }
 #' 
-#' #----------------------------------------------------------------------------------------
+#' #_______________________________________________________________________________--------
 #' ###                              RANDOM FOREST MODELS                                ###
-#' #----------------------------------------------------------------------------------------
+#' #_______________________________________________________________________________--------
 #' 
 #' 
 #' 
@@ -1347,9 +1433,9 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #' 
 #' 
 #' 
-#' #----------------------------------------------------------------------------------------
-#' ###                                XBOOST MODELS                                      ###
-#' #----------------------------------------------------------------------------------------
+#' #____________________________________________________________________________
+#' ###                           XBOOST MODELS                           ###
+#' #____________________________________________________________________________
 #' 
 #' 
 #' xgboost.model <- function(obj, comparison = "PDvPC"){
@@ -1414,9 +1500,9 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #'   # Hyperparameter Tuning 
 #'   #Informed by: https://www.kaggle.com/pelkoja/visual-xgboost-tuning-with-caret/report
 #'   
-#'   #---------------------------------------------------------- 
+#'   #_____________________________________________________ 
 #'   # 1) nrounds & eta 
-#'   #---------------------------------------------------------- 
+#'   #_____________________________________________________ 
 #'   
 #'   tune_grid <- expand.grid(
 #'     nrounds = seq(from = 200, to = 1000, by = 50),
@@ -1451,9 +1537,9 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #'   print(tuneplot(xgb_tune))
 #'   print(xgb_tune$bestTune)
 #'   
-#'   #---------------------------------------------------------- 
+#'   #_____________________________________________________ 
 #'   # 2) Maximum Depth and Minimum Child Weight
-#'   #---------------------------------------------------------- 
+#'   #_____________________________________________________ 
 #'   
 #'   if (xgb_tune$bestTune$max_depth == 2) {
 #'     mxdpth <- 
@@ -1485,9 +1571,9 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #'   print(tuneplot(xgb_tune2))
 #'   print(xgb_tune2$bestTune)
 #'   
-#'   #---------------------------------------------------------- 
+#'   #_____________________________________________________ 
 #'   # 3)  Column and Row Sampling
-#'   #---------------------------------------------------------- 
+#'   #_____________________________________________________ 
 #'   
 #'   tune_grid3 <- expand.grid(
 #'     nrounds = seq(from = 50, to = 1000, by = 50),
@@ -1512,9 +1598,9 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #'   print(tuneplot(xgb_tune3, probs = .95))
 #'   print(xgb_tune3$bestTune)
 #'   
-#'   #---------------------------------------------------------- 
+#'   #_____________________________________________________ 
 #'   # 4)  Gamma
-#'   #---------------------------------------------------------- 
+#'   #_____________________________________________________ 
 #'   
 #'   tune_grid4 <- expand.grid(
 #'     nrounds = seq(from = 50, to = 1000, by = 50),
@@ -1539,9 +1625,9 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #'   print(tuneplot(xgb_tune4))
 #'   print(xgb_tune4$bestTune)
 #'   
-#'   #---------------------------------------------------------- 
+#'   #_____________________________________________________ 
 #'   # 5)  Reducing the Learning Rate
-#'   #---------------------------------------------------------- 
+#'   #_____________________________________________________ 
 #'   
 #'   tune_grid5 <- expand.grid(
 #'     nrounds = seq(from = 100, to = 1000, by = 100),
@@ -1567,9 +1653,9 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #'   print(xgb_tune5$bestTune)
 #'   
 #'   
-#'   #---------------------------------------------------------- 
+#'   #_____________________________________________________ 
 #'   # 5)  Fitting the Model
-#'   #---------------------------------------------------------- 
+#'   #_____________________________________________________ 
 #'   
 #'   final_grid <- expand.grid(
 #'     nrounds = xgb_tune5$bestTune$nrounds,
@@ -1630,9 +1716,6 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #' 
 #' 
 #' 
-#' #----------------------------------------------------------------------------------------
-#' ###                       ARTIFICAL NEURAL NETWORK MODELS                             ###
-#' #----------------------------------------------------------------------------------------
 #' 
 #' 
 #' 
@@ -1640,17 +1723,16 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #' 
 #' 
 #' 
-#' 
-#' #----------------------------------------------------------------------------------------
-#' #----------------------------------------------------------------------------------------
-#' #----------------------------------------------------------------------------------------
-#' #----------------------------------------------------------------------------------------
-#' 
+#' #_______________________________________________________________________________--------
+#' #_____________________________________________________
+#' #_____________________________________________________
+#' #_____________________________________________________
 #' 
 #' 
-#' #----------------------------------------------------------------------------------------
+#' 
+#' #____________________________________________________________________________
 #' ###         RIDGE, LASSO, ENET LOGISTIC REGRESSION  --  For Curated Datasets            
-#' #----------------------------------------------------------------------------------------
+#' #____________________________________________________________________________
 #' 
 #' 
 #' ridge.lasso.enet.regression.model.DS <- function(model.input, model.type){
@@ -1730,9 +1812,9 @@ lasso_cohort_x_group_summary <- function(obj_tbc_all, obj_rush_all, featSelectio
 #' }
 #' 
 #' 
-#' #----------------------------------------------------------------------------------------
+#' #____________________________________________________________________________
 #' ###   RIDGE, LASSO, ENET LOGISTIC REGRESSION  --  For Curated Datasets & PD COMPARISON        
-#' #----------------------------------------------------------------------------------------
+#' #____________________________________________________________________________
 #' 
 #' 
 #' ridge.lasso.enet.regression.model.DSxPD <- function(disease.model.input, model.type, obj = dat){

@@ -1,14 +1,5 @@
 # Alpha Diversity adaptable
 
-##### Alpha Diversity Boxplots Script
-######## Load Data & functions
-source("src/load_packages.R")
-source("src/load_phyloseq_obj.R")
-source("src/metadata_prep_funcs.R")
-source("src/miscellaneous_funcs.R")
-source("src/community_composition_funcs.R")
-source("src/stats_funcs.R")
-
 
 alpha_diversity_summary <- function(cohort){
   
@@ -17,8 +8,16 @@ alpha_diversity_summary <- function(cohort){
   #        dat.path.slim, dat.ec.slim, dat.KOs.slim, dat.EGGNOGs.slim, dat.PFAMs.slim)
   # z <- c("Species", "Pathways", "Enzymes", "KOs",
   #        "Pathways.slim", "Enzymes.slim", "KOs.slim", "Eggnogs.slim", "Pfams.slim")
-  x <- c(dat.species)
+  
   z <- c("Species")
+  if (cohort == "TBC") {
+    x <- c(phyloseq_objs_rare_TBC[["Species"]])
+  } else if (cohort == "Rush"){
+    x <- c(phyloseq_objs_rare_Rush[["Species"]])
+  } else if (cohort == "Merged"){
+    x <- c(phyloseq_objs_rare[["Species"]])
+  }
+
 
   # --------------------------------------------------- 
   #         Alpha Diversity Plotting Loop
@@ -27,15 +26,13 @@ alpha_diversity_summary <- function(cohort){
   for (i in x){
     
     cat("Processing input: ", z[cnt], "\n")
-    i <- i %>% 
-      subset_samples(donor_id %ni% low_qc[[1]])
-    print(i)
-    cat("\n")
     dat_alpha <- i
+    dat_alpha %>%  print()
     
     # Run Metadata pre-processing function
     env <- NULL
     env <- process_meta(dat_alpha, cohort = cohort)
+    env %>% dim() %>% print()
     env$description <- factor(env$description, levels=c("PD Patient", "Population Control", "Household Control"))
     env$donor_group <- factor(env$donor_group, levels=c("PC", "PD", "HC"))
     ## Calculate Alpha Diversity Metrics and add cols to df
@@ -122,7 +119,7 @@ alpha_diversity_summary <- function(cohort){
     print(alpha_cow)
     ggsave(alpha_cow, filename =
              paste0("data/Community_Composition/Alpha_Diversity_Analysis/AlphaDiversity_BoxPlot_",  
-                    z[cnt], "_", cohort, "_Summary.svg"),
+                    z[cnt], "_", cohort, "_Summary_Rarefied.svg"),
            height = 5, width = 7)
     
     cnt <- cnt + 1

@@ -7,20 +7,20 @@ source("src/load_phyloseq_obj.R")
 source("src/metadata_prep_funcs.R")
 source("src/community_composition_funcs.R")
 source("src/daf_functions.R")
-load("files/low_quality_samples.RData")
 wkd <- getwd()
 
 ######### INPUT SPECIES 
-load_all_cohorts()
-LEV <- dat.species %>% 
-  subset_samples(donor_id %ni% low_qc[[1]])
-lev <- "Species"
+
+# load("files/Phyloseq_Merged/Species_PhyloseqObj.RData")
+phylo_obj <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean.rds")
+datobj <- phylo_obj[["Species"]] 
+obj.name <- "Species"
+cohort <- "Merged"
 
 ############# Visualization Transformations ############# 
-taxa_names(LEV) <- gsub("s__", "", taxa_names(LEV))
-dat_obj <- microbiome::transform(LEV, "compositional")
-## ArcSinSqrt() Transformation
+dat_obj <- microbiome::transform(datobj, "compositional")
 otu_table(dat_obj) <- asin(sqrt(otu_table(dat_obj)))
+
 ## Color Schemes
 cols.pdpc <- c("PD"= "#bfbfbf", "PC" = "#ed7d31")
 cols.pdhc <- c("PD"= "#bfbfbf", "HC" = "#5b9bd5")
@@ -28,48 +28,54 @@ cols.pdhc <- c("PD"= "#bfbfbf", "HC" = "#5b9bd5")
 cols.pdpc.rim <- c("PD"= "#494949", "PC" = "#c15811")
 cols.pdhc.rim <- c("PD"= "#494949", "HC" = "#2e75b5")
 
-############# data prep ############# 
 # PD v PC
 dat_pdpc = subset_samples(dat_obj, donor_group !="HC")
 abun.pdpc <- as.data.frame.matrix(abundances(dat_pdpc))
-# PD v HC PAIRED
+# PD v HC 
 dat_pdhc = subset_samples(dat_obj, paired !="No")
 abun.pdhc <- as.data.frame.matrix(abundances(dat_pdhc))
 
-
-############# Read-in Maaslin Files - all features used in significance testing ############# 
- 
-Maas.pd.pc <- read_tsv(paste0("data/MaAsLin2_Analysis/Merged/", lev, "_PDvPC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
+### Read-in MaAsLin2 output
+Maas.pd.pc <- read_tsv(paste0("data/MaAsLin2_Analysis/", cohort, "/", obj.name, "_PDvPC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
   filter(value == "Population Control")
-Maas.pd.pc$feature <- gsub("s__", "", Maas.pd.pc$feature)
-Maas.pd.pc.sig <- Maas.pd.pc %>% filter(qval < 0.25)
+Maas.pd.pc.sig <- Maas.pd.pc %>% filter(qval < 0.25) %>% 
+  decode_rfriendly_rows(passed_column = "feature") %>% 
+  dplyr::select(-feature) %>%
+  dplyr::rename("feature"="fullnames")
 
-Maas.pd.hc <- read_tsv(paste0("data/MaAsLin2_Analysis/Merged/", lev, "_PDvHC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
+Maas.pd.hc <- read_tsv(paste0("data/MaAsLin2_Analysis/",  cohort, "/", obj.name, "_PDvHC_maaslin2_output/all_results.tsv"), col_names = T) %>% 
   filter(value == "Household Control")
-Maas.pd.hc$feature <- gsub("s__", "", Maas.pd.hc$feature)
-Maas.pd.hc.sig <- Maas.pd.hc %>% filter(qval < 0.25) 
+Maas.pd.hc.sig <- Maas.pd.hc %>% filter(qval < 0.25) %>% 
+  decode_rfriendly_rows(passed_column = "feature") %>% 
+  dplyr::select(-feature) %>%
+  dplyr::rename("feature"="fullnames")
 
 
 #'#########  select significant features from abundance tables  ##############
 #'#########  Pull Genus/Phylum annotations for each significant feature #########  
 ####### PD v PC
+abun.pdpc.inpt <-
+  abun.pdpc %>% 
+  rownames_to_column() %>% 
+  filter(rowname %in% Maas.pd.pc.sig$feature) %>%
+  column_to_rownames(var = "rowname") %>%
+  t() %>% melt() %>% 
+  mutate(group = if_else(grepl("PC", Var1), "PC", "PD"))
 abun.pdpc <- rownames_to_column(abun.pdpc)
 abun.pdpc.filtered <- filter(abun.pdpc, rowname %in% Maas.pd.pc.sig$feature)
-abun.pdpc.inpt <- abun.pdpc.filtered %>% column_to_rownames(var="rowname") %>% 
-  t() %>% melt() %>% mutate(group = if_else(grepl(".PC", Var1), "PC", "PD"))
-## Geom Tile data - Genus and Phylum levels
-abun.pdpc.filtered$speciesname <- paste0("s__", abun.pdpc.filtered$rowname)
-abun.pdpc.inpt.phylo <- taxa_genus_phlyum_annotation(dat.species, abun.pdpc.filtered$speciesname) 
-
+abun.pdpc.inpt.phylo <- taxa_genus_phlyum_annotation(dat_pdpc, abun.pdpc.filtered$rowname) 
 
 ####### PD v HC PAIRED
+abun.pdhc.inpt <- 
+  abun.pdhc %>% 
+  rownames_to_column() %>% 
+  filter(rowname %in% Maas.pd.hc.sig$feature) %>%
+  column_to_rownames(var = "rowname") %>%
+  t() %>% melt() %>% 
+  mutate(group = if_else(grepl("HC", Var1), "HC", "PD"))
 abun.pdhc <- rownames_to_column(abun.pdhc)
-abun.pdhc.filtered <- filter(abun.pdhc, rowname %in% Maas.pd.hc.sig$feature) 
-abun.pdhc.inpt <- abun.pdhc.filtered %>% column_to_rownames(var="rowname")  %>% 
-  t() %>% melt() %>% mutate(group = if_else(grepl(".HC", Var1), "HC", "PD"))
-## Geom Tile data - Genus and Phylum levels
-abun.pdhc.filtered$speciesname <- paste0("s__", abun.pdhc.filtered$rowname)
-abun.pdhc.inpt.phylo <- taxa_genus_phlyum_annotation(dat.species, abun.pdhc.filtered$speciesname) 
+abun.pdhc.filtered <- filter(abun.pdhc, rowname %in% Maas.pd.hc.sig$feature)
+abun.pdhc.inpt.phylo <- taxa_genus_phlyum_annotation(dat_pdhc, abun.pdhc.filtered$rowname) 
 
 
 ## Create BarTile Color Palette - Manual process 
@@ -127,7 +133,7 @@ g1 <-
     fill_cols = cols.pdpc,
     rim_cols = cols.pdpc.rim,
     alfa = 0.2,
-    obj.name = lev
+    obj.name = obj.name
   )
 
 ###### Prevalence Plot ######
@@ -139,7 +145,7 @@ colnames(dat_pdpc.PCprev) <- c("feature", "PC")
 dat_pdpc.PREV <- left_join(dat_pdpc.PDprev, dat_pdpc.PCprev, by = "feature") %>% melt()
 dat_pdpc.PREV$feature <- factor(dat_pdpc.PREV$feature,  rev(phylo.pc$Axis.order))
 dat_pdpc.PREV$variable <- factor(dat_pdpc.PREV$variable, levels = c("PC", "PD"))
-g3 <- prevalence_barplot(dat_pdpc.PREV, cols.pdpc, alfa = 0.8)
+g3 <- prevalence_barplot(dat_pdpc.PREV, cols.pdpc, alfa = 0.2)
 
 
 
@@ -170,7 +176,7 @@ PDovrHC.BP <- PDovrHC
 PDovrHC.BP <- mutate(PDovrHC.BP, direction = if_else(PDovrHC.BP$gFC > 0, "PD",
                      if_else(PDovrHC.BP$gFC < 0, "HC",  "error")))
 PDovrHC.BP$feature <- factor(PDovrHC.BP$feature, levels = rev(phylo.hc$Axis.order)) 
-h0 <- gfc_plot(PDovrHC.BP, cols.pdhc, alfa = 1)
+h0 <- gfc_plot(PDovrHC.BP, cols.pdhc, alfa = 0.8)
 
 ###### Significance Plot ###### 
 sigplot.df.pdhc <- dplyr::select(Maas.pd.hc.sig, c("feature", "pval", "qval")) %>%  melt()
@@ -187,7 +193,7 @@ h1 <-
     fill_cols = cols.pdhc,
     rim_cols = cols.pdhc.rim,
     alfa = 0.2,
-    obj.name = lev
+    obj.name = obj.name
   )
 
 ###### Prevalence Plot ######
@@ -199,7 +205,7 @@ colnames(dat_pdhc.HCprev) <- c("feature", "HC")
 dat_pdhc.PREV <- left_join(dat_pdhc.PDprev, dat_pdhc.HCprev, by = "feature") %>% melt()
 dat_pdhc.PREV$feature <- factor(dat_pdhc.PREV$feature, levels = rev(phylo.hc$Axis.order))
 dat_pdhc.PREV$variable <- factor(dat_pdhc.PREV$variable, levels = c("HC", "PD"))
-h3 <- prevalence_barplot(dat_pdhc.PREV, cols.pdhc, alfa = 0.8)
+h3 <- prevalence_barplot(dat_pdhc.PREV, cols.pdhc, alfa = 0.2)
 
 
 ######################## Merge Panels ######################## 
@@ -221,8 +227,8 @@ h3a <- h3 + theme(axis.text.y = element_blank(), legend.position = "none")
 
 
 # Setting plot length variables 
-top_len <- length(unique(PDovrPC.BP$feature)) + 1
-bottom_len <- length(unique(PDovrHC.BP$feature)) + 2
+top_len <- length(unique(PDovrPC.BP$feature)) 
+bottom_len <- length(unique(PDovrHC.BP$feature)) + 1
 
 DAF_part1 <- cowplot::plot_grid(g.bars, h.bars, ncol = 1, align = "hv", 
                        labels = "AUTO",
@@ -239,13 +245,13 @@ DAF_final <- cowplot::plot_grid(DAF_part1, DAF_part2, ncol = 2, align = "hv",
                                 rel_widths = c(1, 5.25))
 DAF_final
 
-# ggsave(DAF_final, filename = paste0("figures/Figure_2/DAF_Figure_2_new.svg"),
-#        width = 14, height = 7)
-# 
-# # Legends
-# ggsave(phylo.pc$Legends, filename = paste0("figures/Figure_2/DAF_Figure_2_PC.legend_new.svg"),
-#        width = 7, height = 7)
-# ggsave(phylo.hc$Legends, filename = paste0("figures/Figure_2/DAF_Figure_2_HC.legend_new.svg"),
-#        width = 7, height = 7)
-# 
+ggsave(DAF_final, filename = paste0("figures/Figure_2/DAF_Figure_2_new",Sys.Date(),".svg"),
+       width = 14, height = 7.5)
+
+# Legends
+ggsave(phylo.pc$Legends, filename = paste0("figures/Figure_2/DAF_Figure_2_PC.legend_new.svg"),
+       width = 7, height = 7)
+ggsave(phylo.hc$Legends, filename = paste0("figures/Figure_2/DAF_Figure_2_HC.legend_new.svg"),
+       width = 7, height = 7)
+
 

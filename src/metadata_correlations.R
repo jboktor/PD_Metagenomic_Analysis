@@ -5,7 +5,9 @@ source("src/miscellaneous_funcs.R")
 source("src/load_phyloseq_obj.R")
 source("src/metadata_prep_funcs.R")
 load("files/low_quality_samples.RData")
-load_data("Merged")
+# load_data("Merged")
+phyloseq_objs <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean.rds")
+
 
 #_______________________________________________________________________________
 #####                      Correlation Analysis                           ##### 
@@ -13,7 +15,7 @@ load_data("Merged")
 
 # Metadata Selection
 corr.meta.clinical <-
-  dat.species %>% 
+  phyloseq_objs[["Species"]] %>% 
   subset_samples(donor_id %ni% low_qc[[1]]) %>% 
   process_meta(cohort = "Merged") %>%
   dplyr::select(contains(
@@ -22,7 +24,7 @@ corr.meta.clinical <-
     )
   ))
 corr.meta.diet <-
-  dat.species %>% 
+  phyloseq_objs[["Species"]] %>% 
   subset_samples(donor_id %ni% low_qc[[1]]) %>% 
   process_meta(cohort = "Merged") %>%
   dplyr::select(contains(
@@ -35,7 +37,7 @@ corr.meta.diet <-
 #_______________________________________________________________________________
 
 corr.abund.species <- 
-  dat.species %>% 
+  phyloseq_objs[["Species"]] %>% 
   subset_samples(donor_id %ni% low_qc[[1]]) %>% 
   core(detection = 0, prevalence = 1/234) %>% 
   abundances() %>% 
@@ -49,23 +51,30 @@ corrs.diet.species <-
   corr_loop_parallel(metadata = corr.meta.diet, abundance = corr.abund.species, obj.name = "Species")
 
 # Scatter plots
-# top_n_scatterplots(dat = dat.species, obj.name = "Species", 
-#                    df.cors = corrs.clinical.species, metaclass = "Clinical")
-# top_n_scatterplots(dat = dat.species, obj.name = "Species", 
-#                    df.cors = corrs.diet.species, metaclass = "Diet")
+top_n_scatterplots(dat = phyloseq_objs[["Species"]], obj.name = "Species",
+                   df.cors = corrs.clinical.species, metaclass = "Clinical")
+top_n_scatterplots(dat = phyloseq_objs[["Species"]], obj.name = "Species",
+                   df.cors = corrs.diet.species, metaclass = "Diet")
 
 # Heatmaps
 h1 <- corr_heatmap(corrs.clinical.species)
-h2 <- corr_heatmap(corrs.diet.species)
-esedhh
+h2 <- corrs.diet.species %>% 
+  mutate(metadata = gsub("_", " ", metadata),
+         feature = gsub("_", " ", feature)) %>% 
+  corr_heatmap() +
+  theme(axis.text.y = element_text(face = "italic"))
+ggsave(h1, filename = "data/Correlations/Species/Clinical/Heatmap_Species_clinical.svg", 
+       height = 10, width = 13)
+ggsave(h2, filename = "data/Correlations/Species/Diet/Heatmap_Species_diet.svg", 
+       height = 6, width = 8)
 
-#_______________________________________________________________________________
+   #_______________________________________________________________________________
 #####                              Pathways                               ##### 
 #_______________________________________________________________________________
 
 corr.abund.pathways <-
   corr_abund_prep(obj.name = "Pathways.slim",
-                  obj = dat.path.slim,
+                  obj = phyloseq_objs[["Pathways.slim"]],
                   cohort = "Merged")
 
 # Correlation calculations
@@ -75,10 +84,10 @@ corrs.diet.pathways.slim <-
   corr_loop_parallel(metadata = corr.meta.diet, abundance = corr.abund.pathways, obj.name = "Pathways")
 
 # Scatter plots
-# top_n_scatterplots(dat = dat.path.slim, obj.name = "Pathways.slim", 
-#                    df.cors = corrs.clinical.pathways.slim, metaclass = "Clinical")
-# top_n_scatterplots(dat = dat.path.slim, obj.name = "Pathways.slim", 
-#                    df.cors = corrs.diet.pathways.slim, metaclass = "Diet")
+top_n_scatterplots(dat = phyloseq_objs[["Pathways.slim"]], obj.name = "Pathways.slim",
+                   df.cors = corrs.clinical.pathways.slim, metaclass = "Clinical")
+top_n_scatterplots(dat = phyloseq_objs[["Pathways.slim"]], obj.name = "Pathways.slim",
+                   df.cors = corrs.diet.pathways.slim, metaclass = "Diet")
 
 # Heatmaps
 h3 <- corr_heatmap(corrs.clinical.pathways.slim)
@@ -94,7 +103,7 @@ ggsave(h4, filename = "data/Correlations/Pathways.slim/Diet/Heatmap_Pathways.sli
 
 corr.abund.KOs <-
   corr_abund_prep(obj.name = "KOs.slim",
-                  obj = dat.KOs.slim,
+                  obj = phyloseq_objs[["KOs.slim"]],
                   cohort = "Merged")
 
 # Correlation calculations
@@ -104,10 +113,10 @@ corrs.diet.KOs.slim <-
   corr_loop_parallel(metadata = corr.meta.diet, abundance = corr.abund.KOs, obj.name = "KOs")
 
 # Scatter plots
-# top_n_scatterplots(dat = dat.KOs.slim, obj.name = "KOs.slim", 
-#                    df.cors = corrs.clinical.KOs.slim, metaclass = "Clinical")
-# top_n_scatterplots(dat = dat.KOs.slim, obj.name = "KOs.slim", 
-#                    df.cors = corrs.diet.KOs.slim, metaclass = "Diet")
+top_n_scatterplots(dat = phyloseq_objs[["KOs.slim"]], obj.name = "KOs.slim",
+                   df.cors = corrs.clinical.KOs.slim, metaclass = "Clinical")
+top_n_scatterplots(dat = phyloseq_objs[["KOs.slim"]], obj.name = "KOs.slim",
+                   df.cors = corrs.diet.KOs.slim, metaclass = "Diet")
 
 # Heatmaps
 h5 <- corr_heatmap(corrs.clinical.KOs.slim)
@@ -125,7 +134,7 @@ ggsave(h6, filename = "data/Correlations/KOs.slim/Diet/Heatmap_KOs.slim_diet.svg
 
 corr.abund.GOs <-
   corr_abund_prep(obj.name = "GOs.slim",
-                  obj = dat.GOs.slim,
+                  obj = phyloseq_objs[["GOs.slim"]],
                   cohort = "Merged")
 
 # Correlation calculations
@@ -135,10 +144,10 @@ corrs.diet.GOs.slim <-
   corr_loop_parallel(metadata = corr.meta.diet, abundance = corr.abund.GOs, obj.name = "GOs")
 
 # Scatter plots
-# top_n_scatterplots(dat = dat.GOs.slim, obj.name = "GOs.slim",
-#                    df.cors = corrs.clinical.GOs.slim, metaclass = "Clinical")
-# top_n_scatterplots(dat = dat.GOs.slim, obj.name = "GOs.slim",
-#                    df.cors = corrs.diet.GOs.slim, metaclass = "Diet")
+top_n_scatterplots(dat = phyloseq_objs[["GOs.slim"]], obj.name = "GOs.slim",
+                   df.cors = corrs.clinical.GOs.slim, metaclass = "Clinical")
+top_n_scatterplots(dat = phyloseq_objs[["GOs.slim"]], obj.name = "GOs.slim",
+                   df.cors = corrs.diet.GOs.slim, metaclass = "Diet")
 
 # Heatmaps
 h7 <- corr_heatmap(corrs.clinical.GOs.slim)
@@ -155,8 +164,8 @@ ggsave(h8, filename = "data/Correlations/GOs.slim/Diet/Heatmap_GOs.slim_diet.svg
 #_______________________________________________________________________________
 
 corr.abund.PFAMs <-
-  corr_abund_prep(obj.name = "PFAMs.slim",
-                  obj = dat.PFAMs.slim,
+  corr_abund_prep(obj.name = "Pfams.slim",
+                  obj = phyloseq_objs[["Pfams.slim"]],
                   cohort = "Merged")
 
 # Correlation calculations
@@ -166,10 +175,10 @@ corrs.diet.PFAMs.slim <-
   corr_loop_parallel(metadata = corr.meta.diet, abundance = corr.abund.PFAMs, obj.name = "PFAMs")
 
 # Scatter plots
-# top_n_scatterplots(dat = dat.PFAMs.slim, obj.name = "PFAMs.slim", 
-#                    df.cors = corrs.clinical.PFAMs.slim, metaclass = "Clinical")
-# top_n_scatterplots(dat = dat.PFAMs.slim, obj.name = "PFAMs.slim", 
-#                    df.cors = corrs.diet.PFAMs.slim, metaclass = "Diet")
+top_n_scatterplots(dat = phyloseq_objs[["Pfams.slim"]], obj.name = "PFAMs.slim",
+                   df.cors = corrs.clinical.PFAMs.slim, metaclass = "Clinical")
+top_n_scatterplots(dat = phyloseq_objs[["Pfams.slim"]], obj.name = "PFAMs.slim",
+                   df.cors = corrs.diet.PFAMs.slim, metaclass = "Diet")
 
 # Heatmaps
 h9 <- corr_heatmap(corrs.clinical.PFAMs.slim)
@@ -201,26 +210,29 @@ dietary_corrs <-
        Gene_Ontology = corrs.diet.GOs.slim,
        PFAMs = corrs.diet.PFAMs.slim)
 
-# openxlsx::write.xlsx(clinical_corrs, file = 'files/Correlations/Clinical_Correlations.xlsx')
-# openxlsx::write.xlsx(dietary_corrs, file = 'files/Correlations/Dietary_Correlations.xlsx')
-# save(clinical_corrs, file = 'files/Correlations/Clinical_Correlations.RData')
-# save(dietary_corrs, file = 'files/Correlations/Dietary_Correlations.RData')
+openxlsx::write.xlsx(clinical_corrs, file = 'files/Correlations/Clinical_Correlations.xlsx', overwrite = T)
+openxlsx::write.xlsx(dietary_corrs, file = 'files/Correlations/Dietary_Correlations.xlsx', overwrite = T)
+openxlsx::write.xlsx(dietary_corrs, file = 'files/Supplementary Tables/Table_S5_Dietary_Correlations.xlsx', overwrite = T)
+openxlsx::write.xlsx(clinical_corrs, file = 'files/Supplementary Tables/Table_S6_Clinical_Correlations.xlsx', overwrite = T)
+
+save(clinical_corrs, file = 'files/Correlations/Clinical_Correlations.RData')
+save(dietary_corrs, file = 'files/Correlations/Dietary_Correlations.RData')
 
 
-#' #_______________________________________________________________________________
-#' #####                      Merge as one large analysis                           ##### 
-#' #_______________________________________________________________________________\
-#' 
-#' all_corrs <- bind_rows(corrs.clinical.species, 
-#'                           corrs.diet.species,
-#'                           corrs.clinical.pathways.slim,
-#'                           corrs.diet.pathways.slim,
-#'                           corrs.clinical.KOs.slim,
-#'                           corrs.diet.KOs.slim,
-#'                           corrs.clinical.PFAMs.slim,
-#'                           corrs.diet.PFAMs.slim,
-#'                           corrs.clinical.GOs.slim,
-#'                           corrs.diet.GOs.slim)
-#' 
-#' write.csv(all_corrs, file = 'files/correlations_analysis.csv')
+#_______________________________________________________________________________
+#####                      Merge as one large analysis                           #####
+#_______________________________________________________________________________\
+
+all_corrs <- bind_rows(corrs.clinical.species,
+                          corrs.diet.species,
+                          corrs.clinical.pathways.slim,
+                          corrs.diet.pathways.slim,
+                          corrs.clinical.KOs.slim,
+                          corrs.diet.KOs.slim,
+                          corrs.clinical.PFAMs.slim,
+                          corrs.diet.PFAMs.slim,
+                          corrs.clinical.GOs.slim,
+                          corrs.diet.GOs.slim)
+
+write.csv(all_corrs, file = 'files/correlations_analysis.csv')
 

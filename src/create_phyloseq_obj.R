@@ -77,31 +77,31 @@ dat.species <- metaphlanToPhyloseq_Waldron(
 dat.species
 
 #-------- Species Level Object --------
-save(dat.species, file = "files/Phyloseq_TBC/Species_PhyloseqObj.RData")
+saveRDS(dat.species, file = "files/Phyloseq_TBC/Species_PhyloseqObj.rds")
 #-------- Genus Level Object --------
 dat.genus = tax_glom(dat.species, taxrank = "Genus", NArm = F)
 taxa_names(dat.genus) <- tax_table(dat.genus)[,6]
-save(dat.genus, file = "files/Phyloseq_TBC/Genus_PhyloseqObj.RData")
+saveRDS(dat.genus, file = "files/Phyloseq_TBC/Genus_PhyloseqObj.rds")
 #-------- Family Level Object --------
 dat.family = tax_glom(dat.species, taxrank = "Family", NArm = F)
 taxa_names(dat.family) <- tax_table(dat.family)[,5]
-save(dat.family, file = "files/Phyloseq_TBC/Family_PhyloseqObj.RData")
+saveRDS(dat.family, file = "files/Phyloseq_TBC/Family_PhyloseqObj.rds")
 #-------- Order Level Object --------
 dat.order = tax_glom(dat.species, taxrank = "Order", NArm = F)
 taxa_names(dat.order) <- tax_table(dat.order)[,4]
-save(dat.order, file = "files/Phyloseq_TBC/Order_PhyloseqObj.RData")
+saveRDS(dat.order, file = "files/Phyloseq_TBC/Order_PhyloseqObj.rds")
 #-------- Class Level Object --------
 dat.class = tax_glom(dat.species, taxrank = "Class", NArm = F)
 taxa_names(dat.class) <- tax_table(dat.class)[,3]
-save(dat.class, file = "files/Phyloseq_TBC/Class_PhyloseqObj.RData")
+saveRDS(dat.class, file = "files/Phyloseq_TBC/Class_PhyloseqObj.rds")
 #-------- Phylum Level Object --------
 dat.phylum = tax_glom(dat.species, taxrank = "Phylum", NArm = F)
 taxa_names(dat.phylum) <- tax_table(dat.phylum)[,2]
-save(dat.phylum, file = "files/Phyloseq_TBC/Phylum_PhyloseqObj.RData")
+saveRDS(dat.phylum, file = "files/Phyloseq_TBC/Phylum_PhyloseqObj.rds")
 #-------- Kingdom Level Object --------
 dat.kingdom = tax_glom(dat.species, taxrank = "Kingdom", NArm = F)
 taxa_names(dat.kingdom) <- tax_table(dat.kingdom)[,1]
-save(dat.kingdom, file = "files/Phyloseq_TBC/Kingdom_PhyloseqObj.RData")
+saveRDS(dat.kingdom, file = "files/Phyloseq_TBC/Kingdom_PhyloseqObj.rds")
 
 #---------------------------------------------------------- 
 #                   TBC -  Pathways 
@@ -130,13 +130,13 @@ my_pathab_table <- otu_table(path.abund, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.path <- phyloseq(my_pathab_table, my_sample_data)
 dat.path
-save(dat.path, file = "files/Phyloseq_TBC/Pathways_PhyloseqObj.RData")
+saveRDS(dat.path, file = "files/Phyloseq_TBC/Pathways_PhyloseqObj.rds")
 # Slim Pathway Data
 my_pathab_table <- otu_table(path.abund.slim, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.path.slim <- phyloseq(my_pathab_table, my_sample_data)
 dat.path.slim
-save(dat.path.slim, file = "files/Phyloseq_TBC/Pathways.slim_PhyloseqObj.RData")
+saveRDS(dat.path.slim, file = "files/Phyloseq_TBC/Pathways.slim_PhyloseqObj.rds")
 
 
 #---------------------------------------------------------- 
@@ -168,14 +168,14 @@ my_EC.ab_table <- otu_table(ec.abund, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.ec <- phyloseq(my_EC.ab_table, my_sample_data)
 dat.ec
-save(dat.ec, file = "files/Phyloseq_TBC/Enzymes_PhyloseqObj.RData")
+saveRDS(dat.ec, file = "files/Phyloseq_TBC/Enzymes_PhyloseqObj.rds")
 # Slim Enzyme Data - no stratification
 my_EC.ab_table <- otu_table(ec.abund.slim, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.ec.slim <- phyloseq(my_EC.ab_table, my_sample_data)
 dat.ec.slim
-# Save Phyloseq obj as .RData file 
-save(dat.ec.slim, file = "files/Phyloseq_TBC/Enzymes.slim_PhyloseqObj.RData")
+# Save Phyloseq obj as .rds file 
+saveRDS(dat.ec.slim, file = "files/Phyloseq_TBC/Enzymes.slim_PhyloseqObj.rds")
 
 #---------------------------------------------------------- 
 #                   TBC -  Kegg Orthology
@@ -210,14 +210,14 @@ my_KOs.ab_table <- otu_table(KOs.abund, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.KOs <- phyloseq(my_KOs.ab_table, my_sample_data)
 dat.KOs
-save(dat.KOs, file = "files/Phyloseq_TBC/KOs_PhyloseqObj.RData")
+saveRDS(dat.KOs, file = "files/Phyloseq_TBC/KOs_PhyloseqObj.rds")
 # Slim KOs - no stratification
 my_KOs.ab_table.slim <- otu_table(KOs.abund.slim, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.KOs.slim <- phyloseq(my_KOs.ab_table.slim, my_sample_data)
 dat.KOs.slim
-# Save Phyloseq obj as .RData file 
-save(dat.KOs.slim, file = "files/Phyloseq_TBC/KOs.slim_PhyloseqObj.RData")
+# Save Phyloseq obj as .rds file 
+saveRDS(dat.KOs.slim, file = "files/Phyloseq_TBC/KOs.slim_PhyloseqObj.rds")
 
 
 #---------------------------------------------------------- 
@@ -254,14 +254,14 @@ my_GOs.ab_table <- otu_table(GOs.abund, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.GOs <- phyloseq(my_GOs.ab_table, my_sample_data)
 dat.GOs
-save(dat.GOs, file = "files/Phyloseq_TBC/GOs_PhyloseqObj.RData")
+saveRDS(dat.GOs, file = "files/Phyloseq_TBC/GOs_PhyloseqObj.rds")
 # Slim GOs - no stratification
 my_GOs.ab_table.slim <- otu_table(GOs.abund.slim, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.GOs.slim <- phyloseq(my_GOs.ab_table.slim, my_sample_data)
 dat.GOs.slim
-# Save Phyloseq obj as .RData file 
-save(dat.GOs.slim, file = "files/Phyloseq_TBC/GOs.slim_PhyloseqObj.RData")
+# Save Phyloseq obj as .rds file 
+saveRDS(dat.GOs.slim, file = "files/Phyloseq_TBC/GOs.slim_PhyloseqObj.rds")
 
 #---------------------------------------------------------- 
 #                   TBC -  Pfam
@@ -297,14 +297,14 @@ my_PFAMs.ab_table <- otu_table(PFAMs.abund, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.PFAMs <- phyloseq(my_PFAMs.ab_table, my_sample_data)
 dat.PFAMs
-save(dat.PFAMs, file = "files/Phyloseq_TBC/PFAMs_PhyloseqObj.RData")
+saveRDS(dat.PFAMs, file = "files/Phyloseq_TBC/PFAMs_PhyloseqObj.rds")
 # Slim PFAMs - no stratification
 my_PFAMs.ab_table.slim <- otu_table(PFAMs.abund.slim, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.PFAMs.slim <- phyloseq(my_PFAMs.ab_table.slim, my_sample_data)
 dat.PFAMs.slim
-# Save Phyloseq obj as .RData file 
-save(dat.PFAMs.slim, file = "files/Phyloseq_TBC/PFAMs.slim_PhyloseqObj.RData")
+# Save Phyloseq obj as .rds file 
+saveRDS(dat.PFAMs.slim, file = "files/Phyloseq_TBC/PFAMs.slim_PhyloseqObj.rds")
 
 #---------------------------------------------------------- 
 #                   TBC -  Eggnog
@@ -338,14 +338,14 @@ my_EGGNOGs.ab_table <- otu_table(EGGNOGs.abund, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.EGGNOGs <- phyloseq(my_EGGNOGs.ab_table, my_sample_data)
 dat.EGGNOGs
-save(dat.EGGNOGs, file = "files/Phyloseq_TBC/EGGNOGs_PhyloseqObj.RData")
+saveRDS(dat.EGGNOGs, file = "files/Phyloseq_TBC/EGGNOGs_PhyloseqObj.rds")
 # Slim EGGNOGs - no stratification
 my_EGGNOGs.ab_table.slim <- otu_table(EGGNOGs.abund.slim, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.EGGNOGs.slim <- phyloseq(my_EGGNOGs.ab_table.slim, my_sample_data)
 dat.EGGNOGs.slim
-# Save Phyloseq obj as .RData file 
-save(dat.EGGNOGs.slim, file = "files/Phyloseq_TBC/EGGNOGs.slim_PhyloseqObj.RData")
+# Save Phyloseq obj as .rds file 
+saveRDS(dat.EGGNOGs.slim, file = "files/Phyloseq_TBC/EGGNOGs.slim_PhyloseqObj.rds")
 
 
 # temporary rename
@@ -421,31 +421,31 @@ dat.species <- metaphlanToPhyloseq_Waldron(
   subset_samples(study_group != "MSA")
 
 #-------- Species Level Object --------
-save(dat.species, file = "files/Phyloseq_RUSH/Species_PhyloseqObj.RData")
+saveRDS(dat.species, file = "files/Phyloseq_RUSH/Species_PhyloseqObj.rds")
 #-------- Genus Level Object --------
 dat.genus = tax_glom(dat.species, taxrank = "Genus", NArm = F)
 taxa_names(dat.genus) <- tax_table(dat.genus)[,6]
-save(dat.genus, file = "files/Phyloseq_RUSH/Genus_PhyloseqObj.RData")
+saveRDS(dat.genus, file = "files/Phyloseq_RUSH/Genus_PhyloseqObj.rds")
 #-------- Family Level Object --------
 dat.family = tax_glom(dat.species, taxrank = "Family", NArm = F)
 taxa_names(dat.family) <- tax_table(dat.family)[,5]
-save(dat.family, file = "files/Phyloseq_RUSH/Family_PhyloseqObj.RData")
+saveRDS(dat.family, file = "files/Phyloseq_RUSH/Family_PhyloseqObj.rds")
 #-------- Order Level Object --------
 dat.order = tax_glom(dat.species, taxrank = "Order", NArm = F)
 taxa_names(dat.order) <- tax_table(dat.order)[,4]
-save(dat.order, file = "files/Phyloseq_RUSH/Order_PhyloseqObj.RData")
+saveRDS(dat.order, file = "files/Phyloseq_RUSH/Order_PhyloseqObj.rds")
 #-------- Class Level Object --------
 dat.class = tax_glom(dat.species, taxrank = "Class", NArm = F)
 taxa_names(dat.class) <- tax_table(dat.class)[,3]
-save(dat.class, file = "files/Phyloseq_RUSH/Class_PhyloseqObj.RData")
+saveRDS(dat.class, file = "files/Phyloseq_RUSH/Class_PhyloseqObj.rds")
 #-------- Phylum Level Object --------
 dat.phylum = tax_glom(dat.species, taxrank = "Phylum", NArm = F)
 taxa_names(dat.phylum) <- tax_table(dat.phylum)[,2]
-save(dat.phylum, file = "files/Phyloseq_RUSH/Phylum_PhyloseqObj.RData")
+saveRDS(dat.phylum, file = "files/Phyloseq_RUSH/Phylum_PhyloseqObj.rds")
 #-------- Kingdom Level Object --------
 dat.kingdom = tax_glom(dat.species, taxrank = "Kingdom", NArm = F)
 taxa_names(dat.kingdom) <- tax_table(dat.kingdom)[,1]
-save(dat.kingdom, file = "files/Phyloseq_RUSH/Kingdom_PhyloseqObj.RData")
+saveRDS(dat.kingdom, file = "files/Phyloseq_RUSH/Kingdom_PhyloseqObj.rds")
 
 #-------------------- -------------------------------------- 
 #                   RUSH -  Pathways 
@@ -474,14 +474,14 @@ my_pathab_table <- otu_table(path.abund, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.path <- phyloseq(my_pathab_table, my_sample_data)
 dat.path
-save(dat.path, file = "files/Phyloseq_RUSH/Pathways_PhyloseqObj.RData")
+saveRDS(dat.path, file = "files/Phyloseq_RUSH/Pathways_PhyloseqObj.rds")
 # Slim Pathway Data
 my_pathab_table <- otu_table(path.abund.slim, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.path.slim <- phyloseq(my_pathab_table, my_sample_data) %>% 
   subset_samples(study_group != "MSA")
 dat.path.slim
-save(dat.path.slim, file = "files/Phyloseq_RUSH/Pathways.slim_PhyloseqObj.RData")
+saveRDS(dat.path.slim, file = "files/Phyloseq_RUSH/Pathways.slim_PhyloseqObj.rds")
 
 #---------------------------------------------------------- 
 #                   RUSH -  Enzymes 
@@ -512,15 +512,15 @@ my_EC.ab_table <- otu_table(ec.abund, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.ec <- phyloseq(my_EC.ab_table, my_sample_data)
 dat.ec
-save(dat.ec, file = "files/Phyloseq_RUSH/Enzymes_PhyloseqObj.RData")
+saveRDS(dat.ec, file = "files/Phyloseq_RUSH/Enzymes_PhyloseqObj.rds")
 # Slim Enzyme Data - no stratification
 my_EC.ab_table <- otu_table(ec.abund.slim, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.ec.slim <- phyloseq(my_EC.ab_table, my_sample_data) %>% 
   subset_samples(study_group != "MSA")
 dat.ec.slim
-# Save Phyloseq obj as .RData file 
-save(dat.ec.slim, file = "files/Phyloseq_RUSH/Enzymes.slim_PhyloseqObj.RData")
+# Save Phyloseq obj as .rds file 
+saveRDS(dat.ec.slim, file = "files/Phyloseq_RUSH/Enzymes.slim_PhyloseqObj.rds")
 
 #---------------------------------------------------------- 
 #                   RUSH -  Kegg Orthology
@@ -555,15 +555,15 @@ my_KOs.ab_table <- otu_table(KOs.abund, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.KOs <- phyloseq(my_KOs.ab_table, my_sample_data)
 dat.KOs
-save(dat.KOs, file = "files/Phyloseq_RUSH/KOs_PhyloseqObj.RData")
+saveRDS(dat.KOs, file = "files/Phyloseq_RUSH/KOs_PhyloseqObj.rds")
 # Slim KOs - no stratification
 my_KOs.ab_table.slim <- otu_table(KOs.abund.slim, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.KOs.slim <- phyloseq(my_KOs.ab_table.slim, my_sample_data) %>% 
   subset_samples(study_group != "MSA")
 dat.KOs.slim
-# Save Phyloseq obj as .RData file 
-save(dat.KOs.slim, file = "files/Phyloseq_RUSH/KOs.slim_PhyloseqObj.RData")
+# Save Phyloseq obj as .rds file 
+saveRDS(dat.KOs.slim, file = "files/Phyloseq_RUSH/KOs.slim_PhyloseqObj.rds")
 
 #---------------------------------------------------------- 
 #                   RUSH -  Gene Ontology
@@ -599,15 +599,15 @@ my_GOs.ab_table <- otu_table(GOs.abund, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.GOs <- phyloseq(my_GOs.ab_table, my_sample_data)
 dat.GOs
-save(dat.GOs, file = "files/Phyloseq_RUSH/GOs_PhyloseqObj.RData")
+saveRDS(dat.GOs, file = "files/Phyloseq_RUSH/GOs_PhyloseqObj.rds")
 # Slim GOs - no stratification
 my_GOs.ab_table.slim <- otu_table(GOs.abund.slim, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.GOs.slim <- phyloseq(my_GOs.ab_table.slim, my_sample_data) %>% 
   subset_samples(study_group != "MSA")
 dat.GOs.slim
-# Save Phyloseq obj as .RData file 
-save(dat.GOs.slim, file = "files/Phyloseq_RUSH/GOs.slim_PhyloseqObj.RData")
+# Save Phyloseq obj as .rds file 
+saveRDS(dat.GOs.slim, file = "files/Phyloseq_RUSH/GOs.slim_PhyloseqObj.rds")
 
 #---------------------------------------------------------- 
 #                   RUSH -  Pfam
@@ -643,15 +643,15 @@ my_PFAMs.ab_table <- otu_table(PFAMs.abund, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.PFAMs <- phyloseq(my_PFAMs.ab_table, my_sample_data)
 dat.PFAMs
-save(dat.PFAMs, file = "files/Phyloseq_RUSH/PFAMs_PhyloseqObj.RData")
+saveRDS(dat.PFAMs, file = "files/Phyloseq_RUSH/PFAMs_PhyloseqObj.rds")
 # Slim PFAMs - no stratification
 my_PFAMs.ab_table.slim <- otu_table(PFAMs.abund.slim, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.PFAMs.slim <- phyloseq(my_PFAMs.ab_table.slim, my_sample_data) %>% 
   subset_samples(study_group != "MSA")
 dat.PFAMs.slim
-# Save Phyloseq obj as .RData file 
-save(dat.PFAMs.slim, file = "files/Phyloseq_RUSH/PFAMs.slim_PhyloseqObj.RData")
+# Save Phyloseq obj as .rds file 
+saveRDS(dat.PFAMs.slim, file = "files/Phyloseq_RUSH/PFAMs.slim_PhyloseqObj.rds")
 
 #---------------------------------------------------------- 
 #                   RUSH -  Eggnog
@@ -685,15 +685,15 @@ my_EGGNOGs.ab_table <- otu_table(EGGNOGs.abund, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.EGGNOGs <- phyloseq(my_EGGNOGs.ab_table, my_sample_data)
 dat.EGGNOGs
-save(dat.EGGNOGs, file = "files/Phyloseq_RUSH/EGGNOGs_PhyloseqObj.RData")
+saveRDS(dat.EGGNOGs, file = "files/Phyloseq_RUSH/EGGNOGs_PhyloseqObj.rds")
 # Slim EGGNOGs - no stratification
 my_EGGNOGs.ab_table.slim <- otu_table(EGGNOGs.abund.slim, taxa_are_rows=T)
 my_sample_data <- meta(dat.species) %>% sample_data()
 dat.EGGNOGs.slim <- phyloseq(my_EGGNOGs.ab_table.slim, my_sample_data) %>% 
   subset_samples(study_group != "MSA")
 dat.EGGNOGs.slim
-# Save Phyloseq obj as .RData file 
-save(dat.EGGNOGs.slim, file = "files/Phyloseq_RUSH/EGGNOGs.slim_PhyloseqObj.RData")
+# Save Phyloseq obj as .rds file 
+saveRDS(dat.EGGNOGs.slim, file = "files/Phyloseq_RUSH/EGGNOGs.slim_PhyloseqObj.rds")
 
 
 # temporary rename
@@ -748,27 +748,25 @@ dat.EGGNOGs <- merge_phyloseq(dat.EGGNOGs.TBC, dat.EGGNOGs.RUSH)
 dat.EGGNOGs.slim <- merge_phyloseq(dat.EGGNOGs.slim.TBC, dat.EGGNOGs.slim.RUSH)
 
 
-
-
-save(dat.species, file = "files/Phyloseq_Merged/Species_PhyloseqObj.RData")
-save(dat.genus, file = "files/Phyloseq_Merged/Genus_PhyloseqObj.RData")
-save(dat.family, file = "files/Phyloseq_Merged/Family_PhyloseqObj.RData")
-save(dat.order, file = "files/Phyloseq_Merged/Order_PhyloseqObj.RData")
-save(dat.class, file = "files/Phyloseq_Merged/Class_PhyloseqObj.RData")
-save(dat.phylum, file = "files/Phyloseq_Merged/Phylum_PhyloseqObj.RData")
-save(dat.kingdom, file = "files/Phyloseq_Merged/Kingdom_PhyloseqObj.RData")
-save(dat.path, file = "files/Phyloseq_Merged/Pathways_PhyloseqObj.RData")
-save(dat.path.slim, file = "files/Phyloseq_Merged/Pathways.slim_PhyloseqObj.RData")
-save(dat.ec, file = "files/Phyloseq_Merged/Enzymes_PhyloseqObj.RData")
-save(dat.ec.slim, file = "files/Phyloseq_Merged/Enzymes.slim_PhyloseqObj.RData")
-save(dat.KOs, file = "files/Phyloseq_Merged/KOs_PhyloseqObj.RData")
-save(dat.KOs.slim, file = "files/Phyloseq_Merged/KOs.slim_PhyloseqObj.RData")
-save(dat.GOs, file = "files/Phyloseq_Merged/GOs_PhyloseqObj.RData")
-save(dat.GOs.slim, file = "files/Phyloseq_Merged/GOs.slim_PhyloseqObj.RData")
-save(dat.PFAMs, file = "files/Phyloseq_Merged/PFAMs_PhyloseqObj.RData")
-save(dat.PFAMs.slim, file = "files/Phyloseq_Merged/PFAMs.slim_PhyloseqObj.RData")
-save(dat.EGGNOGs, file = "files/Phyloseq_Merged/EGGNOGs_PhyloseqObj.RData")
-save(dat.EGGNOGs.slim, file = "files/Phyloseq_Merged/EGGNOGs.slim_PhyloseqObj.RData")
+saveRDS(dat.species, file = "files/Phyloseq_Merged/Species_PhyloseqObj.rds")
+saveRDS(dat.genus, file = "files/Phyloseq_Merged/Genus_PhyloseqObj.rds")
+saveRDS(dat.family, file = "files/Phyloseq_Merged/Family_PhyloseqObj.rds")
+saveRDS(dat.order, file = "files/Phyloseq_Merged/Order_PhyloseqObj.rds")
+saveRDS(dat.class, file = "files/Phyloseq_Merged/Class_PhyloseqObj.rds")
+saveRDS(dat.phylum, file = "files/Phyloseq_Merged/Phylum_PhyloseqObj.rds")
+saveRDS(dat.kingdom, file = "files/Phyloseq_Merged/Kingdom_PhyloseqObj.rds")
+saveRDS(dat.path, file = "files/Phyloseq_Merged/Pathways_PhyloseqObj.rds")
+saveRDS(dat.path.slim, file = "files/Phyloseq_Merged/Pathways.slim_PhyloseqObj.rds")
+saveRDS(dat.ec, file = "files/Phyloseq_Merged/Enzymes_PhyloseqObj.rds")
+saveRDS(dat.ec.slim, file = "files/Phyloseq_Merged/Enzymes.slim_PhyloseqObj.rds")
+saveRDS(dat.KOs, file = "files/Phyloseq_Merged/KOs_PhyloseqObj.rds")
+saveRDS(dat.KOs.slim, file = "files/Phyloseq_Merged/KOs.slim_PhyloseqObj.rds")
+saveRDS(dat.GOs, file = "files/Phyloseq_Merged/GOs_PhyloseqObj.rds")
+saveRDS(dat.GOs.slim, file = "files/Phyloseq_Merged/GOs.slim_PhyloseqObj.rds")
+saveRDS(dat.PFAMs, file = "files/Phyloseq_Merged/PFAMs_PhyloseqObj.rds")
+saveRDS(dat.PFAMs.slim, file = "files/Phyloseq_Merged/PFAMs.slim_PhyloseqObj.rds")
+saveRDS(dat.EGGNOGs, file = "files/Phyloseq_Merged/EGGNOGs_PhyloseqObj.rds")
+saveRDS(dat.EGGNOGs.slim, file = "files/Phyloseq_Merged/EGGNOGs.slim_PhyloseqObj.rds")
 
 
 
@@ -778,13 +776,28 @@ save(dat.EGGNOGs.slim, file = "files/Phyloseq_Merged/EGGNOGs.slim_PhyloseqObj.RD
 #-------------------------------------------------------------------------------------------
 ### Create list for objects
 Phylo_Objects <- vector(mode="list", length=19)
-names(Phylo_Objects) <- c("Species", "Genus", "Family", "Order", "Class", "Phylum", "Kingdom",
-                          "Pathways", "Pathways.slim",
-                          "Enzymes", "Enzymes.slim",
-                          "KOs", "KOs.slim", 
-                          "dat.GOs", "dat.GOs.slim",
-                          "dat.PFAMs", "dat.PFAMs.slim",
-                          "dat.EGGNOGs", "dat.EGGNOGs.slim")
+names(Phylo_Objects) <-
+  c(
+    "Species",
+    "Genus",
+    "Family",
+    "Order",
+    "Class",
+    "Phylum",
+    "Kingdom",
+    "Pathways",
+    "Pathways.slim",
+    "Enzymes",
+    "Enzymes.slim",
+    "KOs",
+    "KOs.slim",
+    "GOs",
+    "GOs.slim",
+    "Pfams",
+    "Pfams.slim",
+    "eggNOGs",
+    "eggNOGs.slim"
+  )
 
 Phylo_Objects$Species <- dat.species; Phylo_Objects$Genus <- dat.genus;
 Phylo_Objects$Family <- dat.family; Phylo_Objects$Order <- dat.order; Phylo_Objects$Class <- dat.class;
@@ -793,38 +806,9 @@ Phylo_Objects$Pathways <- dat.path; Phylo_Objects$Pathways.slim <- dat.path.slim
 Phylo_Objects$Enzymes <- dat.ec; Phylo_Objects$Enzymes.slim <- dat.ec.slim;
 Phylo_Objects$KOs <- dat.KOs; Phylo_Objects$KOs.slim <- dat.KOs.slim
 Phylo_Objects$GOs <- dat.GOs; Phylo_Objects$GOs.slim <- dat.GOs.slim
-Phylo_Objects$PFAMs <- dat.PFAMs; Phylo_Objects$PFAMs.slim <- dat.PFAMs.slim
-Phylo_Objects$EGGNOGs <- dat.EGGNOGs; Phylo_Objects$EGGNOGs.slim <- dat.EGGNOGs.slim
-save(Phylo_Objects, file = "files/Phyloseq_Merged/PhyloseqObj.RData")
+Phylo_Objects$Pfams <- dat.PFAMs; Phylo_Objects$Pfams.slim <- dat.PFAMs.slim
+Phylo_Objects$eggNOGs <- dat.EGGNOGs; Phylo_Objects$eggNOGs.slim <- dat.EGGNOGs.slim
+saveRDS(Phylo_Objects, file = "files/Phyloseq_Merged/PhyloseqObj.rds")
+# Save for EDA App
+# saveRDS(Phylo_Objects, file = "EDA_App/PhyloseqObj.rds")
 #-------------------------------------------------------------------------------------------
-
-load("files/Phyloseq_Merged/Species_PhyloseqObj.RData")
-load("files/Phyloseq_Merged/Genus_PhyloseqObj.RData")
-load("files/Phyloseq_Merged/Family_PhyloseqObj.RData")
-load("files/Phyloseq_Merged/Order_PhyloseqObj.RData")
-load("files/Phyloseq_Merged/Class_PhyloseqObj.RData")
-load("files/Phyloseq_Merged/Phylum_PhyloseqObj.RData")
-load("files/Phyloseq_Merged/Kingdom_PhyloseqObj.RData")
-load("files/Phyloseq_Merged/Pathways_PhyloseqObj.RData")
-load("files/Phyloseq_Merged/Pathways.slim_PhyloseqObj.RData")
-load("files/Phyloseq_Merged/Enzymes_PhyloseqObj.RData")
-load("files/Phyloseq_Merged/Enzymes.slim_PhyloseqObj.RData")
-load("files/Phyloseq_Merged/KOs_PhyloseqObj.RData")
-load("files/Phyloseq_Merged/KOs.slim_PhyloseqObj.RData")
-
-### Create list for objects
-Phylo_Objects <- vector(mode="list", length=13)
-names(Phylo_Objects) <- c("Species", "Genus", "Family", "Order", "Class", "Phylum", "Kingdom",
-                          "Pathways", "Pathways.slim",
-                          "Enzymes", "Enzymes.slim",
-                          "KOs", "KOs.slim")
-
-Phylo_Objects$Species <- dat.species; Phylo_Objects$Genus <- dat.genus;
-Phylo_Objects$Family <- dat.family; Phylo_Objects$Order <- dat.order; Phylo_Objects$Class <- dat.class;
-Phylo_Objects$Phylum <- print(dat.phylum); Phylo_Objects$Kingdom <- dat.kingdom;
-Phylo_Objects$Pathways <- dat.path; Phylo_Objects$Pathways.slim <- dat.path.slim;
-Phylo_Objects$Enzymes <- dat.ec; Phylo_Objects$Enzymes.slim <- dat.ec.slim;
-Phylo_Objects$KOs <- dat.KOs; Phylo_Objects$KOs.slim <- dat.KOs.slim
-save(Phylo_Objects, file = "EDA_App/PhyloseqObj.RData")
-#-------------------------------------------------------------------------------------------
-

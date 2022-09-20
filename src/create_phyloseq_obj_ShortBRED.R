@@ -39,7 +39,7 @@ for (i in l[2:length(l)]) {
 
 shortbreddata.untrimmed <- dfseed
 shortbreddata <- shortbreddata.untrimmed[which(rowSums(shortbreddata.untrimmed[-1]) > 0 ), ]
-save(shortbreddata, file = "files/shortbred.RData")
+save(shortbreddata, file = "files/PhyloseqObjects/shortbred.RData")
 
 #-------------------------------------------------------------------------
 # Create Phlyoseq Obj for VF data
@@ -89,7 +89,7 @@ dat.VFs <- phyloseq(my_VFDB.ab_table, my_sample_data)
 print(dat.VFs)
 cat(" \n\nTrimming all VF's not detected \n")
 dat.VFs <- core(dat.VFs, detection = 0, prevalence = 1/118)
-save(dat.VFs, file = "files/VFs_PhyloseqObj.RData")
+save(dat.VFs, file = "files/PhyloseqObjects/VFs_PhyloseqObj.RData")
 
 
 
