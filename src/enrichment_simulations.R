@@ -15,10 +15,10 @@ for (total_lib in total_lib_fake) {
   for (total_sig_lib in total_sig_lib_fake) {
     for (path_lib in path_lib_fake) {
       for (path_sig_lib in path_sig_lib_fake) {
-        if(total_lib > total_sig_lib & 
-           total_lib > path_lib &
-           path_lib > path_sig_lib & 
-           total_lib_fake > path_lib_fake){
+        if (total_lib > total_sig_lib &
+          total_lib > path_lib &
+          path_lib > path_sig_lib &
+          total_lib_fake > path_lib_fake) {
           stats <-
             enrichment_formula(
               N = total_lib,
@@ -47,29 +47,29 @@ cat(
   "\n"
 )
 
-simulated_data <- 
-  simulation_df %>% 
+simulated_data <-
+  simulation_df %>%
   filter(m < n)
 
-simulated_data_plot <- 
-  simulated_data %>% 
+simulated_data_plot <-
+  simulated_data %>%
   ggpairs()
 
 # ggsave(simulated_data_plot, filename = "figures/correlations/enrichment_simulations.png",
 #        width = 12, height = 12)
 
-simulated_data %>% 
-  ggplot(aes(x=k/m, y = enrichment)) +
+simulated_data %>%
+  ggplot(aes(x = k / m, y = enrichment)) +
   geom_density2d_filled() +
   my_clean_theme()
 
-simulated_data %>% 
-  ggplot(aes(x=N/n, y = k)) +
+simulated_data %>%
+  ggplot(aes(x = N / n, y = k)) +
   geom_density2d_filled() +
   my_clean_theme()
 
-simulated_data %>% 
-  ggplot(aes(x=N/n, y = -log10(enrichment + 1))) +
+simulated_data %>%
+  ggplot(aes(x = N / n, y = -log10(enrichment + 1))) +
   geom_density2d_filled() +
   my_clean_theme()
 

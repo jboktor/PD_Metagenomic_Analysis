@@ -9,7 +9,7 @@ BiocManager::install(c(
   "Maaslin2",
   "DirichletMultinomial",
   "MMUPHin"
-  ))
+))
 
 #### Install CRAN Packages
 install.packages(
@@ -38,7 +38,7 @@ install.packages(
     "VennDiagram",
     "viridis",
     "foreach",
-    "doParallel" ,
+    "doParallel",
     "ggbeeswarm",
     "FSA",
     "ggpubr",
@@ -93,7 +93,3 @@ remotes::install_github("schuyler-smith/phyloschuyler")
 BiocManager::install(version = "devel")
 BiocManager::install("curatedMetagenomicData")
 BiocManager::valid()
-
-
-
-

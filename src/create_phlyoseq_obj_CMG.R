@@ -8,22 +8,24 @@ source("src/miscellaneous_funcs.R")
 source("src/Community_Composition_Funcs.R")
 
 
-reads <- load_reads() %>% 
+reads <- load_reads() %>%
   dplyr::rename(number_reads = clean_total_reads)
-metadata <- read.csv('files/metadata_phyloseq_CMG.csv', header= TRUE) %>% 
+metadata <- read.csv("files/metadata_phyloseq_CMG.csv", header = TRUE) %>%
   as.data.frame()
 metadata <- left_join(metadata, reads, by = "id")
 rownames(metadata) <- metadata$donor_id
 metadata[is.na(metadata)] <- "not provided"
 
 # Prep Abundance
-abd <- read.csv(file = "files/metaphlan2_taxonomic_profiles.csv", 
-                row.names = 1,  header= TRUE)
+abd <- read.csv(
+  file = "files/metaphlan2_taxonomic_profiles.csv",
+  row.names = 1, header = TRUE
+)
 # Filter Species
-abd <- abd %>% 
-  tibble::rownames_to_column() %>% 
-  filter(grepl("s__", rowname)) %>% 
-  filter(!grepl("t__", rowname)) %>% 
+abd <- abd %>%
+  tibble::rownames_to_column() %>%
+  filter(grepl("s__", rowname)) %>%
+  filter(!grepl("t__", rowname)) %>%
   tibble::column_to_rownames()
 
 # source("https://raw.githubusercontent.com/waldronlab/presentations/master/Waldron_2016-06-07_EPIC/metaphlanToPhyloseq.R")
@@ -35,7 +37,8 @@ dat.CMG <- metaphlanToPhyloseq_Waldron(tax = abd, metadat = metadata)
 #----------------------------------------------------------
 
 datasets <- curatedMetagenomicData(
-  c("YeZ_2018.metaphlan_bugs_list.stool",
+  c(
+    "YeZ_2018.metaphlan_bugs_list.stool",
     "ChengpingW_2017.metaphlan_bugs_list.stool",
     "VincentC_2016.metaphlan_bugs_list.stool",
     "JieZ_2017.metaphlan_bugs_list.stool",
@@ -44,8 +47,10 @@ datasets <- curatedMetagenomicData(
     "QinN_2014.metaphlan_bugs_list.stool",
     "NielsenHB_2014.metaphlan_bugs_list.stool",
     "LiJ_2017.metaphlan_bugs_list.stool",
-    "LiSS_2016.metaphlan_bugs_list.stool"),
-  dryrun = FALSE)
+    "LiSS_2016.metaphlan_bugs_list.stool"
+  ),
+  dryrun = FALSE
+)
 
 # Construct phyloseq object from the five datasets
 physeq <-
@@ -55,21 +60,23 @@ physeq <-
   ExpressionSet2phyloseq()
 
 # Select only disease and control
-physeq %>% 
-  meta() %>% 
-  select(study_condition) %>% 
+physeq %>%
+  meta() %>%
+  select(study_condition) %>%
   unique()
-study_groups <- c("control", "ACVD", "BD", "AS", "CDI", "T1D", "hypertension", "metabolic_syndrome", 
-                  "IBD", "T2D", "cirrhosis")
+study_groups <- c(
+  "control", "ACVD", "BD", "AS", "CDI", "T1D", "hypertension", "metabolic_syndrome",
+  "IBD", "T2D", "cirrhosis"
+)
 
-physeq <- 
+physeq <-
   physeq %>%
   # Subset samples to only CRC and controls
-  subset_samples(study_condition %in% study_groups) %>% 
+  subset_samples(study_condition %in% study_groups) %>%
   # Subset features to species
   subset_taxa(!is.na(Species) & is.na(Strain)) %>%
   # Normalize abundances to relative abundance scale
-  microbiome::transform("compositional") 
+  microbiome::transform("compositional")
 # Filter features to be of at least 1e-5 relative abundance in five samples
 # filter_taxa(kOverA(5, 1e-5), prune = TRUE)
 
@@ -82,11 +89,13 @@ disease_meta <- microbiome::meta(physeq)
 disease_meta$studyID <- factor(disease_meta$studyID)
 
 disease_meta$dataset_name <- sub(".metaphlan_bugs_list.stool", "", disease_meta$studyID)
-disease_meta$study_condition <- factor(disease_meta$study_condition, 
-                                       levels = c("control", "parkinsons", "ACVD", "BD", "AS", "CDI", "T1D", "hypertension", 
-                                                  "metabolic_syndrome","IBD", "T2D", "cirrhosis"))
+disease_meta$study_condition <- factor(disease_meta$study_condition,
+  levels = c(
+    "control", "parkinsons", "ACVD", "BD", "AS", "CDI", "T1D", "hypertension",
+    "metabolic_syndrome", "IBD", "T2D", "cirrhosis"
+  )
+)
 
 
 # Clear workspace
 # rm(abd, metadata)
-

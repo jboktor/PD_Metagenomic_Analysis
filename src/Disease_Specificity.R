@@ -1,4 +1,4 @@
-##  Disease Specificity 
+##  Disease Specificity
 
 source("src/load_packages.R")
 source("src/load_phyloseq_obj.R")
@@ -25,7 +25,7 @@ testg$dataset_name
 #                        Explore Dataset Features
 #-------------------------------------------------------------------------------------
 
-# Bechet's Disease - multisystemic inflammatory disease 
+# Bechet's Disease - multisystemic inflammatory disease
 YeZ_2018.metaphlan_bugs_list.stool() %>%
   experimentData()
 # Examine sample conditions
@@ -56,145 +56,167 @@ unique(study_vars$study_condition)
 CDI <- subset_samples(physeq_adj, studyID == "VincentC_2016.metaphlan_bugs_list.stool")
 VincentC_2016.model.input <- prep.CMD.Species.ML(study = CDI)
 VincentC_2016.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = VincentC_2016.model.input, model.type = "enet")
+  model.input = VincentC_2016.model.input, model.type = "enet"
+)
 VincentC_2016.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = VincentC_2016.model.input, obj = dat, model.type = "enet")
+  disease.model.input = VincentC_2016.model.input, obj = dat, model.type = "enet"
+)
 
 
 
 # ACVD
 # JieZ_2017.metaphlan_bugs_list.stool() %>%
 #   experimentData()
-# study_vars <- stool_samples %>% 
-#   filter(dataset_name == "JieZ_2017") %>% 
+# study_vars <- stool_samples %>%
+#   filter(dataset_name == "JieZ_2017") %>%
 #   select(study_condition)
 # unique(study_vars$study_condition)
 ACVD <- subset_samples(physeq_adj, studyID == "JieZ_2017.metaphlan_bugs_list.stool")
 JieZ_2017.model.input <- prep.CMD.Species.ML(study = ACVD)
 JieZ_2017.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = JieZ_2017.model.input, model.type = "enet")
+  model.input = JieZ_2017.model.input, model.type = "enet"
+)
 JieZ_2017.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = JieZ_2017.model.input, obj = dat, model.type = "enet")
+  disease.model.input = JieZ_2017.model.input, obj = dat, model.type = "enet"
+)
 
 #  T1D
-# KosticAD_2015.metaphlan_bugs_list.stool()%>% 
+# KosticAD_2015.metaphlan_bugs_list.stool()%>%
 #   experimentData()
-# study_vars <- stool_samples %>% 
-#   filter(dataset_name == "KosticAD_2015") %>% 
+# study_vars <- stool_samples %>%
+#   filter(dataset_name == "KosticAD_2015") %>%
 #   select(study_condition)
 # unique(study_vars$study_condition) # Trim NAs
 T1D <- subset_samples(physeq_adj, studyID == "KosticAD_2015.metaphlan_bugs_list.stool")
 KosticAD.model.input <- prep.CMD.Species.ML(study = T1D, metafilter = "NA")
 KosticAD.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = KosticAD.model.input, model.type = "enet")
+  model.input = KosticAD.model.input, model.type = "enet"
+)
 KosticAD.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = KosticAD.model.input, obj = dat, model.type = "enet")
+  disease.model.input = KosticAD.model.input, obj = dat, model.type = "enet"
+)
 
 # T2D
 # QinJ_2012.metaphlan_bugs_list.stool() %>%
 #   experimentData()
-# study_vars <- stool_samples %>% 
-#   filter(dataset_name == "QinJ_2012") %>% 
+# study_vars <- stool_samples %>%
+#   filter(dataset_name == "QinJ_2012") %>%
 #   select(study_condition)
 # unique(study_vars$study_condition) # Trim NAs
 T2D <- subset_samples(physeq_adj, studyID == "QinJ_2012.metaphlan_bugs_list.stool")
 QinJ_2012.model.input <- prep.CMD.Species.ML(study = T2D, metafilter = "NA")
 QinJ_2012.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = QinJ_2012.model.input, model.type = "enet")
+  model.input = QinJ_2012.model.input, model.type = "enet"
+)
 QinJ_2012.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = QinJ_2012.model.input, obj = dat, model.type = "enet")
+  disease.model.input = QinJ_2012.model.input, obj = dat, model.type = "enet"
+)
 
 # cirrhosis
-# QinN_2014.metaphlan_bugs_list.stool() %>% 
+# QinN_2014.metaphlan_bugs_list.stool() %>%
 #   experimentData()
-# study_vars <- stool_samples %>% 
-#   filter(dataset_name == "QinN_2014") %>% 
+# study_vars <- stool_samples %>%
+#   filter(dataset_name == "QinN_2014") %>%
 #   select(study_condition)
 # unique(study_vars$study_condition)
 cirrhosis <- subset_samples(physeq_adj, studyID == "QinN_2014.metaphlan_bugs_list.stool")
 QinN_2014.model.input <- prep.CMD.Species.ML(study = cirrhosis)
 QinN_2014.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = QinN_2014.model.input, model.type = "enet")
+  model.input = QinN_2014.model.input, model.type = "enet"
+)
 QinN_2014.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = QinN_2014.model.input, obj = dat, model.type = "enet")
+  disease.model.input = QinN_2014.model.input, obj = dat, model.type = "enet"
+)
 
 # IBD
-# NielsenHB_2014.metaphlan_bugs_list.stool() %>% 
+# NielsenHB_2014.metaphlan_bugs_list.stool() %>%
 #   experimentData()
-# study_vars <- stool_samples %>% 
-#   filter(dataset_name == "NielsenHB_2014") %>% 
+# study_vars <- stool_samples %>%
+#   filter(dataset_name == "NielsenHB_2014") %>%
 #   select(study_condition)
 # unique(study_vars$study_condition)
 IBD <- subset_samples(physeq_adj, studyID == "NielsenHB_2014.metaphlan_bugs_list.stool")
 NielsenHB_2014.model.input <- prep.CMD.Species.ML(study = IBD)
 NielsenHB_2014.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = NielsenHB_2014.model.input, model.type = "enet")
+  model.input = NielsenHB_2014.model.input, model.type = "enet"
+)
 NielsenHB_2014.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = NielsenHB_2014.model.input, obj = dat, model.type = "enet")
+  disease.model.input = NielsenHB_2014.model.input, obj = dat, model.type = "enet"
+)
 
 # Hypertension
-# LiJ_2017.metaphlan_bugs_list.stool() %>% 
+# LiJ_2017.metaphlan_bugs_list.stool() %>%
 #   experimentData()
-# study_vars <- stool_samples %>% 
-#   filter(dataset_name == "LiJ_2017") %>% 
+# study_vars <- stool_samples %>%
+#   filter(dataset_name == "LiJ_2017") %>%
 #   select(study_condition)
 # unique(study_vars$study_condition) # Trim pre-hypertension vars
 Hypertension <- subset_samples(physeq_adj, studyID == "LiJ_2017.metaphlan_bugs_list.stool")
 LiJ_2017.model.input <- prep.CMD.Species.ML(study = Hypertension, metafilter = "pre-hypertension")
 LiJ_2017.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = LiJ_2017.model.input, model.type = "enet")
+  model.input = LiJ_2017.model.input, model.type = "enet"
+)
 LiJ_2017.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = LiJ_2017.model.input, obj = dat, model.type = "enet")
+  disease.model.input = LiJ_2017.model.input, obj = dat, model.type = "enet"
+)
 
 # metabolic_syndrome
-# LiSS_2016.metaphlan_bugs_list.stool() %>% 
+# LiSS_2016.metaphlan_bugs_list.stool() %>%
 #   experimentData()
-# study_vars <- stool_samples %>% 
-#   filter(dataset_name == "LiSS_2016") %>% 
+# study_vars <- stool_samples %>%
+#   filter(dataset_name == "LiSS_2016") %>%
 #   select(study_condition)
 # unique(study_vars$study_condition) # Trim FMT vars
 metabolic_syndrome <- subset_samples(physeq_adj, studyID == "LiSS_2016.metaphlan_bugs_list.stool")
 LiSS_2016.model.input <- prep.CMD.Species.ML(study = metabolic_syndrome, metafilter = "FMT")
 LiSS_2016.model <- ridge.lasso.enet.regression.model.DS(
-  model.input = LiSS_2016.model.input, model.type = "enet")
+  model.input = LiSS_2016.model.input, model.type = "enet"
+)
 LiSS_2016.model.PD <- ridge.lasso.enet.regression.model.DSxPD(
-  disease.model.input = LiSS_2016.model.input, obj = dat, model.type = "enet")
+  disease.model.input = LiSS_2016.model.input, obj = dat, model.type = "enet"
+)
 
 
 #-------------------------------------------------------------------------------------
 
 
-ml.models.0 <- list(VincentC_2016.model, JieZ_2017.model, KosticAD.model, QinJ_2012.model,
-                  QinN_2014.model, NielsenHB_2014.model, LiJ_2017.model, LiSS_2016.model)
-names(ml.models.0) <- c("CDI", "ACVD", "T1D", "T2D", 
-                      "cirrhosis", "IBD", "hypertension", "Metabolic Syndrome")
+ml.models.0 <- list(
+  VincentC_2016.model, JieZ_2017.model, KosticAD.model, QinJ_2012.model,
+  QinN_2014.model, NielsenHB_2014.model, LiJ_2017.model, LiSS_2016.model
+)
+names(ml.models.0) <- c(
+  "CDI", "ACVD", "T1D", "T2D",
+  "cirrhosis", "IBD", "hypertension", "Metabolic Syndrome"
+)
 
-ml.models.PD <- list(VincentC_2016.model.PD, JieZ_2017.model.PD, KosticAD.model.PD, QinJ_2012.model.PD,
-                  QinN_2014.model.PD, NielsenHB_2014.model.PD, LiJ_2017.model.PD, LiSS_2016.model.PD)
-names(ml.models.PD) <- c("CDI", "ACVD", "T1D", "T2D", 
-                      "cirrhosis", "IBD", "hypertension", "Metabolic Syndrome")
+ml.models.PD <- list(
+  VincentC_2016.model.PD, JieZ_2017.model.PD, KosticAD.model.PD, QinJ_2012.model.PD,
+  QinN_2014.model.PD, NielsenHB_2014.model.PD, LiJ_2017.model.PD, LiSS_2016.model.PD
+)
+names(ml.models.PD) <- c(
+  "CDI", "ACVD", "T1D", "T2D",
+  "cirrhosis", "IBD", "hypertension", "Metabolic Syndrome"
+)
 
 
 #-------------------------------------------------------------------------------------
 
 ml.models.0.df <- data.frame()
-for(i in 1:length(ml.models.0)){
-  
+for (i in 1:length(ml.models.0)) {
   model.ID <- names(ml.models.0)[i]
   AUCROC <- ml.models.0[[i]]$MLevaldata$`Group 1`["AUC-ROC", "Score"]
   AUCPR <- ml.models.0[[i]]$MLevaldata$`Group 1`["AUC-PR", "Score"]
-  
+
   temp <- cbind(model.ID, AUCROC, AUCPR)
   ml.models.0.df <- rbind(ml.models.0.df, temp)
 }
 
 ml.models.PD.df <- data.frame()
-for(i in 1:length(ml.models.PD)){
-  
+for (i in 1:length(ml.models.PD)) {
   model.ID <- names(ml.models.PD)[i]
   AUCROC <- ml.models.PD[[i]]$MLevaldata$`Group 1`["AUC-ROC", "Score"]
   AUCPR <- ml.models.PD[[i]]$MLevaldata$`Group 1`["AUC-PR", "Score"]
-  
+
   temp <- cbind(model.ID, AUCROC, AUCPR)
   ml.models.PD.df <- rbind(ml.models.PD.df, temp)
 }
@@ -213,11 +235,11 @@ library(ggdendro)
 #                              Plotting Function
 #-------------------------------------------------------------------------------------
 
-ml.heatmap <- function(ml.models.df){
-  
+ml.heatmap <- function(ml.models.df) {
+
   # Clustering
   ml.matrix <- as.matrix(ml.models.df[, -1])
-  rownames(ml.matrix) <- ml.models.df$model.ID 
+  rownames(ml.matrix) <- ml.models.df$model.ID
   ml.dendro <- as.dendrogram(hclust(d = dist(x = ml.matrix), method = "centroid"))
   # Create dendro
   dendro.plot <- ggdendrogram(data = ml.dendro, rotate = TRUE)
@@ -225,48 +247,56 @@ ml.heatmap <- function(ml.models.df){
   # Order the levels according to their position in the cluster
   ml.order <- order.dendrogram(ml.dendro)
   ml.models.df$model.ID <- factor(ml.models.df$model.ID,
-                                  levels = ml.models.df$model.ID[ml.order], 
-                                  ordered = TRUE)
+    levels = ml.models.df$model.ID[ml.order],
+    ordered = TRUE
+  )
   ml.models.df$ID <- paste0("ML", 1:nrow(ml.models.df))
-  
+
   # pivot into Long format
   ml.models.df2 <- pivot_longer(ml.models.df, cols = c(AUCROC, AUCPR), names_to = "eval_metric")
   ml.models.df2$value <- as.numeric(ml.models.df2$value)
   ml.models.df2$ID <- paste0("ML", 1:nrow(ml.models.df2))
-  
-  ## Heatmap  
-  hm.plot <- 
-    ggplot(data = ml.models.df2, aes(x = model.ID, y =  eval_metric, fill= value)) + 
+
+  ## Heatmap
+  hm.plot <-
+    ggplot(data = ml.models.df2, aes(x = model.ID, y = eval_metric, fill = value)) +
     geom_tile() +
-    scale_fill_distiller(palette = "BuPu", direction = 1,
-                         limits = c(min(0.4), max(1)),
-                         breaks = c(0.4, 0.6, 0.8, 1),
-                         guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +
+    scale_fill_distiller(
+      palette = "BuPu", direction = 1,
+      limits = c(min(0.4), max(1)),
+      breaks = c(0.4, 0.6, 0.8, 1),
+      guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+    ) +
     coord_flip() +
-    geom_text(aes(label=value), color = "white") +
-    theme(axis.title.x = element_blank(),
-          axis.title.y = element_blank(),
-          legend.position = "top",
-          legend.title = element_blank(),
-          axis.text.x = element_text(angle = 45, hjust = 1))
+    geom_text(aes(label = value), color = "white") +
+    theme(
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank(),
+      legend.position = "top",
+      legend.title = element_blank(),
+      axis.text.x = element_text(angle = 45, hjust = 1)
+    )
   print(hm.plot)
-  
-  dendro.plot.merge <- dendro.plot + 
-    theme(axis.text.x = element_blank(),
-          axis.text.y = element_blank())
-  final.plot <- cowplot::plot_grid(hm.plot, dendro.plot.merge, align = "h", axis="lrtb", rel_widths = c(3,1))
-  
+
+  dendro.plot.merge <- dendro.plot +
+    theme(
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank()
+    )
+  final.plot <- cowplot::plot_grid(hm.plot, dendro.plot.merge, align = "h", axis = "lrtb", rel_widths = c(3, 1))
+
   return(final.plot)
-  
 }
 
 HM1 <- ml.heatmap(ml.models.0.df)
 HM2 <- ml.heatmap(ml.models.PD.df)
 
 
-feature.specificity <- 
-  cowplot::plot_grid(HM1, NULL, HM2, NULL, ncol = 4, align = "hv", 
-                     rel_widths = c(5, 0.5, 5, 0.5), labels = "AUTO")
+feature.specificity <-
+  cowplot::plot_grid(HM1, NULL, HM2, NULL,
+    ncol = 4, align = "hv",
+    rel_widths = c(5, 0.5, 5, 0.5), labels = "AUTO"
+  )
 feature.specificity
 
 # ggsave(feature.specificity,
@@ -286,10 +316,4 @@ feature.specificity
 
 # Infectious Disease / Pathogenic Agents
 
-# Otherwise non-related 
-
-
-
-
-
-
+# Otherwise non-related

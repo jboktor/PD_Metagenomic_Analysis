@@ -1,4 +1,4 @@
-# Meta-Analysis  
+# Meta-Analysis
 
 ######## Load Data & functions
 source("src/load_packages.R")
@@ -11,26 +11,28 @@ source("src/create_phlyoseq_obj_CMG.R")
 
 library(MMUPHin)
 
-abd <- physeq %>% 
-  microbiome::abundances() %>% 
+abd <- physeq %>%
+  microbiome::abundances() %>%
   microbiome::transform("compositional")
 meta_metadat <- microbiome::meta(physeq)
 meta_metadat$studyID <- factor(meta_metadat$studyID)
 
 # help(adjust_batch)
 # The function call indicates for adjust_batch to correct for the effect
-# of the batch variable, studyID, while controlling for the effect of the 
-# disease variable, study_condition. Many additional options are available 
-# through the control parameter, here we specify verbose=FALSE to avoid 
+# of the batch variable, studyID, while controlling for the effect of the
+# disease variable, study_condition. Many additional options are available
+# through the control parameter, here we specify verbose=FALSE to avoid
 # excessive messages, although they can often be helpful in practice!
-fit_adjust_batch <- adjust_batch(feature_abd = abd,
-                                 batch = "studyID",
-                                 # covariates = "study_condition",
-                                 data = meta_metadat,
-                                 control = list(verbose = T))
+fit_adjust_batch <- adjust_batch(
+  feature_abd = abd,
+  batch = "studyID",
+  # covariates = "study_condition",
+  data = meta_metadat,
+  control = list(verbose = T)
+)
 
-# Note that adjust_batch returns a list of more than one components, and 
-# feature_abd_adj is the corrected feature abundance matrix. See 
+# Note that adjust_batch returns a list of more than one components, and
+# feature_abd_adj is the corrected feature abundance matrix. See
 # help(adjust_batch) for the meaning of other components.
 abd_adj <- fit_adjust_batch$feature_abd_adj
 
@@ -38,7 +40,7 @@ abd_adj <- fit_adjust_batch$feature_abd_adj
 # Replace abundance table with batch corrected abundance
 #-----------------------------------------------------------------
 
-abd_adj_input <- otu_table(as.data.frame(abd_adj), taxa_are_rows=T)
+abd_adj_input <- otu_table(as.data.frame(abd_adj), taxa_are_rows = T)
 my_sample_data <- meta(physeq) %>% sample_data()
 physeq_adj <- phyloseq(abd_adj_input, my_sample_data)
 
@@ -59,26 +61,30 @@ print(fit_adonis_after)
 
 
 #--------------------------------------------
-# Continuous 
+# Continuous
 #--------------------------------------------
 
 # Much like adjust_batch and lm_meta, continuous_discover also takes
 # as input feature-by-sample abundances. control offers many tuning parameters
 # and here we set one of them, var_perc_cutoff, to 0.5, which asks the method
 # to include top principal components within each batch that in total explain
-# at least 50% of the total variability in the batch. See 
-# help(continuosu_discover) for more details on the tuning parameters and 
+# at least 50% of the total variability in the batch. See
+# help(continuosu_discover) for more details on the tuning parameters and
 # their interpretations.
 
 # devtools::install_github("gaborcsardi/pkgconfig")
 # devtools::install_github("igraph/rigraph")
 # install.packages("igraph")
 
-fit_continuous <- continuous_discover(feature_abd = abd,
-                                      batch = "studyID",
-                                      data = meta_metadat,
-                                      control = list(var_perc_cutoff = 0.5,
-                                                     verbose = TRUE))
+fit_continuous <- continuous_discover(
+  feature_abd = abd,
+  batch = "studyID",
+  data = meta_metadat,
+  control = list(
+    var_perc_cutoff = 0.5,
+    verbose = TRUE
+  )
+)
 
 install.packages("igraph")
 
@@ -86,21 +92,21 @@ install.packages("igraph")
 ## Zachary's karate club
 g <- make_graph("Zachary")
 
-## We put everything into a big 'try' block, in case 
+## We put everything into a big 'try' block, in case
 ## igraph was compiled without GLPK support
 
 try(
   ## The calculation only takes a couple of seconds
   oc <- cluster_optimal(g),
-  
+
   ## Double check the result
   print(modularity(oc)),
   print(modularity(g, membership(oc))),
-  
+
   ## Compare to the greedy optimizer
   fc <- cluster_fast_greedy(g),
-  print(modularity(fc),
-  ))
+  print(modularity(fc), )
+)
 
 
 #----------------------------------------------------------------------------------------------
@@ -116,11 +122,11 @@ try(
 # #--------------------------------------------
 # # MaAsLin2 with Batch consideration
 # #--------------------------------------------
-# # lm_meta runs regression and meta-analysis models to identify consistent 
+# # lm_meta runs regression and meta-analysis models to identify consistent
 # # effects of the exposure (study_condition, i.e., disease) on feature_abd
-# # (microbial feature abundances). Batch variable (studyID) needs to be 
-# # specified to identify different studies. Additional covariates to include in 
-# # the regression model can be specified via covariates (here set to gender, 
+# # (microbial feature abundances). Batch variable (studyID) needs to be
+# # specified to identify different studies. Additional covariates to include in
+# # the regression model can be specified via covariates (here set to gender,
 # # age, BMI). Check help(lm_meta) for additional parameter options.
 # # Note the warnings: lm_meta can tell if a covariate cannot be meaningfully fit
 # # within a batch and will inform the user of such cases through warnings.
@@ -130,31 +136,31 @@ try(
 #                        covariates = c("gender", "age", "BMI"),
 #                        data = meta_metadat,
 #                        control = list(verbose = T))
-# 
-# # Again, lm_meta returns a list of more than one components. 
-# # meta_fits provides the final meta-analytical testing results. See 
+#
+# # Again, lm_meta returns a list of more than one components.
+# # meta_fits provides the final meta-analytical testing results. See
 # # help(lm_meta) for the meaning of other components.
-# 
+#
 # meta_fits <- fit_lm_meta$meta_fits
-# 
-# meta_fits %>% 
-#   filter(qval.fdr < 0.05) %>% 
-#   arrange(coef) %>% 
-#   mutate(feature = factor(feature, levels = feature)) %>% 
+#
+# meta_fits %>%
+#   filter(qval.fdr < 0.05) %>%
+#   arrange(coef) %>%
+#   mutate(feature = factor(feature, levels = feature)) %>%
 #   ggplot(aes(y = coef, x = feature)) +
 #   geom_bar(stat = "identity") +
 #   coord_flip()
-# 
+#
 # #--------------------------------------------------------------
-# # Identifying discrete population structures 
+# # Identifying discrete population structures
 # #--------------------------------------------------------------
-# 
+#
 # # First subset both feature abundance table and metadata to only control samples
 # control_meta <- subset(meta_metadat, study_condition == "control")
 # control_abd_adj <- abd_adj[, rownames(control_meta)]
-# 
-# # discrete_discover takes as input sample-by-sample dissimilarity measurements 
-# # rather than abundance table. The former can be easily computed from the 
+#
+# # discrete_discover takes as input sample-by-sample dissimilarity measurements
+# # rather than abundance table. The former can be easily computed from the
 # # latter with existing R packages.
 # D_control <- vegdist(t(control_abd_adj))
 # fit_discrete <- discrete_discover(D = D_control,
@@ -165,8 +171,8 @@ try(
 # # First subset both feature abundance table and metadata to only control samples
 # control_meta <- subset(meta_metadat, study_condition == "control")
 # control_abd_adj <- abd_adj[, rownames(control_meta)]
-# # discrete_discover takes as input sample-by-sample dissimilarity measurements 
-# # rather than abundance table. The former can be easily computed from the 
+# # discrete_discover takes as input sample-by-sample dissimilarity measurements
+# # rather than abundance table. The former can be easily computed from the
 # # latter with existing R packages.
 # D_control <- vegdist(t(control_abd_adj))
 # fit_discrete <- discrete_discover(D = D_control,
@@ -174,31 +180,30 @@ try(
 #                                   data = control_meta,
 #                                   control = list(k_max = 8,
 #                                                  verbose = FALSE))
-# 
+#
 # internal <- data.frame(
 #   # By default, fit_discrete evaluates cluster numbers 2-10
 #   K = 2:8,
-#   statistic = 
+#   statistic =
 #     fit_discrete$internal_mean[, "ZellerG_2014.metaphlan_bugs_list.stool"],
-#   se = 
+#   se =
 #     fit_discrete$internal_se[, "ZellerG_2014.metaphlan_bugs_list.stool"],
 #   type = "internal")
-# 
+#
 # external <- data.frame(
 #   # By default, fit_discrete evaluates cluster numbers 2-10
 #   K = 2:8,
-#   statistic = 
+#   statistic =
 #     fit_discrete$external_mean[, "ZellerG_2014.metaphlan_bugs_list.stool"],
-#   se = 
+#   se =
 #     fit_discrete$external_se[, "ZellerG_2014.metaphlan_bugs_list.stool"],
 #   type = "external")
-# 
-# rbind(internal, external) %>% 
+#
+# rbind(internal, external) %>%
 #   ggplot(aes(x = K, y = statistic, color = type)) +
-#   geom_point(position = position_dodge(width = 0.5)) + 
+#   geom_point(position = position_dodge(width = 0.5)) +
 #   geom_line(position = position_dodge(width = 0.5)) +
 #   geom_errorbar(aes(ymin = statistic - se, ymax = statistic + se),
 #                 position = position_dodge(width = 0.5), width = 0.5) +
 #   ggtitle("Evaluation of discrete structure in control stool microbiome (ZellerG_2014)")
-# 
-
+#

@@ -17,30 +17,31 @@ ps$Species %>%
   # subset_samples(cohort == "TBC") %>%
   meta() %>%
   as.data.frame() %>%
-  filter(donor_group == "PC") %>% 
-  # filter(paired != "No") %>% 
+  filter(donor_group == "PC") %>%
+  # filter(paired != "No") %>%
   count()
-  count(n)
-  
+count(n)
 
-  count(donor_group)
-  colnames()
-#   select(host_subject_id, tube_id, collection_timestamp) %>% 
+
+count(donor_group)
+colnames()
+#   select(host_subject_id, tube_id, collection_timestamp) %>%
 #   write.csv(file = "files/TBC-PD-Sample-IDs.csv")
 
 
 # load("files/low_quality_samples.RData")
 # load("files/Phyloseq_Merged_ML_Rarefied.RData") #phyloseq_objs_rare
-# phyloseq_objs_rare %<>% 
-#   purrr::map(~.x %>% subset_samples(cohort %in%  c("TBC", "Rush")) %>% 
+# phyloseq_objs_rare %<>%
+#   purrr::map(~.x %>% subset_samples(cohort %in%  c("TBC", "Rush")) %>%
 #                subset_samples(donor_id %ni% low_qc[[1]]))
 phyloseq_objs_rare <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean_rarefied.rds")
-phyloseq_objs_rare_TBC <- phyloseq_objs_rare %>% 
-  purrr::map(~.x %>% subset_samples(cohort == "TBC" ))
-phyloseq_objs_rare_Rush <- phyloseq_objs_rare %>% 
-  purrr::map(~.x %>% subset_samples(cohort == "Rush" ))
+phyloseq_objs_rare_TBC <- phyloseq_objs_rare %>%
+  purrr::map(~ .x %>% subset_samples(cohort == "TBC"))
+phyloseq_objs_rare_Rush <- phyloseq_objs_rare %>%
+  purrr::map(~ .x %>% subset_samples(cohort == "Rush"))
 
-phyloseq_objs_rare$Species %>% process_meta(cohort = 'Merged') %>% 
+phyloseq_objs_rare$Species %>%
+  process_meta(cohort = "Merged") %>%
   dplyr::summarise(hy_stage_iqr = mad(hy_stage, na.rm = T))
 
 #------------------------------------------
@@ -48,19 +49,37 @@ phyloseq_objs_rare$Species %>% process_meta(cohort = 'Merged') %>%
 #------------------------------------------
 
 alpha_diversity_summary("TBC")
-withCallingHandlers(beta_diversity_summary("TBC"), warning=function(w){invokeRestart("muffleWarning")})
-withCallingHandlers(beta_diversity_summary("TBC", dist = "bray"), warning=function(w){invokeRestart("muffleWarning")})
-withCallingHandlers(beta_diversity_summary("TBC", dist = "jaccard"), warning=function(w){invokeRestart("muffleWarning")})
+withCallingHandlers(beta_diversity_summary("TBC"), warning = function(w) {
+  invokeRestart("muffleWarning")
+})
+withCallingHandlers(beta_diversity_summary("TBC", dist = "bray"), warning = function(w) {
+  invokeRestart("muffleWarning")
+})
+withCallingHandlers(beta_diversity_summary("TBC", dist = "jaccard"), warning = function(w) {
+  invokeRestart("muffleWarning")
+})
 
 alpha_diversity_summary("Rush")
-withCallingHandlers(beta_diversity_summary("Rush"), warning=function(w){invokeRestart("muffleWarning")})
-withCallingHandlers(beta_diversity_summary("Rush", dist = "bray"), warning=function(w){invokeRestart("muffleWarning")})
-withCallingHandlers(beta_diversity_summary("Rush", dist = "jaccard"), warning=function(w){invokeRestart("muffleWarning")})
+withCallingHandlers(beta_diversity_summary("Rush"), warning = function(w) {
+  invokeRestart("muffleWarning")
+})
+withCallingHandlers(beta_diversity_summary("Rush", dist = "bray"), warning = function(w) {
+  invokeRestart("muffleWarning")
+})
+withCallingHandlers(beta_diversity_summary("Rush", dist = "jaccard"), warning = function(w) {
+  invokeRestart("muffleWarning")
+})
 
 alpha_diversity_summary("Merged")
-withCallingHandlers(beta_diversity_summary("Merged"), warning=function(w){invokeRestart("muffleWarning")})
-withCallingHandlers(beta_diversity_summary("Merged", dist = "bray"), warning=function(w){invokeRestart("muffleWarning")})
-withCallingHandlers(beta_diversity_summary("Merged", dist = "jaccard"), warning=function(w){invokeRestart("muffleWarning")})
+withCallingHandlers(beta_diversity_summary("Merged"), warning = function(w) {
+  invokeRestart("muffleWarning")
+})
+withCallingHandlers(beta_diversity_summary("Merged", dist = "bray"), warning = function(w) {
+  invokeRestart("muffleWarning")
+})
+withCallingHandlers(beta_diversity_summary("Merged", dist = "jaccard"), warning = function(w) {
+  invokeRestart("muffleWarning")
+})
 
 
 #----------------------------------------------
@@ -75,7 +94,7 @@ withCallingHandlers(beta_diversity_summary("Merged", dist = "jaccard"), warning=
 remove_dats()
 load_tbc()
 reads <- load_reads("TBC")
-load("files/Phyloseq_Merged_ML_Rarefied.RData") #phyloseq_objs_rare
+load("files/Phyloseq_Merged_ML_Rarefied.RData") # phyloseq_objs_rare
 acc.1.TBC <- feature_accumulation_plot(dat.species, featuretype = "Species", reads, cohort = "TBC")
 acc.2.TBC <- feature_accumulation_plot(dat.genus, featuretype = "Genera", reads, cohort = "TBC")
 acc.3.TBC <- feature_accumulation_plot(dat.path.slim, featuretype = "Pathways", reads, cohort = "TBC")
@@ -106,24 +125,24 @@ acc.6.Merged <- feature_accumulation_plot(dat.EGGNOGs.slim, featuretype = "Eggno
 
 
 ################################################################################################
-#################################  Plot Abundance Bars by group #################################  
+#################################  Plot Abundance Bars by group #################################
 
 phyloseq_objs <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean.rds")
 
-dat.obj <- 
-  phyloseq_objs[["Genus"]] %>% 
+dat.obj <-
+  phyloseq_objs[["Genus"]] %>%
   core(detection = 0, prevalence = 0.1)
 
 # Create Metadata Column for Cohort x Donor Group
-sample_data(dat.obj)$cohort_donor_group <- 
+sample_data(dat.obj)$cohort_donor_group <-
   paste(sample_data(dat.obj)$cohort, sample_data(dat.obj)$donor_group)
 # Abundance filter for top 30 Genera
-dat.top.30 <- dat.obj %>% 
-  get_top_taxa(n=30, relative = TRUE, discard_other = F, other_label = "Other")
-dat.top.20 <- dat.obj %>% 
-  get_top_taxa(n=20, relative = TRUE, discard_other = F, other_label = "Other")
-dat.top.15 <- dat.obj %>% 
-  get_top_taxa(n=15, relative = TRUE, discard_other = F, other_label = "Other")
+dat.top.30 <- dat.obj %>%
+  get_top_taxa(n = 30, relative = TRUE, discard_other = F, other_label = "Other")
+dat.top.20 <- dat.obj %>%
+  get_top_taxa(n = 20, relative = TRUE, discard_other = F, other_label = "Other")
+dat.top.15 <- dat.obj %>%
+  get_top_taxa(n = 15, relative = TRUE, discard_other = F, other_label = "Other")
 
 barcols <- c(
   "#386cb0",
@@ -139,7 +158,7 @@ barcols <- c(
 )
 
 # Plot all Samples
-barplt1 <- 
+barplt1 <-
   fantaxtic_bar(
     dat.top.30,
     color_by = "Order",
@@ -149,21 +168,23 @@ barplt1 <-
     grid_by = "cohort",
     facet_cols = 3,
     order_alg = "hclust",
-    # base_color = "#5b9bd5", 
+    # base_color = "#5b9bd5",
     palette = barcols
     # color_levels = barcol_ID
-    ) +
+  ) +
   labs(y = "Relative Abundance") +
   theme(axis.text.x = element_blank())
 
-ggsave(barplt1, filename = "data/Community_Composition/Stacked_Barplots/Top30_Genera_Cohort_Facet.png",
-       width = 12, height = 6)
+ggsave(barplt1,
+  filename = "data/Community_Composition/Stacked_Barplots/Top30_Genera_Cohort_Facet.png",
+  width = 12, height = 6
+)
 
 # Merge cohort specific donor groups
 dat.top2 <- merge_samples(dat.top.30, "cohort_donor_group")
 
 # Summary Barplot
-barplt2 <- 
+barplt2 <-
   fantaxtic_bar(
     dat.top2,
     color_by = "Order",
@@ -175,25 +196,29 @@ barplt2 <-
     # base_color = "#5b9bd5"
     palette = barcols
   ) +
-  labs(y = "Relative Abundance", x = NULL)+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        strip.text = element_blank())
+  labs(y = "Relative Abundance", x = NULL) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_blank()
+  )
 
 
-ggsave(barplt2, filename = "data/Community_Composition/Stacked_Barplots/Top30_Genera_Cohort_Facet_Summary.png",
-       width = 4.5, height = 6)
-  
+ggsave(barplt2,
+  filename = "data/Community_Composition/Stacked_Barplots/Top30_Genera_Cohort_Facet_Summary.png",
+  width = 4.5, height = 6
+)
+
 
 
 # Abundance filter for top 15 Genera
-dat.top3 <- dat.obj %>% 
-  get_top_taxa(n=15, relative = TRUE, discard_other = F, other_label = "Other")
+dat.top3 <- dat.obj %>%
+  get_top_taxa(n = 15, relative = TRUE, discard_other = F, other_label = "Other")
 
 # Merge cohort specific donor groups
 dat.top3 <- merge_samples(dat.top3, "cohort_donor_group")
 
 # Summary Barplot
-barplt2 <- 
+barplt2 <-
   fantaxtic_bar(
     dat.top2,
     color_by = "Order",
@@ -205,10 +230,7 @@ barplt2 <-
     base_color = "#5b9bd5"
   ) +
   labs(y = "Relative Abundance")
-ggsave(barplt2, filename = "data/Community_Composition/Stacked_Barplots/Top30_Genera_Cohort_Facet_Summary.svg",
-       width = 4.5, height = 6)
-
-
-
-
-
+ggsave(barplt2,
+  filename = "data/Community_Composition/Stacked_Barplots/Top30_Genera_Cohort_Facet_Summary.svg",
+  width = 4.5, height = 6
+)
