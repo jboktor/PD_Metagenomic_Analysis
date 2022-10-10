@@ -925,20 +925,80 @@ pseudoCounts <- function(obj) {
   return(psudocnts)
 }
 
-# _______________________________________________________________________________
 
-bonn_metadata <- function(dat) {
-  sample_data(dat)$id <- metadata_Bonn.slim$id
-  sample_data(dat)$donor_id <- metadata_Bonn.slim$donor_id
-  sample_data(dat)$description <- metadata_Bonn.slim$description
-  sample_data(dat)$donor_group <- metadata_Bonn.slim$donor_group
-  sample_data(dat)$PD <- metadata_Bonn.slim$PD
-  sample_data(dat)$paired <- metadata_Bonn.slim$paired
-  sample_data(dat)$cohort <- metadata_Bonn.slim$cohort
-  return(dat)
+impute_phyloseq <- function(phy) {
+  #' Function replaces all zero values with 
+  #' 1/2 the smallest value in a sample
+  
+  impt <- phy %>%
+    abundances() %>%
+    as.data.frame() %>%
+    mutate_all( ~ replace(., . == 0, min(.[. > 0], na.rm = TRUE) / 2))
+  otu_table(phy) <- otu_table(impt, taxa_are_rows = TRUE)
+  
+  return(phy)
+  
 }
 
 # _______________________________________________________________________________
+
+calculate_auroc <- function(case_df, control_df) {
+  #' This function takes in two data-frames with identical rownames and 
+  #' calcuates the AUROC for each feature based on abundance values
+  require(foreach)
+  require(doParallel)
+  aucs <- tibble()
+  start_time <- Sys.time()
+  cores <- detectCores()
+  cl <- makeCluster(cores[1] - 1)
+  registerDoParallel(cl)
+  
+  roc2add <-
+    foreach(
+      feat = rownames(case_df),
+      .combine = "rbind",
+      .packages = c("magrittr", "pROC")
+    ) %dopar% {
+      x <- case_df[feat,] %>% t()
+      y <- control_df[feat,] %>% t()
+      # AUROC calculation
+      rocdata <-
+        c(roc(
+          controls = y,
+          cases = x,
+          direction = "<",
+          ci = TRUE,
+          auc = TRUE
+        )$ci)
+      data.frame(
+        "feature" = feat,
+        "ci_lower" = rocdata[1],
+        "auroc" = rocdata[2],
+        "ci_upper" = rocdata[3]
+      )
+    }
+  stopCluster(cl)
+  aucs <- rbind(aucs, roc2add)
+  end_time <- Sys.time()
+  cat(
+    "AUROCs calculated in : ",
+    end_time - start_time,
+    attr(end_time - start_time, "units"),
+    "\n"
+  )
+  return(aucs)
+}
+
+# _______________________________________________________________________________
+
+bonn_metadata <- function(dat) {
+  meta_stats <- meta(dat) %>% select(contains("total_"))
+  meta_df <- cbind(meta_stats, metadata_Bonn.slim)
+  sample_data(dat) <- sample_data(meta_df)
+  return(dat)
+}
+
+# # _______________________________________________________________________________
 
 maaslin_prep <- function(dat) {
   dat <- dat %>%

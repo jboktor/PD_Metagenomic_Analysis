@@ -16,7 +16,6 @@ metadata_shanghai <-
   dplyr::rename(donor_id = Sample.Name, run = Run) %>%
   dplyr::select(donor_id, donor_group, description, PD, cohort, paired, run) %>%
   dplyr::mutate(paired = as.character(paired)) %>%
-  filter(run %ni% c("SRR10983032", "SRR10983014")) %>%
   as.data.frame()
 
 shanghai_keys <-
@@ -25,16 +24,28 @@ shanghai_keys <-
   mutate(donor_id = as.character(donor_id))
 
 reads.shanghai <-
-  read_tsv(
-    "files/biobakery_output_SHANGHAI_slim/humann/counts/humann_read_and_species_count_table.tsv",
-    col_names = T
+  bind_rows(
+    read_tsv(
+      "files/biobakery_output_SHANGHAI_slim/humann/counts/humann_read_and_species_count_table.tsv",
+      col_names = T
+    ),
+    read_tsv(
+      "files/biobakery_output_SHANGHAI_2022-09-11_slim/humann/counts/humann_read_and_species_count_table.tsv",
+      col_names = T
+    )
   ) %>%
   janitor::clean_names() %>%
   dplyr::rename(run = number_samples) %>%
   left_join(shanghai_keys, by = "run")
 
 metadata_shanghai <-
-  left_join(metadata_shanghai, reads.shanghai, by = "donor_id")
+  left_join(metadata_shanghai, reads.shanghai, by = "donor_id") %>%
+  mutate(
+    country = "China",
+    host_age = NA,
+    host_body_mass_index = NA,
+    sex = NA
+  )
 
 shanghai_keymap <- shanghai_keys$run
 names(shanghai_keymap) <- shanghai_keys$donor_id
@@ -49,9 +60,15 @@ met.table <- read_tsv(
   file = "files/biobakery_output_shanghai_slim/metaphlan/merged/metaphlan_taxonomic_profiles.tsv",
   col_names = T
 )
+met2.table <- read_tsv(
+  file = "files/biobakery_output_SHANGHAI_2022-09-11_slim//metaphlan/merged/metaphlan_taxonomic_profiles.tsv",
+  col_names = T
+)
 
 # Select only species rows from
-bugs.species <- met.table %>%
+bugs.species <- 
+  full_join(met.table, met2.table) %>%
+  replace(is.na(.), 0) %>%
   dplyr::rename("taxonomy" = `# taxonomy`) %>%
   filter(grepl("s__", taxonomy)) %>%
   filter(!grepl("t__", taxonomy)) %>%
@@ -63,8 +80,6 @@ bugs.species <- met.table %>%
 dat.species <- metaphlanToPhyloseq_Waldron(
   tax = bugs.species, metadat = metadata_shanghai
 )
-
-tst <- meta(dat.species)
 
 #-------- Species Level Object --------
 save(dat.species, file = "files/Phyloseq_SHANGHAI/Species_PhyloseqObj.RData")
@@ -97,8 +112,13 @@ save(dat.kingdom, file = "files/Phyloseq_SHANGHAI/Kingdom_PhyloseqObj.RData")
 #                   shanghai -  Pathways
 #----------------------------------------------------------
 
-path.abund <-
-  read_tsv(file = "files/biobakery_output_SHANGHAI_slim/humann/merged/pathabundance_relab.tsv", col_names = T)
+path1.abund <-
+  read_tsv(file = "files/biobakery_output_SHANGHAI_slim/humann/merged/pathabundance.tsv", col_names = T)
+path2.abund <-
+  read_tsv(file = "files/biobakery_output_SHANGHAI_2022-09-11_slim/humann/merged/pathabundance.tsv", col_names = T)
+path.abund <- left_join(path1.abund, path2.abund) %>% 
+  replace(is.na(.), 0)
+
 path.abund <-
   path.abund %>%
   clean.cols.abund() %>%
@@ -129,11 +149,19 @@ save(dat.path.slim, file = "files/Phyloseq_SHANGHAI/Pathways.slim_PhyloseqObj.RD
 #                   shanghai -  Enzymes
 #----------------------------------------------------------
 
-ec.abund <-
+ec1.abund <-
   read_tsv(
-    "files/biobakery_output_SHANGHAI_slim/humann/merged/ecs_relab.tsv",
+    "files/biobakery_output_SHANGHAI_slim/humann/merged/ecs.tsv",
     col_names = T
   )
+ec2.abund <-
+  read_tsv(
+    "files/biobakery_output_SHANGHAI_2022-09-11_slim/humann/merged/ecs.tsv",
+    col_names = T
+  )
+ec.abund <- left_join(ec1.abund, ec2.abund) %>% 
+  replace(is.na(.), 0)
+
 ec.abund <-
   ec.abund %>%
   clean.cols.abund_RPK()
@@ -165,26 +193,32 @@ save(dat.ec.slim, file = "files/Phyloseq_SHANGHAI/Enzymes.slim_PhyloseqObj.RData
 #                   shanghai -  Kegg Orthology
 #----------------------------------------------------------
 
-KOs.abund <-
+KOs1.abund <-
   read_tsv(
-    "files/biobakery_output_SHANGHAI_slim/humann/merged/ko-cpm-named.tsv",
+    "files/biobakery_output_SHANGHAI_slim/humann/merged/SHANGHAI_03062021_regrouped_genefamilies/ko-rpk-named.tsv",
     col_names = T
   )
+KOs2.abund <-
+  read_tsv(
+    "files/biobakery_output_SHANGHAI_2022-09-11_slim/humann/merged/regrouped_genefamilies/ko-rpk-named.tsv",
+    col_names = T
+  )
+KOs.abund <- left_join(KOs1.abund, KOs2.abund) %>% 
+  replace(is.na(.), 0)
+
 KOs.abund <-
   KOs.abund %>%
-  clean.cols.abund_CPM() %>%
+  clean.cols.abund_RPK() %>%
   filter(!grepl("UNMAPPED", `# Gene Family`)) %>%
   filter(!grepl("UNGROUPED", `# Gene Family`))
 KOs.abund.slim <-
   KOs.abund %>%
   filter(!grepl("g__", `# Gene Family`)) %>%
   filter(!grepl("unclassified", `# Gene Family`)) %>%
-  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>%
   make_rfriendly_rows(passed_column = "# Gene Family") %>%
   dplyr::rename(shanghai_keymap)
 KOs.abund <-
   KOs.abund %>%
-  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>%
   make_rfriendly_rows(passed_column = "# Gene Family") %>%
   dplyr::rename(shanghai_keymap)
 # All KOs
@@ -205,26 +239,32 @@ save(dat.KOs.slim, file = "files/Phyloseq_SHANGHAI/KOs.slim_PhyloseqObj.RData")
 #                   shanghai -  Gene Ontology
 #----------------------------------------------------------
 
-GOs.abund <-
+GOs1.abund <-
   read_tsv(
-    "files/biobakery_output_SHANGHAI_slim/humann/merged/go-cpm-named.tsv",
+    "files/biobakery_output_SHANGHAI_slim/humann/merged/SHANGHAI_03062021_regrouped_genefamilies/go-rpk-named.tsv",
     col_names = T
   )
+GOs2.abund <-
+  read_tsv(
+    "files/biobakery_output_SHANGHAI_2022-09-11_slim/humann/merged/regrouped_genefamilies/go-rpk-named.tsv",
+    col_names = T
+  )
+GOs.abund <- full_join(GOs1.abund, GOs2.abund) %>% 
+  replace(is.na(.), 0)
+
 GOs.abund <-
   GOs.abund %>%
-  clean.cols.abund_CPM() %>%
+  clean.cols.abund_RPK() %>%
   filter(!grepl("UNMAPPED", `# Gene Family`)) %>%
   filter(!grepl("UNGROUPED", `# Gene Family`))
 GOs.abund.slim <- GOs.abund %>%
   filter(!grepl("g__", `# Gene Family`)) %>%
   filter(!grepl("unclassified", `# Gene Family`)) %>%
-  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>%
   make_rfriendly_rows(passed_column = "# Gene Family") %>%
   dplyr::rename(shanghai_keymap) %>%
   as.data.frame.matrix()
 GOs.abund <-
   GOs.abund %>%
-  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>%
   make_rfriendly_rows(passed_column = "# Gene Family") %>%
   dplyr::rename(shanghai_keymap) %>%
   as.data.frame.matrix()
@@ -246,26 +286,32 @@ save(dat.GOs.slim, file = "files/Phyloseq_SHANGHAI/GOs.slim_PhyloseqObj.RData")
 #                   shanghai -  Pfam
 #----------------------------------------------------------
 
-PFAMs.abund <-
+PFAMs1.abund <-
   read_tsv(
-    "files/biobakery_output_SHANGHAI_slim/humann/merged/pfam-cpm-named.tsv",
+    "files/biobakery_output_SHANGHAI_slim/humann/merged/SHANGHAI_03062021_regrouped_genefamilies/pfam-rpk-named.tsv",
     col_names = T
   )
+PFAMs2.abund <-
+  read_tsv(
+    "files/biobakery_output_SHANGHAI_2022-09-11_slim/humann/merged/regrouped_genefamilies/pfam-rpk-named.tsv",
+    col_names = T
+  )
+PFAMs.abund <- full_join(PFAMs1.abund, PFAMs2.abund) %>% 
+  replace(is.na(.), 0)
+
 PFAMs.abund <-
   PFAMs.abund %>%
-  clean.cols.abund_CPM() %>%
+  clean.cols.abund_RPK() %>%
   filter(!grepl("UNMAPPED", `# Gene Family`)) %>%
   filter(!grepl("UNGROUPED", `# Gene Family`))
 PFAMs.abund.slim <- PFAMs.abund %>%
   filter(!grepl("g__", `# Gene Family`)) %>%
   filter(!grepl("unclassified", `# Gene Family`)) %>%
-  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>%
   make_rfriendly_rows(passed_column = "# Gene Family") %>%
   dplyr::rename(shanghai_keymap) %>%
   as.data.frame.matrix()
 PFAMs.abund <-
   PFAMs.abund %>%
-  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>%
   make_rfriendly_rows(passed_column = "# Gene Family") %>%
   dplyr::rename(shanghai_keymap) %>%
   as.data.frame.matrix()
@@ -287,25 +333,31 @@ save(dat.PFAMs.slim, file = "files/Phyloseq_SHANGHAI/PFAMs.slim_PhyloseqObj.RDat
 #                   shanghai -  Eggnog
 #----------------------------------------------------------
 
-EGGNOGs.abund <-
+EGGNOGs1.abund <-
   read_tsv(
-    "files/biobakery_output_SHANGHAI_slim/humann/merged/eggnog-cpm.tsv",
+    "files/biobakery_output_SHANGHAI_slim/humann/merged/SHANGHAI_03062021_regrouped_genefamilies/eggnog-rpk.tsv",
     col_names = T
   )
+EGGNOGs2.abund <-
+  read_tsv(
+    "files/biobakery_output_SHANGHAI_2022-09-11_slim/humann/merged/regrouped_genefamilies/eggnog-rpk.tsv",
+    col_names = T
+  )
+EGGNOGs.abund <- full_join(EGGNOGs1.abund, EGGNOGs2.abund) %>% 
+  replace(is.na(.), 0)
+
 EGGNOGs.abund <-
   EGGNOGs.abund %>%
-  clean.cols.abund_CPM() %>%
+  clean.cols.abund_RPK() %>%
   filter(!grepl("UNMAPPED", `# Gene Family`)) %>%
   filter(!grepl("UNGROUPED", `# Gene Family`))
 EGGNOGs.abund.slim <- EGGNOGs.abund %>%
   filter(!grepl("g__", `# Gene Family`)) %>%
   filter(!grepl("unclassified", `# Gene Family`)) %>%
-  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>%
   make_rfriendly_rows(passed_column = "# Gene Family") %>%
   dplyr::rename(shanghai_keymap)
 EGGNOGs.abund <-
   EGGNOGs.abund %>%
-  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>%
   make_rfriendly_rows(passed_column = "# Gene Family") %>%
   dplyr::rename(shanghai_keymap)
 # All EGGNOGs
@@ -356,6 +408,15 @@ metadata_Bonn <-
   dplyr::rename("PD" = "pd") %>%
   dplyr::select(run:cohort, library_layout)
 
+metadata_Bonn_covars <-
+  read_xlsx('files/Bonn_covariate_metadata.xlsx', sheet = 'Sheet1') %>% 
+  mutate(host_body_mass_index = round( (weight / (height/100)^2), digits = 0)) %>% 
+  select(alias, host_age, sex, host_body_mass_index) %>% 
+  mutate(country = "Germany")
+metadata_Bonn %<>% 
+  left_join(metadata_Bonn_covars, by = "alias")
+
+
 BonnPE_reads <-
   read_tsv("files/biobakery_output_BONN_PE_slim/humann/counts/humann_read_and_species_count_table.tsv",
     col_names = T
@@ -376,8 +437,21 @@ rownames(metadata_Bonn) <- metadata_Bonn$run
 metadata_Bonn_cleanreads <- metadata_Bonn %>%
   dplyr::select(run, total_reads)
 
-metadata_Bonn.slim <- metadata_Bonn %>%
-  distinct(id, donor_id, description, donor_group, PD, paired, cohort)
+metadata_Bonn.slim <- 
+  metadata_Bonn %>%
+  distinct(
+    id,
+    donor_id,
+    description,
+    donor_group,
+    PD,
+    paired,
+    cohort,
+    country,
+    host_age,
+    sex,
+    host_body_mass_index
+  )
 rownames(metadata_Bonn.slim) <- metadata_Bonn.slim$donor_id
 
 #----------------------------------------------------------
@@ -419,9 +493,7 @@ dat.species <- metaphlanToPhyloseq_Waldron(
 # Re-normalize
 species.abund <- dat.species %>% abundances(transform = "compositional") * 100
 my_species_table <- otu_table(species.abund, taxa_are_rows = T)
-my_sample_data <- meta(dat.species) %>%
-  dplyr::select(-c(run, alias, library_layout)) %>%
-  sample_data()
+my_sample_data <- meta(dat.species) %>% sample_data()
 dat.species <- phyloseq(my_species_table, my_sample_data, tax_table(dat.species))
 
 
@@ -458,11 +530,11 @@ save(dat.kingdom, file = "files/Phyloseq_Bonn/Kingdom_PhyloseqObj.RData")
 #----------------------------------------------------------
 
 path.abund.PE <- read_tsv(
-  file = "files/biobakery_output_BONN_PE_slim/humann/merged/pathabundance_relab.tsv",
+  file = "files/biobakery_output_BONN_PE_slim/humann/merged/pathabundance.tsv",
   col_names = T
 )
 path.abund.SE <- read_tsv(
-  file = "files/biobakery_output_BONN_SE_slim/humann/merged/pathabundance_relab.tsv",
+  file = "files/biobakery_output_BONN_SE_slim/humann/merged/pathabundance.tsv",
   col_names = T
 )
 path.abund.slim <-
@@ -499,11 +571,11 @@ save(dat.path.slim, file = "files/Phyloseq_Bonn/Pathways_PhyloseqObj.RData")
 #----------------------------------------------------------
 
 ec.abund.PE <- read_tsv(
-  file = "files/biobakery_output_BONN_PE_slim/humann/merged/ecs_relab.tsv",
+  file = "files/biobakery_output_BONN_PE_slim/humann/merged/ecs.tsv",
   col_names = T
 )
 ec.abund.SE <- read_tsv(
-  file = "files/biobakery_output_BONN_SE_slim/humann/merged/ecs_relab.tsv",
+  file = "files/biobakery_output_BONN_SE_slim/humann/merged/ecs.tsv",
   col_names = T
 )
 ec.abund.slim <-
@@ -538,29 +610,28 @@ save(dat.ec.slim, file = "files/Phyloseq_Bonn/Enzymes.slim_PhyloseqObj.RData")
 #----------------------------------------------------------
 
 KOs.abund.PE <- read_tsv(
-  file = "files/biobakery_output_BONN_PE_slim/humann/merged/ko-cpm-named.tsv",
+  file = "files/biobakery_output_BONN_PE_slim/humann/merged/BONN_PE_regrouped_genefamilies/ko-rpk-named.tsv",
   col_names = T
 )
 KOs.abund.SE <- read_tsv(
-  file = "files/biobakery_output_BONN_SE_slim/humann/merged/ko-cpm-named.tsv",
+  file = "files/biobakery_output_BONN_SE_slim/humann/merged/BONN_SE_regrouped_genefamilies/ko-rpk-named.tsv",
   col_names = T
 )
 KOs.abund.slim <-
   full_join(KOs.abund.PE, KOs.abund.SE, by = "# Gene Family") %>%
   replace(is.na(.), 0) %>%
-  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>%
   filter(!grepl("g__", `# Gene Family`)) %>%
   filter(!grepl("unclassified", `# Gene Family`)) %>%
-  clean.cols.abund_CPM() %>%
+  clean.cols.abund_RPK() %>%
   make_rfriendly_rows(passed_column = "# Gene Family") %>%
   trim_cols("Bonn")
 
-KOs.abund.pseudo.slim <-
-  pseudoCounts_bonn(df = KOs.abund.slim, reads = metadata_Bonn_cleanreads) %>%
-  mutate_all(~ tss(.))
+# KOs.abund.pseudo.slim <-
+#   pseudoCounts_bonn(df = KOs.abund.slim, reads = metadata_Bonn_cleanreads) %>%
+#   mutate_all(~ tss(.))
 
 # Slim Data
-my_KOs_table <- otu_table(KOs.abund.pseudo.slim, taxa_are_rows = T)
+my_KOs_table <- otu_table(KOs.abund.slim, taxa_are_rows = T)
 dat.KOs.slim <- phyloseq(my_KOs_table, my_sample_data.all) %>%
   merge_samples("donor_id", fun = sum) %>%
   bonn_metadata()
@@ -586,29 +657,28 @@ save(dat.KOs.slim, file = "files/Phyloseq_Bonn/KOs.slim_PhyloseqObj.RData")
 #----------------------------------------------------------
 
 GOs.abund.PE <- read_tsv(
-  file = "files/biobakery_output_BONN_PE_slim/humann/merged/GO-cpm-named.tsv",
+  file = "files/biobakery_output_BONN_PE_slim/humann/merged/BONN_PE_regrouped_genefamilies/GO-rpk-named.tsv",
   col_names = T
 )
 GOs.abund.SE <- read_tsv(
-  file = "files/biobakery_output_BONN_SE_slim/humann/merged/GO-cpm-named.tsv",
+  file = "files/biobakery_output_BONN_SE_slim/humann/merged/BONN_SE_regrouped_genefamilies/GO-rpk-named.tsv",
   col_names = T
 )
 GOs.abund.slim <-
   full_join(GOs.abund.PE, GOs.abund.SE, by = "# Gene Family") %>%
   replace(is.na(.), 0) %>%
-  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>%
   filter(!grepl("g__", `# Gene Family`)) %>%
   filter(!grepl("unclassified", `# Gene Family`)) %>%
-  clean.cols.abund_CPM() %>%
+  clean.cols.abund_RPK() %>%
   make_rfriendly_rows(passed_column = "# Gene Family") %>%
   trim_cols("Bonn")
 
-GOs.abund.pseudo.slim <-
-  pseudoCounts_bonn(df = GOs.abund.slim, reads = metadata_Bonn_cleanreads) %>%
-  mutate_all(~ tss(.))
+# GOs.abund.pseudo.slim <-
+#   pseudoCounts_bonn(df = GOs.abund.slim, reads = metadata_Bonn_cleanreads) %>%
+#   mutate_all(~ tss(.))
 
 # Slim Data
-my_GOs_table <- otu_table(GOs.abund.pseudo.slim, taxa_are_rows = T)
+my_GOs_table <- otu_table(GOs.abund.slim, taxa_are_rows = T)
 dat.GOs.slim <- phyloseq(my_GOs_table, my_sample_data.all) %>%
   merge_samples("donor_id", fun = sum) %>%
   bonn_metadata()
@@ -633,29 +703,28 @@ save(dat.GOs.slim, file = "files/Phyloseq_Bonn/GOs.slim_PhyloseqObj.RData")
 #----------------------------------------------------------
 
 PFAMs.abund.PE <- read_tsv(
-  file = "files/biobakery_output_BONN_PE_slim/humann/merged/pfam-cpm-named.tsv",
+  file = "files/biobakery_output_BONN_PE_slim/humann/merged/BONN_PE_regrouped_genefamilies/pfam-rpk-named.tsv",
   col_names = T
 )
 PFAMs.abund.SE <- read_tsv(
-  file = "files/biobakery_output_BONN_SE_slim/humann/merged/pfam-cpm-named.tsv",
+  file = "files/biobakery_output_BONN_SE_slim/humann/merged/BONN_SE_regrouped_genefamilies/pfam-rpk-named.tsv",
   col_names = T
 )
 PFAMs.abund.slim <-
   full_join(PFAMs.abund.PE, PFAMs.abund.SE, by = "# Gene Family") %>%
   replace(is.na(.), 0) %>%
-  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>%
   filter(!grepl("g__", `# Gene Family`)) %>%
   filter(!grepl("unclassified", `# Gene Family`)) %>%
-  clean.cols.abund_CPM() %>%
+  clean.cols.abund_RPK() %>%
   make_rfriendly_rows(passed_column = "# Gene Family") %>%
   trim_cols("Bonn")
 
-PFAMs.abund.pseudo.slim <-
-  pseudoCounts_bonn(df = PFAMs.abund.slim, reads = metadata_Bonn_cleanreads) %>%
-  mutate_all(~ tss(.))
+# PFAMs.abund.pseudo.slim <-
+#   pseudoCounts_bonn(df = PFAMs.abund.slim, reads = metadata_Bonn_cleanreads) %>%
+#   mutate_all(~ tss(.))
 
 # Slim Pathway Data
-my_PFAMs_table <- otu_table(PFAMs.abund.pseudo.slim, taxa_are_rows = T)
+my_PFAMs_table <- otu_table(PFAMs.abund.slim, taxa_are_rows = T)
 dat.PFAMs.slim <- phyloseq(my_PFAMs_table, my_sample_data.all) %>%
   merge_samples("donor_id", fun = sum) %>%
   bonn_metadata()
@@ -680,29 +749,28 @@ save(dat.PFAMs.slim, file = "files/Phyloseq_Bonn/PFAMs.slim_PhyloseqObj.RData")
 #----------------------------------------------------------
 
 EGGNOGs.abund.PE <- read_tsv(
-  file = "files/biobakery_output_BONN_PE_slim/humann/merged/eggnog-cpm.tsv",
+  file = "files/biobakery_output_BONN_PE_slim/humann/merged/BONN_PE_regrouped_genefamilies/eggnog-rpk.tsv",
   col_names = T
 )
 EGGNOGs.abund.SE <- read_tsv(
-  file = "files/biobakery_output_BONN_SE_slim/humann/merged/eggnog-cpm.tsv",
+  file = "files/biobakery_output_BONN_SE_slim/humann/merged/BONN_SE_regrouped_genefamilies/eggnog-rpk.tsv",
   col_names = T
 )
 EGGNOGs.abund.slim <-
   full_join(EGGNOGs.abund.PE, EGGNOGs.abund.SE, by = "# Gene Family") %>%
   replace(is.na(.), 0) %>%
-  dplyr::mutate_if(is.numeric, ~ (. / 1000000)) %>%
   filter(!grepl("g__", `# Gene Family`)) %>%
   filter(!grepl("unclassified", `# Gene Family`)) %>%
-  clean.cols.abund_CPM() %>%
+  clean.cols.abund_RPK() %>%
   make_rfriendly_rows(passed_column = "# Gene Family") %>%
   trim_cols("Bonn")
 
-EGGNOGs.abund.pseudo.slim <-
-  pseudoCounts_bonn(df = EGGNOGs.abund.slim, reads = metadata_Bonn_cleanreads) %>%
-  mutate_all(~ tss(.))
+# EGGNOGs.abund.pseudo.slim <-
+#   pseudoCounts_bonn(df = EGGNOGs.abund.slim, reads = metadata_Bonn_cleanreads) %>%
+#   mutate_all(~ tss(.))
 
 # Slim Data
-my_EGGNOGs_table <- otu_table(EGGNOGs.abund.pseudo.slim, taxa_are_rows = T)
+my_EGGNOGs_table <- otu_table(EGGNOGs.abund.slim, taxa_are_rows = T)
 dat.EGGNOGs.slim <- phyloseq(my_EGGNOGs_table, my_sample_data.all) %>%
   merge_samples("donor_id", fun = sum) %>%
   bonn_metadata()
@@ -743,7 +811,7 @@ dat.EGGNOGs.slim.bonn <- dat.EGGNOGs.slim
 #-------------------------------------------------------------------------------
 
 
-phylo_objects <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean.rds")
+phylo_objects <- readRDS("files/Phyloseq_Merged/PhyloseqObj_slim_clean.rds")
 
 dat.kingdom <- merge_phyloseq(phylo_objects[["Kingdom"]], dat.kingdom.shanghai, dat.kingdom.bonn)
 dat.phylum <- merge_phyloseq(phylo_objects[["Phylum"]], dat.phylum.shanghai, dat.phylum.bonn)
@@ -809,4 +877,6 @@ names(phyloseq_objs) <- c(
   "Pfams.slim",
   "eggNOGs.slim"
 )
-saveRDS(phyloseq_objs, file = "files/Phyloseq_Merged_ML_clean.rds")
+# saveRDS(phyloseq_objs, file = "files/Phyloseq_Merged_ML_clean.rds")
+saveRDS(phyloseq_objs, file = "files/Phyloseq_all-cohorts_clean_slim.rds")
+

@@ -16,7 +16,7 @@ base::load("files/Phyloseq_Merged/PhyloseqObj.RData")
 # Step 1) Select an object type
 
 # See github table
-obj <- Phylo_Objects[["KOs.slim"]]
+obj <- phyloseq_objs[["KOs.slim"]]
 
 #-------------------------------------------------------------------------------
 # Step 2) Browse data table
@@ -30,7 +30,7 @@ data_table <- explore_table(obj)
 # Only one feature can match, Use unstratified objs if looking for general
 # pathays, enzymes, or genes
 
-feature <- "feat_K01186.gc..gs.sialidase.gh.1.gs..gsqrl.EC.gc.3.2.1.18.gsqrr."
+feature <- "feat_K02919.gc..gs.large.gs.subunit.gs.ribosomal.gs.protein.gs.L36"
 # 1.8.4.12
 
 #-------------------------------------------------------------------------------

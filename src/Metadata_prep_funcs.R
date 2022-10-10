@@ -90,9 +90,13 @@ diet <-
     "frequency_of_four_cups_water_daily"
   )
 
-grouping <- c("description", "PD")
-environmental <- c("cohort", "paired")
 other_metadata <- c("donor_id", "donor_group")
+grouping <- c("description", "PD")
+environmental <-
+  c("cohort",
+    "paired",
+    "state_of_residence",
+    "quadrant_of_residence")
 
 mdsupdrs_III <-
   c(
@@ -265,9 +269,9 @@ process_meta <- function(dat, cohort, verbose = F) {
     env[env == "not provided"] <- NA
     env[env == "not collected"] <- NA
 
-    #---------------------------------------------
-    #-        Anthropomorphic variables
-    #---------------------------------------------
+    #_____________________________________________
+    #-        Anthropomorphic variables ----
+    #_____________________________________________
     env$host_age <- as.numeric(env$host_age)
     env <- env %>%
       mutate(host_age_factor = as.numeric(
@@ -351,10 +355,10 @@ process_meta <- function(dat, cohort, verbose = F) {
     # Replace "not provided" entries as NA
     env[env == "not provided"] <- NA
     env[env == "not collected"] <- NA
-
-    #---------------------------------------------
+    
+    #_____________________________________________
     #-        Anthropomorphic variables
-    #---------------------------------------------
+    #_____________________________________________
     env$host_age <- as.numeric(env$host_age)
     env <- env %>%
       mutate(host_age_factor = as.numeric(
@@ -382,7 +386,8 @@ process_meta <- function(dat, cohort, verbose = F) {
       print(str(env))
     }
     cat("\n Metadata Processing Complete \n\n")
-  } else if (cohort == "Merged_ML") {
+  
+    } else if (cohort == "Merged_ML") {
     testable_meta <- c("donor_id", "donor_group", "description", "PD", "cohort", "paired")
     # Pull metadata list from Phyloseq Obj
     env <- get_variable(dat, testable_meta)
@@ -426,9 +431,9 @@ process_meta <- function(dat, cohort, verbose = F) {
     env[env == "not provided"] <- NA
     env[env == "not collected"] <- NA
 
-    #---------------------------------------------
-    #-        Anthropomorphic variables
-    #---------------------------------------------
+    #_____________________________________________
+    #-        Anthropomorphic variables ----
+    #_____________________________________________
     env$host_age <- as.numeric(env$host_age)
     env <- env %>%
       mutate(host_age_factor = as.numeric(
@@ -496,15 +501,6 @@ process_meta <- function(dat, cohort, verbose = F) {
     env$dopamine_agonists[nonPD] <- NA
     env$rasagiline[nonPD] <- NA
     env$selegiline[nonPD] <- NA
-
-    # env %>%
-    #   filter(PD == "No") %>%
-    #   select(pd_drugs) %>%
-    #   glimpse()
-    # env %>%
-    #   filter(PD == "Yes") %>%
-    #   select(pd_drugs) %>%
-    #   glimpse()
 
     # Metadata to convert to numeric
     env <-
@@ -628,15 +624,11 @@ process_meta_study_design_plot <- function(dat) {
     other_metadata, grouping, Anthro, GI, nonstarters, allergy, smoke,
     general_drugs, pd_drugs, supplements, diet
   )
-
-
-
+  
   ####### Pull metadata list from Phlyoseq Obj
   env <- get_variable(dat, testable_meta)
   # Replace "not provided" entries as NA
   env[env == "not provided"] <- NA
-
-
 
   #### Manual processing of variables into relevant numeric form
   # Misc corrections

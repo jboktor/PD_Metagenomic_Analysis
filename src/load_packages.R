@@ -11,7 +11,7 @@ library(plyr)
 library(dplyr)
 library(ggrepel)
 library(grid)
-
+library(glue)
 library(gridExtra)
 library(reshape2)
 library(grid)
@@ -130,3 +130,5 @@ conflict_prefer("sd", "BiocGenerics")
 conflict_prefer("roc", "pROC")
 
 conflict_prefer("box", "shinydashboard")
+
+conflict_prefer("%+%", "ggpackets")

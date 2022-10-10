@@ -3,14 +3,14 @@
 source("src/load_packages.R")
 source("src/metadata_prep_funcs.R")
 source("src/Community_Composition_Funcs.R")
-# load("files/Phyloseq_Merged/Species_PhyloseqObj.RData")
-phyloseq_objs <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean.rds")
-
-# For table summary vis
 library(gtsummary)
 library(webshot)
+library(webshot2)
+library(janitor)
 
+phyloseq_objs <- readRDS("files/Phyloseq_Merged/PhyloseqObj_slim_clean.rds")
 dat <- phyloseq_objs[["Species"]]
+
 # _______________________________________________________________________________
 # Samples prior to filtering
 env <- process_meta(dat, cohort = "Merged")
@@ -32,6 +32,19 @@ study_metadata %>%
 study_metadata %>%
   select(donor_group, cohort) %>%
   tbl_summary(by = cohort)
+
+study_metadata %>%
+  select(state_of_residence, cohort) %>%
+  tbl_summary(by = cohort)
+
+study_metadata %>%
+  select(quadrant_of_residence, donor_group) %>%
+  dplyr::rename(Quadrant = quadrant_of_residence) %>% 
+  tbl_summary(by = donor_group) %>%
+  add_n() %>%
+  bold_labels() %>%
+  as_gt() %>%
+  gt::gtsave(filename = "files/Supplementary Tables/Table_S1B_Geographic_Quadrant.png")
 
 # _______________________________________________________________________________
 # Summary tabels ----
@@ -61,8 +74,8 @@ med_pd_vars <-
 
 # Clinical PD variables ----
 study_metadata %>%
-  filter(PD == "Yes") %>%
-  select(all_of(cont_pd_vars)) %>%
+  filter(PD == "Yes") %>% 
+  select(all_of(cont_pd_vars)) %>% 
   dplyr::mutate_at(vars(all_of(cont_pd_vars)), ~ na_if(., "not provided")) %>%
   mutate_at(vars(all_of(cont_pd_vars)), as.character) %>%
   mutate_at(vars(all_of(cont_pd_vars)), as.numeric) %>%
@@ -73,7 +86,7 @@ study_metadata %>%
   add_n() %>%
   bold_labels() %>%
   as_gt() %>%
-  gt::gtsave(filename = "files/Supplementary Tables/Table_S1_Clinical_variables.png")
+  gt::gtsave(filename = "files/Supplementary Tables/Table_S1C_Clinical_variables.png")
 
 
 # PD medication variables ----
@@ -87,7 +100,7 @@ study_metadata %>%
   add_n() %>%
   bold_labels() %>%
   as_gt() %>%
-  gt::gtsave(filename = "files/Supplementary Tables/Table_S1_PD_medication_usage.png")
+  gt::gtsave(filename = "files/Supplementary Tables/Table_S1D_PD_medication_usage.png")
 
 
 
@@ -122,25 +135,23 @@ meta(dat) %>%
   add_n() %>%
   bold_labels() %>%
   as_gt() %>%
-  gt::gtsave(filename = "files/Supplementary Tables/Table_S1_Demographic_variables.png")
+  gt::gtsave(filename = "files/Supplementary Tables/Table_S1A_Demographic_variables.png")
 
 
 # _______________________________________________________________________________
 
-## Age, BMI, READS, N,
-summary_A <-
-  env %>%
-  group_by(donor_group, cohort) %>%
-  summarise_at(
-    vars(cont_vars),
-    funs(
-      mean(., na.rm = T),
-      # n = sum(!is.na(.)),
-      se = sd(., na.rm = T) / sqrt(sum(!is.na(.)))
-    )
-  )
-
-
+# ## Age, BMI, READS, N,
+# summary_A <-
+#   env %>%
+#   group_by(donor_group, cohort) %>%
+#   summarise_at(
+#     vars(cont_vars),
+#     funs(
+#       mean(., na.rm = T),
+#       # n = sum(!is.na(.)),
+#       se = sd(., na.rm = T) / sqrt(sum(!is.na(.)))
+#     )
+#   )
 
 # _______________________________________________________________________________
 # Function to pull counts and ratio of Yes/No variables
@@ -161,14 +172,14 @@ prop_summary <- function(metvar) {
 # _______________________________________________________________________________
 # Non-PD Medications
 # _______________________________________________________________________________
-# prop_vars <-
-#   c(
-#     "antibiotics",
-#     "laxatives",
-#     "statins",
-#     "proton_pump_inhibitors",
-#     "ssri_antidepressants"
-#   )
+prop_vars <-
+  c(
+    "antibiotics",
+    "laxatives",
+    "statins",
+    "proton_pump_inhibitors",
+    "ssri_antidepressants"
+  )
 
 antibiotics <- prop_summary("antibiotics")
 laxatives <- prop_summary("laxatives")
@@ -185,6 +196,7 @@ prop_df <-
   full_join(statins) %>%
   full_join(proton_pump_inhibitors) %>%
   full_join(ssri_antidepressants)
+
 core_stats <-
   prop_df %>%
   dplyr::mutate(response = replace_na(response, "not provided")) %>%
@@ -211,8 +223,8 @@ core_stats <-
   )
 core_stats
 
-# ggsave(core_stats, filename = "data/Community_Composition/Quality_Control/core_stats.svg",
-#        width = 10, height = 6)
+ggsave(core_stats, filename = "data/Community_Composition/Quality_Control/core_stats.svg",
+       width = 10, height = 6)
 
 # _______________________________________________________________________________
 # PD Medications
@@ -235,7 +247,7 @@ pd_drugs <-
 
 pd_drug_stats <-
   pd_drugs %>%
-  dplyr::mutate(response = replace_na(response, value = "not provided")) %>%
+  dplyr::mutate(response  = replace_na(response, "not provided")) %>%
   ggplot(aes(x = percentage, y = metavar, fill = response)) +
   geom_bar(stat = "identity", width = 0.6) +
   facet_grid(cohort ~ donor_group) +
@@ -259,18 +271,14 @@ pd_drug_stats <-
   )
 pd_drug_stats
 
-# ggsave(pd_drug_stats, filename = "data/Community_Composition/Quality_Control/pd_drug_stats.svg",
-#        width = 10, height = 6)
-
-
+ggsave(pd_drug_stats, filename = "data/Community_Composition/Quality_Control/pd_drug_stats.svg",
+       width = 10, height = 6)
 
 
 # _______________________________________________________________________________
 # Pre-processed BMI values
 # _______________________________________________________________________________
-env <-
-  dat %>%
-  subset_samples(donor_id %ni% low_qc[[1]]) %>%
+env <- dat %>% 
   meta() %>%
   left_join(reads, by = "donor_id")
 
@@ -292,3 +300,4 @@ env %>%
 env %>%
   group_by(donor_group, cohort, sex) %>%
   dplyr::summarise(count = n())
+

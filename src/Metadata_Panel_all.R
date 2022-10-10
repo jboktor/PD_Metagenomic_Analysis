@@ -40,9 +40,13 @@ source("src/miscellaneous_funcs.R")
 
 ########################### Metadata Pre-processing & Selection ###########################
 
+
+ps <- readRDS("files/Phyloseq_Merged/PhyloseqObj_slim_clean.rds")
+dat <- ps$Species
+
 # Run Metadata pre-processing function
 process_meta_study_design_plot(dat)
-trim_meta(env)
+trim_meta(env, 3/nsamples(dat))
 
 env$paired <- as.character(env$paired)
 env[which(env$paired != "No"), "paired"] <- "Yes"
@@ -238,7 +242,7 @@ fig1a_supp
 
 
 
-ggsave(fig1a_supp,
-  filename = "figures/metadata_heatmap_permanova_variance.svg",
-  width = 14, height = 6
-)
+# ggsave(fig1a_supp,
+#   filename = "figures/metadata_heatmap_permanova_variance.svg",
+#   width = 14, height = 6
+# )

@@ -2,12 +2,16 @@
 
 
 #-------------------------------------------------------------------------------
-
-
-fit_models <- function(dat, dat_pdpc, dat_pdhc, obj.name = "Species",
-                       df_input_data_pdhc, df_input_data_pdpc, cores, plot_scatter = F,
-                       cohort = "Merged") {
-
+fit_models <-
+  function(dat,
+           dat_pdpc,
+           dat_pdhc,
+           obj.name = "Species",
+           df_input_data_pdhc,
+           df_input_data_pdpc,
+           cores,
+           plot_scatter = F,
+           cohort = "Merged") {
   #' function to run MaAsLin2 mixed models
   #' Input variance and qc trimmed abundance data tables
   #' Outputs MaAsLin2 analysis in a specific feature folder
@@ -26,11 +30,11 @@ fit_models <- function(dat, dat_pdpc, dat_pdhc, obj.name = "Species",
     dplyr::mutate(description = factor(description, levels = c("PD Patient", "Household Control")))
 
   if (cohort == "Merged") {
-    random_effects_pdpc <- "cohort"
-    random_effects_pdhc <- c("paired", "cohort")
+    random_effects_pdpc <- c("cohort", "quadrant_of_residence")
+    random_effects_pdhc <- c("paired", "cohort") 
   } else {
     random_effects_pdpc <- ""
-    random_effects_pdhc <- "paired"
+    random_effects_pdhc <- c("paired")
   }
 
   # PD v PC
@@ -414,7 +418,13 @@ daf_boxplots <- function(df, fill_cols, rim_cols, alfa = 0.5, obj.name) {
   set.seed(123)
   p <- ggplot(data = df, aes(x = value, y = Var2)) +
     geom_boxplot(aes(fill = group), alpha = alfa, outlier.alpha = 0, width = 0.8) +
-    geom_point(aes(fill = group, color = group), position = position_jitterdodge(jitter.width = .2), shape = 21, size = 1, alpha = 0.7) +
+    geom_point(
+      aes(fill = group, color = group),
+      position = position_jitterdodge(jitter.width = .2),
+      shape = 21,
+      size = 1,
+      alpha = 0.4
+    ) +
     theme_minimal() +
     ggtitle(paste0("Differential Abundance: ", obj.name)) +
     geom_text(aes(
@@ -475,7 +485,7 @@ variance_plot <- function(dat) {
   rk <- rank(-filter.val, ties.method = "random")
   rws <- nrow(var.df)
 
-  p <- ggplot(var.df, aes(x = reorder(features, -filter.val), y = log10(filter.val + .000000001))) +
+  p <- ggplot(var.df, aes(x = reorder(features, -filter.val), y = log10(abs(filter.val) + 1e-10))) +
     geom_point(color = "#1170aa") +
     ggthemes::theme_clean() +
     labs(x = "Ranked Features", y = " log10([0.1 - 0.9] Quantile Range)") +
@@ -949,8 +959,8 @@ plot_dafs <- function(obj.name, obj, cohort = "TBC", tag = "") {
   print(DAF_final)
 
   ggsave(DAF_final,
-    filename = paste0("data/DAF_Analysis/", cohort, "/DAF_", obj.name, tag, ".svg"),
-    width = 20, height = (top_len + bottom_len) / 3
+    filename = paste0("data/DAF_Analysis/", cohort, "/DAF_", obj.name, tag, "_", Sys.Date(), ".svg"),
+    width = 20, height = (top_len + bottom_len) / 2.25
   )
 }
 
@@ -964,7 +974,7 @@ plot_daf_summary <- function(obj.name, obj, cohort = "TBC", tag = "",
 
   # # TROUBLESHOOTING
   # obj.name = "KOs.slim"
-  # obj = dat.KOs.slim
+  # obj = phyloseq_objs$KOs.slim
   # cohort = "Merged"
   # repelyup = 0.0025
   # repelydn = 0.005
@@ -972,9 +982,9 @@ plot_daf_summary <- function(obj.name, obj, cohort = "TBC", tag = "",
 
   # Normalization and Transformation
   dat_obj <- obj %>%
-    subset_samples(donor_id %ni% low_qc[[1]]) %>%
-    microbiome::transform("compositional")
-  otu_table(dat_obj) <- asin(sqrt(otu_table(dat_obj)))
+    microbiome::transform("compositional") %>% 
+    impute_phyloseq()
+  otu_table(dat_obj) <- asin(sqrt( otu_table(dat_obj) ))
 
   # PD v PC
   dat_pdpc <- subset_samples(dat_obj, donor_group != "HC")
@@ -1032,8 +1042,8 @@ plot_daf_summary <- function(obj.name, obj, cohort = "TBC", tag = "",
     dplyr::group_by(group, feature) %>%
     dplyr::summarise(mean = mean(Abundance), median = median(Abundance)) %>%
     pivot_wider(names_from = group, values_from = c(mean, median)) %>%
-    mutate(pc_median_l2fc = log2((median_PD + 1) / (median_PC + 1))) %>%
-    mutate(pc_mean_l2fc = log2((mean_PD + 1) / (mean_PC + 1)))
+    mutate(pc_median_l2fc = log2((median_PD) / (median_PC))) %>%
+    mutate(pc_mean_l2fc = log2((mean_PD) / (mean_PC)))
 
   #--------------------------------------------------------------------------
   #                              PD v HC gFC
@@ -1063,8 +1073,8 @@ plot_daf_summary <- function(obj.name, obj, cohort = "TBC", tag = "",
     dplyr::group_by(group, feature) %>%
     dplyr::summarise(mean = mean(Abundance), median = median(Abundance)) %>%
     pivot_wider(names_from = group, values_from = c(mean, median)) %>%
-    mutate(hc_median_l2fc = log2((median_PD + 1) / (median_HC + 1))) %>%
-    mutate(hc_mean_l2fc = log2((mean_PD + 1) / (mean_HC + 1)))
+    mutate(hc_median_l2fc = log2((median_PD) / (median_HC))) %>%
+    mutate(hc_mean_l2fc = log2((mean_PD) / (mean_HC)))
 
 
   #--------------------------------------------
@@ -1089,7 +1099,8 @@ plot_daf_summary <- function(obj.name, obj, cohort = "TBC", tag = "",
   obj.plot.label <-
     obj.plot %>%
     dplyr::filter(group != "None") %>%
-    top_n(top, wt = -q.average) %>%
+    slice_min(n = top, with_ties = F, order_by = q.average) %>% 
+    # top_n(top, wt = -q.average) %>%
     decode_rfriendly_rows(passed_column = "feature")
 
   pal.color <-
@@ -1123,8 +1134,8 @@ plot_daf_summary <- function(obj.name, obj, cohort = "TBC", tag = "",
     geom_vline(xintercept = 0, linetype = 1, color = "grey") +
     geom_hline(yintercept = 0, linetype = 1, color = "grey") +
     labs(
-      x = expression(paste("log"[2] * "[(mean PD + 1)/(mean HC + 1)]")),
-      y = expression(paste("log"[2] * "[(mean PD + 1)/(mean PC + 1)]")),
+      x = expression(paste("log"[2] * "[(mean PD)/(mean HC)]")),
+      y = expression(paste("log"[2] * "[(mean PD)/(mean PC)]")),
       title = obj.name,
       color = "Association\nReference\nGroup"
     ) +

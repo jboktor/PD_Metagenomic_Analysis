@@ -16,3 +16,7 @@ filter_samples <- function(dat) {
 phyloseq_objs_clean <- phyloseq_objs %>% map(filter_samples)
 saveRDS(phyloseq_objs_clean, "files/Phyloseq_Merged/PhyloseqObj_clean.rds")
 saveRDS(phyloseq_objs_clean, file = "EDA_App/PhyloseqObj_clean.rds")
+
+
+phyloseq_objs$Species %>% 
+  subset_samples(antibiotics != "Yes")

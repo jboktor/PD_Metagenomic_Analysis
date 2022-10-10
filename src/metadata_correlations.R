@@ -5,9 +5,8 @@ source("src/miscellaneous_funcs.R")
 source("src/load_phyloseq_obj.R")
 source("src/metadata_prep_funcs.R")
 load("files/low_quality_samples.RData")
-# load_data("Merged")
-phyloseq_objs <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean.rds")
 
+phyloseq_objs <- readRDS("files/Phyloseq_Merged/PhyloseqObj_slim_clean.rds")
 
 # _______________________________________________________________________________
 #####                      Correlation Analysis                           #####
@@ -238,9 +237,9 @@ ggsave(h10,
   height = 10, width = 13
 )
 
-# corr_xy(obj = dat.PFAMs.slim, corr_obj = corrs.clinical.PFAMs.slim,
-#         feature_var = "PF12675: Protein of unknown function (DUF3795)",
-#         metadata_var = "family_history_pd_degree_relative")
+corr_xy(obj = dat.PFAMs.slim, corr_obj = corrs.clinical.PFAMs.slim,
+        feature_var = "PF12675: Protein of unknown function (DUF3795)",
+        metadata_var = "family_history_pd_degree_relative")
 
 
 # _______________________________________________________________________________

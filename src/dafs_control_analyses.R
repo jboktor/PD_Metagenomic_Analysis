@@ -11,19 +11,16 @@ source("src/metadata_prep_funcs.R")
 source("src/community_composition_funcs.R")
 source("src/daf_functions.R")
 wkd <- getwd()
-phylo_objects <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean.rds")
+
+phylo_objects <- readRDS("files/Phyloseq_Merged/PhyloseqObj_slim_clean.rds")
 
 # Testing levels and variance thresholds determined previously
 test_list <- c(
   "Species" = 0.1,
-  "Genus" = 0,
-  "Phylum" = 0,
   "Pathways.slim" = 0.2,
-  "Enzymes.slim" = 0.3,
-  "KOs.slim" = 0.2,
-  "GOs.slim" = 0.3,
-  "Pfams.slim" = 0.2,
-  "eggNOGs.slim" = 0.7
+  "KOs.slim" = 0.2#,
+  # "GOs.slim" = 0.3,
+  # "Pfams.slim" = 0.2
 )
 
 df_input_metadata <- process_meta(phylo_objects$Species, cohort = "Merged") %>%
@@ -32,7 +29,7 @@ df_input_metadata <- process_meta(phylo_objects$Species, cohort = "Merged") %>%
 general_confounder_list <- c(
   "bristol_stool_scale",
   "nonsteroidal_anti_inflammatory",
-  "ssri_antidepressants",
+  # "ssri_antidepressants"#,  fitting error due to grouping
   "vitamin_C",
   "calcium",
   "proton_pump_inhibitors",
@@ -54,6 +51,7 @@ pd_meds <- c(
 for (level in names(test_list)) {
   df_input_data <- phylo_objects[[level]] %>%
     microbiome::transform("compositional") %>%
+    core(detection = 0, prevalence = 0.1) %>% 
     variance_filter(filter.percent = test_list[level])
 
   for (confounding_var in general_confounder_list) {
@@ -66,19 +64,18 @@ for (level in names(test_list)) {
       level, "__", confounding_var, "_maaslin2_output"
     )
 
-
     fit_data <- Maaslin2(
       input_data = df_input_data,
       input_metadata = df_input_metadata,
       output = paste0(wkd, outfile),
-      random_effects = "cohort",
+      random_effects = c("cohort", "quadrant_of_residence"),
       fixed_effects = c("description", "host_age_factor", "sex", "host_body_mass_index", confounding_var),
       reference = c("description,PD Patient"),
       min_prevalence = 0,
       analysis_method = "LM",
       normalization = "NONE",
       transform = "AST",
-      cores = 8,
+      cores = 1,
       plot_scatter = F
     )
   }
@@ -101,12 +98,11 @@ for (level in names(test_list)) {
       level, "__", confounding_var, "_maaslin2_output"
     )
 
-
     fit_data <- Maaslin2(
       input_data = df_input_data,
       input_metadata = df_input_metadata,
       output = paste0(wkd, outfile),
-      random_effects = "cohort",
+      random_effects = c("cohort", "quadrant_of_residence"),
       fixed_effects = c("host_age_factor", "sex", "host_body_mass_index", confounding_var),
       min_prevalence = 0,
       analysis_method = "LM",
@@ -119,15 +115,20 @@ for (level in names(test_list)) {
 }
 
 # _______________________________________________________________________________
-# Summary Table for Associations
-
-
-
-
+# Aggregate PD vs PC or HC results  ----
 disease_stats <- tibble()
-# shared_features <- vector(mode = "list")
 reportdir <- paste0("data/MaAsLin2_Analysis/Merged/")
-filepaths <- list.files(path = reportdir)
+filepaths <- list.files(path = reportdir) 
+
+
+filter_select_paths <- function(filepaths){
+  # utility function to select Species, Pathways, and KO levels for analysis
+    filepaths[filepaths %>% str_detect("Species") |
+                filepaths %>% str_detect("Pathways.slim") |
+                filepaths %>% str_detect("KOs.slim")]
+}
+filepaths %<>% filter_select_paths()
+
 for (report in filepaths) {
   maaslin_data <-
     read_tsv(
@@ -147,12 +148,14 @@ disease_stats_sig <- disease_stats %>%
   dplyr::select(-feature) %>%
   dplyr::rename("feature" = "fullnames")
 
-
+#_______________________________________________________________________________
+# Aggregate results for potentially confounding metadata  ----
 general_variables_stats <- tibble()
-# shared_features <- vector(mode = "list")
 reportdir <- paste0("data/MaAsLin2_Analysis/Confounder_Testing/general_variables/")
-filepaths <- list.files(path = reportdir)
+filepaths <- list.files(path = reportdir) %>% filter_select_paths()
+
 for (report in filepaths) {
+  print(report)
   maaslin_data <-
     read_tsv(
       paste0(reportdir, report, "/all_results.tsv"),
@@ -161,10 +164,11 @@ for (report in filepaths) {
     mutate(feature_level = str_split(report, "__")[[1]][1])
   general_variables_stats <- bind_rows(general_variables_stats, maaslin_data)
 }
+
 medications_stats <- tibble()
-# shared_features <- vector(mode = "list")
 reportdir <- paste0("data/MaAsLin2_Analysis/Confounder_Testing/PD_medications/")
-filepaths <- list.files(path = reportdir)
+filepaths <- list.files(path = reportdir) %>% filter_select_paths()
+
 for (report in filepaths) {
   maaslin_data <-
     read_tsv(
@@ -174,23 +178,36 @@ for (report in filepaths) {
     mutate(feature_level = str_split(report, "__")[[1]][1])
   medications_stats <- bind_rows(medications_stats, maaslin_data)
 }
-
-confounder_stats <- bind_rows(medications_stats, general_variables_stats)
-
-confounder_stats$metadata %>% table()
-
-confounder_stats_sig <- confounder_stats %>%
-  filter(metadata %nin% c("description", "bristol_stool_scale")) %>%
-  filter(qval <= 0.1) %>%
+confounder_stats <- 
+  bind_rows(medications_stats, general_variables_stats) %>%
   decode_rfriendly_rows(passed_column = "feature") %>%
   dplyr::select(-feature) %>%
   dplyr::rename("feature" = "fullnames")
+confounder_stats$metadata %>% table()
 
+#_______________________________________________________________________________
+# Re-calculate q-values and report back 1) model stats and 2) 
+
+confounder_stats_sig <- confounder_stats %>%
+  filter(metadata %nin% c("description", "bristol_stool_scale", "sex", "host_age_factor")) %>%
+  # correct p-values using BH method within each data-level
+  group_by(feature_level) %>%
+  mutate(qval_across_comparisons = p.adjust(pval, method = "BH")) %>%
+  ungroup() %>% 
+  filter(qval_across_comparisons <= 0.1)
+
+# For each data-level identify features that share significancein 
+# in the (PDvPC or PDvHC analysis ) and each of the confounding meta-data results
+# output the results of the confounding meta if so
 confounder_list <- vector(mode = "list")
+confounder_list$covariate_results_all <- confounder_stats
+confounder_list$covariate_results_sig <- confounder_stats_sig
 confounder_list$disease_confound_overlap <- disease_stats_sig %>% filter(feature %in% confounder_stats_sig$feature)
-for (confnd in unique(confounder_stats_sig$metadata)) {
-  confounder_list[[confnd]] <- confounder_stats_sig %>%
-    filter(metadata == confnd) %>%
-    arrange(feature_level, pval)
-}
-openxlsx::write.xlsx(confounder_list, file = "files/Supplementary Tables/Table_S7 Confounder Estimation.xlsx", overwrite = T)
+
+openxlsx::write.xlsx(
+  confounder_list,
+  file = glue(
+    "files/Supplementary Tables/Table_S7 Confounder Estimation_{Sys.Date()}.xlsx"
+  ),
+  overwrite = T
+)

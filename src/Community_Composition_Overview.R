@@ -11,38 +11,18 @@ source("src/beta_diversity.R")
 source("src/stats_funcs.R")
 
 
-ps <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean.rds")
-
-ps$Species %>%
-  # subset_samples(cohort == "TBC") %>%
-  meta() %>%
-  as.data.frame() %>%
-  filter(donor_group == "PC") %>%
-  # filter(paired != "No") %>%
-  count()
-count(n)
-
-
-count(donor_group)
-colnames()
-#   select(host_subject_id, tube_id, collection_timestamp) %>%
-#   write.csv(file = "files/TBC-PD-Sample-IDs.csv")
-
-
+# ps <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean.rds")
 # load("files/low_quality_samples.RData")
 # load("files/Phyloseq_Merged_ML_Rarefied.RData") #phyloseq_objs_rare
 # phyloseq_objs_rare %<>%
 #   purrr::map(~.x %>% subset_samples(cohort %in%  c("TBC", "Rush")) %>%
 #                subset_samples(donor_id %ni% low_qc[[1]]))
+
 phyloseq_objs_rare <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean_rarefied.rds")
 phyloseq_objs_rare_TBC <- phyloseq_objs_rare %>%
   purrr::map(~ .x %>% subset_samples(cohort == "TBC"))
 phyloseq_objs_rare_Rush <- phyloseq_objs_rare %>%
   purrr::map(~ .x %>% subset_samples(cohort == "Rush"))
-
-phyloseq_objs_rare$Species %>%
-  process_meta(cohort = "Merged") %>%
-  dplyr::summarise(hy_stage_iqr = mad(hy_stage, na.rm = T))
 
 #------------------------------------------
 #             Alpha/Beta Diversity
