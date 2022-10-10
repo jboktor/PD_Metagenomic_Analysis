@@ -10,9 +10,7 @@ source("src/daf_functions.R")
 wkd <- getwd()
 
 ######### INPUT SPECIES
-
-# load("files/Phyloseq_Merged/Species_PhyloseqObj.RData")
-phylo_obj <- readRDS("files/Phyloseq_Merged/PhyloseqObj_clean.rds")
+phylo_obj <- readRDS("files/Phyloseq_Merged/PhyloseqObj_slim_clean.rds")
 datobj <- phylo_obj[["Species"]]
 obj.name <- "Species"
 cohort <- "Merged"
@@ -275,16 +273,16 @@ DAF_final <- cowplot::plot_grid(DAF_part1, DAF_part2,
 DAF_final
 
 ggsave(DAF_final,
-  filename = paste0("figures/Figure_2/DAF_Figure_2_new", Sys.Date(), ".svg"),
-  width = 14, height = 7.5
+  filename = glue("data/DAF_Analysis/Merged/Figure_2_{Sys.Date()}.svg"),
+  width = 14, height = 11
 )
 
 # Legends
 ggsave(phylo.pc$Legends,
-  filename = paste0("figures/Figure_2/DAF_Figure_2_PC.legend_new.svg"),
+  filename = glue("data/DAF_Analysis/Merged/Figure_2_PC.legend_{Sys.Date()}.svg"),
   width = 7, height = 7
 )
 ggsave(phylo.hc$Legends,
-  filename = paste0("figures/Figure_2/DAF_Figure_2_HC.legend_new.svg"),
+  filename = glue("data/DAF_Analysis/Merged/Figure_2_HC.legend_{Sys.Date()}.svg"),
   width = 7, height = 7
 )
