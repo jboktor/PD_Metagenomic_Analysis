@@ -31,10 +31,11 @@ library(ggridges)
 library(future)
 library(cowplot)
 
-rm(list = ls())
-
 # Load Phlyoseq Obj
-load("files/Species_PhyloseqObj.RData")
+ps <- readRDS("files/Phyloseq_Merged/PhyloseqObj_slim_clean.rds")
+dat <- ps$Species %>% 
+  subset_samples(cohort == "TBC")
+
 source("src/Metadata_prep_funcs.R")
 source("src/miscellaneous_funcs.R")
 
@@ -128,7 +129,7 @@ p1 <- ggplot(data = env.design, aes(x = reorder(donor_id, order_col), y = variab
     axis.text.y = element_text(size = 8),
     legend.position = "none"
   )
-# p1
+p1
 
 
 
@@ -175,96 +176,22 @@ freq.Q_legend <-
   labs(fill = "Dietary Consumption \n Frequency") +
   scale_fill_manual(values = c(freq.Q))
 
-
-
-Legends <- plot_grid(get_legend(freq.Q_legend), NULL,
-  get_legend(num.Q_legend), get_legend(yn.na.Q_legend),
-  get_legend(sex.Q_legend), get_legend(donorgroup.Q_legend),
-  ncol = 2, align = "v"
+Legends <- cowplot::plot_grid(
+  get_legend(freq.Q_legend),
+  NULL,
+  get_legend(num.Q_legend),
+  get_legend(yn.na.Q_legend),
+  get_legend(sex.Q_legend),
+  get_legend(donorgroup.Q_legend),
+  ncol = 2,
+  align = "v"
 )
-# Legends
+
 
 fig1a <- plot_grid(p1, NULL, Legends, ncol = 3, rel_widths = c(5, 0.25, 1))
-# fig1a
+fig1a
 
-# ggsave(fig1a, filename="figures/study_metadata.svg",
-#        width=14, height = 6)
-
-
+ggsave(fig1a, filename="figures/study_metadata.svg",
+       width=14, height = 6)
 
 
-
-####################   Load Permanova dataframe from files
-
-permdf <- read.csv(file = "files/permanova_data.csv") %>%
-  filter(metacat != "AA_notmatched")
-# rename description to donor_group
-permdf[permdf$vars == "description", "vars"] <- "donor_group"
-
-## 1) remove features in permanova not shared with meta-analysis
-
-permdf.metaplot <- filter(permdf, vars %in% env.design$variable)
-
-## 2) Re-order y-axis based on heatmap groups
-
-y.axis.order <- factor(y.axis.order)
-permdf.metaplot$vars <- factor(permdf.metaplot$vars, levels = y.axis.order)
-
-## 3) Plot Bars
-#################### All Metadata - METADATA CATEGORY FILL
-
-permdf.metaplot$FDR.symbol <- sig.symbol.generator(permdf.metaplot$FDR)
-permdf.metaplotA <- permdf.metaplot
-permdf.metaplotA[permdf.metaplot$vars != "paired", "FDR.symbol"] <- ""
-
-p2a <- ggplot() +
-  geom_col(data = permdf.metaplotA, aes(x = R2, y = vars, fill = metacat)) +
-  theme_minimal() +
-  labs(x = expression("Variance Explained -" ~ R^2 ~ " % "), fill = "Category") +
-  annotate("text", y = unique(permdf.metaplotA$vars), x = permdf.metaplotA$R2 + 2, label = permdf.metaplotA$FDR.symbol, size = 2) +
-  # annotate("text", y = unique(permdf.metaplot$vars), x = (log10(permdf.metaplot$R2)+0.2), label = paste0("n =", permdf.metaplot$n_meta), size = 2) +
-  scale_fill_simpsons() +
-  theme(
-    axis.title.y = element_blank(),
-    panel.grid = element_blank(),
-    legend.position = "none"
-  )
-
-p2b <- ggplot() +
-  geom_col(data = permdf.metaplot, aes(x = R2, y = vars, fill = metacat)) +
-  theme_minimal() +
-  labs(x = expression("Variance Explained -" ~ R^2 ~ " % "), fill = "Category") +
-  annotate("text", y = unique(permdf.metaplot$vars), x = permdf.metaplot$R2 + 1, label = permdf.metaplot$FDR.symbol, size = 3) +
-  # annotate("text", y = unique(permdf.metaplot$vars), x = (log10(permdf.metaplot$R2)+0.2), label = paste0("n =", permdf.metaplot$n_meta), size = 2) +
-  scale_fill_simpsons() +
-  xlim(NA, 7) +
-  theme(
-    axis.title.y = element_blank(),
-    panel.grid.major.y = element_blank(),
-    panel.grid.minor.y = element_blank()
-  )
-# panel.grid.major.x = element_line(linetype="dashed"),
-# legend.position = c(.80, .50))
-
-## Save Inset separately
-ggsave(p2b,
-  filename = "figures/metadata_heatmap_permanova_variance_NA.filtered_INSET.svg",
-  width = 10, height = 8
-)
-
-
-## 4) Cowplot merge
-
-p2a <- p2a + theme(axis.text.y = element_blank())
-p2b <- p2b + theme(axis.text.y = element_blank())
-p3 <- plot_grid(p1, p2a, ncol = 2, align = "h", rel_widths = c(2.25, 1))
-
-fig1a_supp <- plot_grid(p3, NULL, Legends,
-  ncol = 3, rel_widths = c(5, 0.25, 0.75)
-)
-fig1a_supp
-
-ggsave(fig1a_supp,
-  filename = "figures/metadata_heatmap_permanova_variance_NA.filtered.svg",
-  width = 18, height = 6
-)
