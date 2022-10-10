@@ -593,11 +593,11 @@ process_meta_study_design_plot <- function(dat) {
   general_drugs <- c(
     "antihistamines", "suppositories", "beta_blockers", "statins", "proton_pump_inhibitors",
     "tricyclic_antidepressants", "ssri_antidepressants", "platelet_aggregation_inhibitor",
-    "oral_contraceptives", "metformin", "inhaler", "nonsteroidal_anti.inflammatory"
+    "oral_contraceptives", "metformin", "inhaler", "nonsteroidal_anti_inflammatory"
   )
   pd_drugs <- c(
-    "carbidopa", "levodopa", "levothyroxine", "ropinrole", "azilect", "mirapex",
-    "rytary", "rasagline"
+    "carbidopa", "levodopa", "levothyroxine", "mirapex",
+    "rytary"
   )
   supplements <- c(
     "calcium", "magnesium", "multivitamin", "vitamin_C", "vitamin_D",
