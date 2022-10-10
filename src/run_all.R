@@ -1,6 +1,11 @@
 #' This script will run all analyses downstream of the biobakery pipeline to
 #' generate all data-tables and figures used in our publication
 
+#' run once initialize environment  and install necessary packages
+#' if errors persist, run the configure_enviornment.R script or install 
+#' missing packages individually
+renv::init()
+
 # Analysis Prep
 source("src/create_phyloseq_obj.R")
 source("src/quality_control.R")
