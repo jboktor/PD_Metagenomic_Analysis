@@ -12,7 +12,7 @@ load("files/low_quality_samples.RData")
 #-------------------------------------------------------------------------------
 
 metadata_shanghai <-
-  read.csv(file = "files/metadata_phyloseq_shanghai.csv", header = TRUE, stringsAsFactors = F) %>%
+  read.csv(file = "files/metadata_phyloseq_SHANGHAI.csv", header = TRUE, stringsAsFactors = F) %>%
   dplyr::rename(donor_id = Sample.Name, run = Run) %>%
   dplyr::select(donor_id, donor_group, description, PD, cohort, paired, run) %>%
   dplyr::mutate(paired = as.character(paired)) %>%
